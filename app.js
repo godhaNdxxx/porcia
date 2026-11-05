@@ -37,8 +37,8 @@
   function blank() {
     return {
       v: 1, created: today(),
-      settings: { limits: [], protein: null, fat: null, onboarded: false, stallDismissed: null, baselineDismissed: false, weighSnooze: null, lastBackup: null },
-      log: {}, custom: [], body: [], favs: [],
+      settings: { limits: [], protein: null, fat: null, stepGoal: null, onboarded: false, stallDismissed: null, baselineDismissed: false, weighSnooze: null, lastBackup: null },
+      log: {}, custom: [], body: [], favs: [], act: {},
     };
   }
   function load() {
@@ -113,6 +113,7 @@
     document.querySelectorAll('.tab').forEach(t => { if (t.dataset.tab === ui.view) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current'); });
     if (ui.view === 'today') renderToday();
     else if (ui.view === 'diary') renderDiary();
+    else if (ui.view === 'act') renderAct();
     else if (ui.view === 'body') renderBody();
     else renderMore();
   }
@@ -123,6 +124,7 @@
     $('#dayNext').disabled = ui.day >= t;
     $('#foodLbl').textContent = ui.day === t ? 'Что съела?' : ui.day === addDays(t, -1) ? 'Что съела вчера?' : 'Что съела ' + fmtLong(ui.day) + '?';
     renderSummary();
+    renderActMini();
     renderTips();
     renderMeals();
     renderPreview();
@@ -155,7 +157,7 @@
       el.innerHTML = `<div class="summary">
         <div class="ring ${over ? 'over' : ''}" role="img" aria-label="Съедено ${nf(t.kcal)} из ${nf(L)} ккал">
           <svg viewBox="0 0 128 128"><circle class="trk" cx="64" cy="64" r="${R}" fill="none" stroke-width="12"/>
-          <circle class="val" cx="64" cy="64" r="${R}" fill="none" stroke-width="12" stroke-linecap="round" stroke-dasharray="${CIRC.toFixed(1)}" stroke-dashoffset="${(CIRC * (1 - frac)).toFixed(1)}" ${t.kcal === 0 ? 'opacity="0"' : ''}/></svg>
+          <circle class="val" cx="64" cy="64" r="${R}" fill="none" stroke-width="12" stroke-linecap="round" stroke-dasharray="${CIRC.toFixed(1)}" stroke-dashoffset="${(CIRC * (1 - frac)).toFixed(1)}" ${t.kcal === 0 ? 'opacity="0"' : ''}/>${t.kcal > 0 && !over ? `<circle cx="${(64 + R * Math.cos(2 * Math.PI * frac)).toFixed(1)}" cy="${(64 + R * Math.sin(2 * Math.PI * frac)).toFixed(1)}" r="7.5" fill="url(#beadFill)" stroke="var(--surface)" stroke-width="2.5"/><circle cx="${(66 + R * Math.cos(2 * Math.PI * frac)).toFixed(1)}" cy="${(62 + R * Math.sin(2 * Math.PI * frac)).toFixed(1)}" r="1.8" fill="#fff"/>` : ''}</svg>
           <div class="mid"><div class="big">${nf(Math.abs(L - t.kcal))}</div><div class="cap">${over ? 'перебор' : 'осталось'}</div></div>
         </div>
         <div class="stats">
@@ -270,7 +272,7 @@
   function renderEntries() {
     const items = dayItems(ui.day);
     const el = $('#entries');
-    if (!items.length) { el.innerHTML = `<h2>Записи</h2><div class="empty">Здесь появится всё, что ты съешь за день.</div>`; return; }
+    if (!items.length) { el.innerHTML = `<h2>Записи</h2>${emptyBear('Здесь появится всё, что ты съешь за день.')}`; return; }
     const groups = MEALS.map(([k, n]) => {
       const arr = items.filter(i => i.m === k);
       if (!arr.length) return '';
@@ -284,7 +286,7 @@
   // ---------- Дневник ----------
   function renderDiary() {
     const t = today();
-    const days = new Set(Object.keys(S.log).filter(d => S.log[d].length));
+    const days = new Set(Object.keys(S.log).filter(d => S.log[d].length).concat(Object.keys(S.act).filter(d => S.act[d].steps || (S.act[d].w || []).length)));
     days.add(t);
     const list = [...days].sort().reverse().slice(0, 90);
     const last7 = [];
@@ -298,17 +300,18 @@
           <div class="kpi"><div class="v" style="color:var(--protein)">${g1(avgP)}</div><div class="l">г белка в среднем</div></div>
           <div class="kpi"><div class="v">${withL ? inL + '/' + withL : '—'}</div><div class="l">${withL ? 'дней в лимите' : 'лимит не задан'}</div></div>
         </div><p class="tiny muted" style="margin:10px 0 0">Записано дней: ${last7.length} из 7</p>`
-      : `<h2>Последние 7 дней</h2><div class="empty">Пока нет записей. Начни с экрана «Сегодня».</div>`;
+      : `<h2>Последние 7 дней</h2>${emptyBear('Пока нет записей. Начни с экрана «Сегодня».')}`;
     const maxK = Math.max(1, ...list.map(d => totals(dayItems(d)).kcal));
     $('#diaryList').innerHTML = list.map(d => {
       const items = dayItems(d); const tt = totals(items); const L = limitFor(d);
       const base = L || maxK;
       const w = Math.min(100, tt.kcal / base * 100);
       const over = L && tt.kcal > L;
+      const ad = actDay(d); const good = L && tt.kcal > 0 && tt.kcal <= L && d < today();
       return `<button class="drow" data-act="open-day" data-day="${d}"><span class="d">${fmtDay(d)}</span>
-        <span class="v">${nf(tt.kcal)} <small>${L ? '/ ' + nf(L) : 'ккал'}</small></span>
+        <span class="v">${good ? GEM + ' ' : ''}${nf(tt.kcal)} <small>${L ? '/ ' + nf(L) : 'ккал'}</small></span>
         <div class="bar ${over ? 'over' : 'accent'}"><i style="width:${w}%"></i></div>
-        <div class="meta"><span style="color:var(--protein)">белок ${g1(tt.p)} г</span><span>жиры ${g1(tt.f)} г</span><span>${items.length} ${plural(items.length, 'запись', 'записи', 'записей')}</span></div></button>`;
+        <div class="meta"><span style="color:var(--protein)">белок ${g1(tt.p)} г</span><span>жиры ${g1(tt.f)} г</span><span>${items.length} ${plural(items.length, 'запись', 'записи', 'записей')}</span>${ad.steps ? `<span>шаги ${nf(ad.steps)}</span>` : ''}${(ad.w || []).length ? `<span style="color:var(--accent)">${ad.w.map(w => (ACT[w.type] || ACT.other).n.toLowerCase()).join(', ')}</span>` : ''}</div></button>`;
     }).join('');
   }
 
@@ -333,11 +336,11 @@
       }
       nb.innerHTML = `<h2>Последний замер · ${fmtLong(last.d)}</h2><div><span class="baseline-big">${g1(last.w)}</span> <span class="muted">кг</span></div><p class="small" style="margin:8px 0 0">${dueTxt}</p>${prog}`;
     }
-    $('#bodyChart').innerHTML = `<h2>Вес</h2>` + (w.length >= 2 ? chartSvg(w) : `<div class="empty">График появится после второго замера.</div>`);
+    $('#bodyChart').innerHTML = `<h2>Вес</h2>` + (w.length >= 2 ? chartSvg(w) : emptyBear('График появится после второго замера.'));
     if (!$('#bDate').value) $('#bDate').value = today();
     $('#bDate').max = today();
     const all = S.body.slice().sort((a, b) => a.d < b.d ? 1 : -1);
-    if (!all.length) { $('#bodyList').innerHTML = `<h2>История</h2><div class="empty">Замеров пока нет.</div>`; return; }
+    if (!all.length) { $('#bodyList').innerHTML = `<h2>История</h2>${emptyBear('Замеров пока нет.')}`; return; }
     const rows = all.map((b, i) => {
       const prev = all.slice(i + 1).find(x => x.w);
       const dw = b.w && prev ? b.w - prev.w : null;
@@ -401,6 +404,11 @@
       <div class="setrow" style="margin-top:14px"><label class="field"><span>Жиры, г в день (можно не задавать)</span><input id="sFat" type="text" inputmode="numeric" value="${F || ''}" placeholder="не задано"></label><button class="btn" data-act="save-fat">Сохранить</button></div>`;
     updateProteinHelper();
 
+    const sug = stepSuggest();
+    $('#setAct').innerHTML = `<h2>Активность</h2>
+      <div class="setrow"><label class="field"><span>Цель по шагам в день</span><input id="sStepGoal" type="text" inputmode="numeric" value="${S.settings.stepGoal || ''}" placeholder="не задана"></label><button class="btn" data-act="save-stepgoal">Сохранить</button></div>
+      <p class="hint">${sug ? `В среднем за последнюю неделю — ${nf(sug.avg)} шагов. ` : ''}Шаги удобнее прибавлять по 500 в неделю, а не сразу до 10 000.</p>
+      <p class="hint">Веб-приложение на iPhone не может само читать шаги из «Здоровья», поэтому число вписывается вручную на экране «Активность».</p>`;
     $('#setFoods').innerHTML = `<h2>Мои продукты</h2>
       ${S.custom.length ? `<div class="list">${S.custom.map(c => `<div class="li"><div style="min-width:0"><div style="font-weight:600;overflow-wrap:anywhere">${esc(c.name)}</div><div class="tiny muted num">${nf(c.kcal)} ккал · Б ${g1(c.p)} · Ж ${g1(c.f)} · У ${g1(c.c)} на 100 г${c.portion ? ' · порция ' + c.portion + ' г' : ''}</div></div><button class="btn plain" style="min-height:36px;padding:6px 12px" data-act="edit-food" data-id="${c.id}">Изменить</button></div>`).join('')}</div>`
         : `<p class="small muted" style="margin:0 0 10px">Сюда попадают продукты, которых нет в базе, — например, твой любимый йогурт с цифрами с этикетки.</p>`}
@@ -442,8 +450,8 @@
   }
 
   function howtoSheet(first) {
-    openSheet(`<h2>${first ? 'Привет! Это «Порция»' : 'Как это работает'}</h2>
-      <p class="muted small" style="margin:0 0 14px">Пишешь, что съела, обычными словами — приложение считает калории и белок.</p>
+    openSheet(`<div class="hero">${bearSvg()}<h2>${first ? 'Привет! Это «Порция»' : 'Как это работает'}</h2></div>
+      <p class="muted small" style="margin:0 0 14px">Пишешь, что съела, обычными словами — приложение считает калории и белок. А на вкладке «Активность» — тренировки и шаги.</p>
       <ol class="howto">
         <li><span><b>5 дней наблюдения.</b> Ешь как обычно и честно записывай всё. Так станет понятно, сколько ты ешь в среднем.</span></li>
         <li><span><b>Лимит = среднее минус 10%.</b> Есть можно что угодно, главное — не выше лимита. Не хочется есть — не заставляй себя.</span></li>
@@ -525,11 +533,177 @@
       <div class="stack"><button class="btn danger block" data-act="body-del" data-id="${b.id}" id="bdDel">Удалить замер</button><button class="btn plain block" data-act="sheet-close">Закрыть</button></div>`);
   }
 
+
+  // ---------- Активность ----------
+  const ACT_TYPES = [
+    ['strength', 'Силовая', 5], ['volley', 'Волейбол', 4], ['walk', 'Прогулка', 3.5], ['run', 'Бег', 9], ['cardio', 'Кардио', 7],
+    ['bike', 'Велосипед', 7], ['yoga', 'Йога, растяжка', 2.5], ['dance', 'Танцы', 5.5], ['swim', 'Плавание', 6], ['other', 'Другое', 4],
+  ];
+  const ACT = {}; ACT_TYPES.forEach(([k, n, met]) => ACT[k] = { n, met });
+  const INTS = [['l', 'Лёгкая'], ['m', 'Средняя'], ['h', 'Тяжёлая']];
+  const INT_NAME = { l: 'лёгкая', m: 'средняя', h: 'тяжёлая' };
+  const INT_K = { l: 0.8, m: 1, h: 1.25 };
+  const ACT_IC = {
+    strength: '<path d="M6.5 7.5v9M3.5 9.5v5M17.5 7.5v9M20.5 9.5v5M6.5 12h11"/>',
+    volley: '<circle cx="12" cy="12" r="8.5"/><path d="M12 3.5c-2.2 3.2-2.2 6.3 0 8.5 2.2 2.2 5.6 2.6 8.3 1.3M4.1 9.4c3.3-1.1 6.2-.2 7.9 2.6M6.6 18.6c-.2-3.3 1.6-5.6 5.4-6.6"/>',
+    walk: '<path d="M8.2 4.5c1.4 0 2.2 1.5 1.9 3.3-.3 1.8-1.2 2.9-2.3 2.9S5.7 9.4 6 7.6c.2-1.8.9-3.1 2.2-3.1zM6.3 13.4l3.8.6-.4 2.5c-.2 1.2-1.1 1.9-2.2 1.7s-1.7-1.1-1.5-2.3zM15.9 8.5c1.3 0 2 1.3 1.8 3s-1 2.7-2.1 2.7-1.8-1.2-1.6-2.8.7-2.9 1.9-2.9zM13.9 17.3l3.8-.6.4 2.3c.2 1.2-.6 2.1-1.6 2.3s-2-.5-2.2-1.6z"/>',
+    run: '<circle cx="14.5" cy="4.6" r="1.9"/><path d="M7.5 20.5l3.2-5 3 2.2v3.8M9 10.6l3.6-2.1 2.6 3 3.3 1M12.6 8.5l-2 6.2M5.5 11.5l3.5-.9"/>',
+    cardio: '<path d="M12 20s-7.5-4.6-7.5-10.2A4.2 4.2 0 0 1 12 7.2a4.2 4.2 0 0 1 7.5 2.6C19.5 15.4 12 20 12 20z"/><path d="M7.5 12.5h2.3l1.2-2.2 2 4 1.2-1.8h2.3"/>',
+    bike: '<circle cx="6" cy="16" r="3.5"/><circle cx="18" cy="16" r="3.5"/><path d="M6 16l4-7.5h5.5L18 16M10 8.5l3.5 7.5M13.5 6h2.5"/>',
+    yoga: '<path d="M12 18.5c-4.2 0-7.2-2-8.2-5.2 3.2 0 5.6 1.3 8.2 5.2zm0 0c4.2 0 7.2-2 8.2-5.2-3.2 0-5.6 1.3-8.2 5.2zm0 0c-2.2-3.2-2.2-7.4 0-11.5 2.2 4.1 2.2 8.3 0 11.5z"/>',
+    dance: '<path d="M9 18V6.5l10-2.2v11.5"/><circle cx="6.8" cy="18" r="2.2"/><circle cx="16.8" cy="15.8" r="2.2"/>',
+    swim: '<path d="M3 15.5c2-1.5 4-1.5 6 0s4 1.5 6 0 4-1.5 6 0M3 19.5c2-1.5 4-1.5 6 0s4 1.5 6 0 4-1.5 6 0"/><circle cx="16" cy="7" r="2"/><path d="M6 12l4-3.2 3.2 2.2"/>',
+    other: '<path d="M12 3.5l2 5.5 5.5 2-5.5 2-2 5.5-2-5.5-5.5-2 5.5-2z"/>',
+  };
+  const actIcon = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ACT_IC[k] || ACT_IC.other}</svg>`;
+  const GEM = '<svg class="gem" viewBox="0 0 24 24" aria-hidden="true"><use href="#gem"/></svg>';
+  const bearSvg = () => '<svg class="bear" viewBox="0 0 120 120" aria-hidden="true"><use href="#bear"/></svg>';
+  const emptyBear = txt => `<div class="empty">${bearSvg()}<div>${txt}</div></div>`;
+  const EX_NAMES = ['Приседания', 'Приседания со штангой', 'Гоблет-приседания', 'Жим ногами', 'Выпады', 'Болгарские выпады', 'Ягодичный мост', 'Ягодичный мост со штангой',
+    'Румынская тяга', 'Становая тяга', 'Отведение ноги в кроссовере', 'Отведение бедра в тренажёре', 'Сведение бедра в тренажёре', 'Разгибание ног', 'Сгибание ног',
+    'Гиперэкстензия', 'Тяга верхнего блока', 'Тяга горизонтального блока', 'Тяга гантели в наклоне', 'Подтягивания в гравитроне', 'Жим гантелей лёжа', 'Жим гантелей сидя',
+    'Разведения гантелей в стороны', 'Сгибания на бицепс', 'Разгибания на трицепс', 'Отжимания', 'Планка', 'Скручивания', 'Подъём ног в висе', 'Подъём на носки'];
+
+  const actDay = d => S.act[d] || { steps: null, w: [] };
+  function actDayMut(d) { if (!S.act[d]) S.act[d] = { steps: null, w: [] }; if (!S.act[d].w) S.act[d].w = []; return S.act[d]; }
+  function weightOn(d) { const w = weights(); let v = null; for (const x of w) if (x.d <= d) v = x.w; return v || (w.length ? w[w.length - 1].w : null); }
+  function wkKcal(w, d) { const kg = weightOn(d); const min = num(w.min); if (!kg || !min) return null; const a = ACT[w.type] || ACT.other; return Math.round(a.met * (INT_K[w.int] || 1) * kg * min / 60); }
+  function fmtMin(m) { if (!m) return ''; const h = Math.floor(m / 60), r = m % 60; return h ? h + ' ч' + (r ? ' ' + r + ' мин' : '') : r + ' мин'; }
+  const stepsK = n => n >= 1000 ? (Math.round(n / 100) / 10).toLocaleString('ru-RU') + 'к' : String(n);
+  function weekStart(d) { return addDays(d, -((toDate(d).getDay() + 6) % 7)); }
+  function stepSuggest() {
+    const t = today(); const arr = [];
+    for (let i = 1; i <= 7; i++) { const a = S.act[addDays(t, -i)]; if (a && a.steps) arr.push(a.steps); }
+    if (arr.length < 3) return null;
+    const avg = arr.reduce((s, x) => s + x, 0) / arr.length;
+    return { avg: Math.round(avg), goal: Math.round((avg + 500) / 100) * 100, n: arr.length };
+  }
+  function wkSummary(w, d) {
+    const n = (w.ex || []).length; const k = wkKcal(w, d);
+    return [fmtMin(w.min), w.int ? INT_NAME[w.int] : '', n ? n + ' ' + plural(n, 'упражнение', 'упражнения', 'упражнений') : '', k ? '≈ ' + k + ' ккал' : ''].filter(Boolean).join(' · ') || 'Тренировка отмечена';
+  }
+  const setsTxt = sets => sets.map(s => (s.w != null && s.w !== '' ? g1(+s.w) + ' кг' : '') + ((s.w != null && s.w !== '') && s.r ? ' × ' : '') + (s.r ? s.r + (s.w != null && s.w !== '' ? '' : ' раз') : '')).filter(Boolean).join(', ');
+  function lastSets(name, beforeDay, exceptId) {
+    const key = String(name || '').trim().toLowerCase(); if (!key) return null;
+    const days = Object.keys(S.act).filter(d => d <= beforeDay).sort().reverse();
+    for (const d of days) for (const w of (S.act[d].w || []).slice().reverse()) {
+      if (w.id === exceptId) continue;
+      const e = (w.ex || []).find(x => x.n.trim().toLowerCase() === key);
+      if (e && e.sets && e.sets.length) return { d, sets: e.sets };
+    }
+    return null;
+  }
+  function allExNames() { const set = new Set(EX_NAMES); Object.values(S.act).forEach(a => (a.w || []).forEach(w => (w.ex || []).forEach(e => set.add(e.n)))); return [...set]; }
+  function wcard(w, d, withDate) {
+    return `<button class="wcard" data-act="wk-open" data-day="${d}" data-id="${w.id}"><span class="wic">${actIcon(w.type)}</span><span style="min-width:0"><span class="nm">${esc((ACT[w.type] || ACT.other).n)}${withDate ? ` <span class="muted small" style="font-weight:400">· ${fmtDay(d)}</span>` : ''}</span><span class="sub">${esc(wkSummary(w, d))}</span></span></button>`;
+  }
+
+  function renderActMini() {
+    const el = $('#actMini'); const a = actDay(ui.day); const G = S.settings.stepGoal;
+    const ws = a.w || [];
+    const parts = [];
+    if (a.steps) parts.push(`шаги <b class="num">${nf(a.steps)}</b>${G ? ' / ' + nf(G) : ''}`);
+    if (ws.length) parts.push(ws.map(w => (ACT[w.type] || ACT.other).n.toLowerCase()).join(', '));
+    el.innerHTML = `<button class="actmini" data-act="goto-act"><span class="wic">${actIcon(ws.length ? ws[0].type : 'walk')}</span><span>${parts.length ? parts.join(' · ') : '<span class="muted">Добавить шаги или тренировку</span>'}${ws.length ? ' ' + GEM : ''}</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>`;
+  }
+
+  function renderAct() {
+    const t = today();
+    $('#actTitle').textContent = fmtDay(ui.day);
+    $('#actNext').disabled = ui.day >= t;
+    const ws0 = weekStart(ui.day);
+    const WD = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+    let nW = 0, mins = 0, stepSum = 0, stepN = 0;
+    const cells = [0, 1, 2, 3, 4, 5, 6].map(i => {
+      const d = addDays(ws0, i); const a = actDay(d); const n = (a.w || []).length;
+      nW += n; mins += (a.w || []).reduce((s, w) => s + (num(w.min) || 0), 0);
+      if (a.steps) { stepSum += a.steps; stepN++; }
+      return `<button class="wday ${d === ui.day ? 'sel' : ''}" data-act="act-day" data-day="${d}" ${d > t ? 'disabled' : ''} aria-label="${fmtDay(d)}${n ? ', тренировка' : ''}"><span class="wd">${WD[i]}</span><span class="wg">${n ? GEM : '<i></i>'}</span><span class="ws num">${a.steps ? stepsK(a.steps) : '·'}</span></button>`;
+    }).join('');
+    const isThis = ws0 === weekStart(t);
+    $('#actWeek').innerHTML = `<h2>${isThis ? 'Эта неделя' : 'Неделя с ' + fmtLong(ws0)}</h2><div class="week">${cells}</div>
+      <p class="small" style="margin:12px 0 0">${nW ? `<b>${nW}</b> ${plural(nW, 'тренировка', 'тренировки', 'тренировок')}${mins ? ' · ' + fmtMin(mins) : ''}` : 'Тренировок пока нет'}${stepN ? ` · в среднем <b class="num">${nf(stepSum / stepN)}</b> шагов` : ''}</p>
+      <p class="tiny muted" style="margin:4px 0 0">За каждый день с тренировкой — стразик.</p>`;
+
+    const a = actDay(ui.day); const G = S.settings.stepGoal; const st = a.steps || 0;
+    const sug = stepSuggest();
+    let goalBlock = '';
+    if (!G && sug) goalBlock = `<div class="helper"><div class="small">В среднем за неделю — <b class="num">${nf(sug.avg)}</b> шагов. Удобно прибавлять по 500 в неделю.</div><button class="btn ghost" data-act="step-goal-apply" data-g="${sug.goal}">Цель: ${nf(sug.goal)} шагов</button></div>`;
+    else if (G && sug && sug.avg >= G && ui.day === t) goalBlock = `<div class="helper"><div class="small">Ты стабильно проходишь цель — в среднем <b class="num">${nf(sug.avg)}</b>. Можно прибавить 500.</div><button class="btn ghost" data-act="step-goal-apply" data-g="${G + 500}">Новая цель: ${nf(G + 500)}</button></div>`;
+    $('#actSteps').innerHTML = `<h2>Шаги</h2>
+      <div><span class="baseline-big">${a.steps ? nf(a.steps) : '—'}</span>${G ? ` <span class="muted">из ${nf(G)}</span>` : ''}${G && st >= G ? ' ' + GEM : ''}</div>
+      ${G ? `<div class="bar accent" style="margin-top:10px"><i style="width:${Math.min(100, st / G * 100)}%"></i></div>` : ''}
+      <div class="setrow" style="margin-top:12px"><label class="field"><span>Шагов за ${ui.day === t ? 'сегодня' : fmtLong(ui.day)}</span><input id="stepsIn" type="text" inputmode="numeric" value="${a.steps || ''}" placeholder="например, 7500"></label><button class="btn" data-act="steps-save">Сохранить</button></div>
+      <p class="hint">Число — из приложения «Здоровье» или с часов. Удобно вписывать вечером.</p>
+      ${goalBlock}`;
+
+    $('#actAdd').innerHTML = `<h2>Добавить тренировку</h2><div class="types">${ACT_TYPES.map(([k, n]) => `<button class="tchip" data-act="wk-new" data-type="${k}">${actIcon(k)}<span>${n}</span></button>`).join('')}</div>
+      <p class="hint">Можно просто отметить факт. Для силовой — по желанию упражнения и веса.</p>`;
+
+    const list = a.w || [];
+    $('#actList').innerHTML = `<h2>Тренировки · ${ui.day === t ? 'сегодня' : fmtLong(ui.day)}</h2>` +
+      (list.length ? `<div class="wlist">${list.map(w => wcard(w, ui.day)).join('')}</div>` : emptyBear('В этот день тренировок нет. Прогулка тоже считается!'));
+
+    const recent = [];
+    Object.keys(S.act).filter(d => d !== ui.day).sort().reverse().forEach(d => (S.act[d].w || []).slice().reverse().forEach(w => recent.push([d, w])));
+    $('#actRecent').hidden = !recent.length;
+    $('#actRecent').innerHTML = recent.length ? `<h2>Недавние</h2><div class="wlist">${recent.slice(0, 8).map(([d, w]) => wcard(w, d, true)).join('')}</div>` : '';
+  }
+
+  // Редактор тренировки
+  let wk = null;
+  function wkSheet(focusSel) {
+    const scroll = $('#sheet').scrollTop;
+    const isStr = wk.type === 'strength';
+    const k = wkKcal(wk, wk.d);
+    const mins = [20, 30, 45, 60, 90];
+    const exHtml = isStr ? `<div class="exs"><div class="exh"><b>Упражнения</b><span class="tiny muted">по желанию</span></div>
+      ${wk.ex.map((e, i) => {
+        const L = lastSets(e.n, wk.d, wk.id);
+        return `<div class="ex">
+          <div class="exrow"><input class="exname" list="exList" data-ex="${i}" value="${esc(e.n)}" placeholder="Например, приседания" autocapitalize="sentences"><button class="xbtn" data-act="wk-ex-del" data-ex="${i}" aria-label="Убрать упражнение">${IC.x}</button></div>
+          <div class="lasthint" data-hint="${i}" data-key="${esc(String(e.n || '').trim().toLowerCase())}">${L ? `В прошлый раз, ${fmtLong(L.d)}: ${esc(setsTxt(L.sets))} <button class="linkbtn" data-act="wk-ex-copy" data-ex="${i}">Повторить</button>` : ''}</div>
+          ${e.sets.map((s, j) => `<div class="set"><span class="sn">${j + 1}</span><input class="sw" data-ex="${i}" data-set="${j}" inputmode="decimal" value="${esc(s.w)}" placeholder="кг" aria-label="Вес, подход ${j + 1}"><span class="x">×</span><input class="sr" data-ex="${i}" data-set="${j}" inputmode="numeric" value="${esc(s.r)}" placeholder="раз" aria-label="Повторы, подход ${j + 1}"><button class="xbtn" data-act="wk-set-del" data-ex="${i}" data-set="${j}" aria-label="Убрать подход">${IC.x}</button></div>`).join('')}
+          <div><button class="linkbtn small" data-act="wk-set-add" data-ex="${i}">+ подход</button></div></div>`;
+      }).join('')}
+      <button class="btn ghost block" data-act="wk-ex-add">+ упражнение</button>
+      <datalist id="exList">${allExNames().map(n => `<option value="${esc(n)}">`).join('')}</datalist></div>` : '';
+    openSheet(`<h2>${wk.id ? 'Изменить тренировку' : 'Новая тренировка'}</h2><p class="muted small" style="margin:0">${fmtDay(wk.d)}</p>
+      <div class="stack">
+        <div class="types sm" role="group" aria-label="Вид">${ACT_TYPES.map(([kk, n]) => `<button class="tchip" data-act="wk-type" data-type="${kk}" aria-pressed="${wk.type === kk}">${actIcon(kk)}<span>${n}</span></button>`).join('')}</div>
+        <div class="field"><span>Длительность</span><div class="chips">${mins.map(m => `<button class="seg" data-act="wk-min" data-m="${m}" aria-pressed="${+wk.min === m}">${m} мин</button>`).join('')}<input id="wkMin" type="text" inputmode="numeric" value="${wk.min && !mins.includes(+wk.min) ? esc(wk.min) : ''}" placeholder="другое" aria-label="Минуты"></div></div>
+        <div class="field"><span>Интенсивность</span><div class="chips">${INTS.map(([kk, n]) => `<button class="seg" data-act="wk-int" data-i="${kk}" aria-pressed="${wk.int === kk}">${n}</button>`).join('')}</div></div>
+        ${exHtml}
+        <label class="field"><span>Заметка</span><textarea id="wkNote" rows="2" style="min-height:56px" placeholder="Например: с тренером, ноги + ягодицы">${esc(wk.note)}</textarea></label>
+        <p class="tiny muted" id="wkKcal" style="margin:0">${k ? `Примерный расход ≈ ${k} ккал. К лимиту еды он не прибавляется.` : 'Укажи длительность и вес в «Весе», и я примерно посчитаю расход. К лимиту еды он не прибавляется.'}</p>
+        <button class="btn block" data-act="wk-save">${wk.id ? 'Сохранить' : 'Записать тренировку'}</button>
+        ${wk.id ? `<button class="btn plain block" data-act="sheet-close">Отмена</button>` : ''}
+      </div>`, () => { wk = null; });
+    $('#sheet').scrollTop = scroll;
+    if (focusSel) { const f = $('#sheet').querySelector(focusSel); if (f) f.focus(); }
+  }
+  function wkFromRecord(w, d) {
+    return { id: w.id, d, type: w.type, min: w.min ? String(w.min) : '', int: w.int || 'm', note: w.note || '',
+      ex: (w.ex || []).map(e => ({ n: e.n, sets: (e.sets.length ? e.sets : [{}]).map(s => ({ w: s.w != null ? String(s.w).replace('.', ',') : '', r: s.r != null ? String(s.r) : '' })) })) };
+  }
+  function wkDetail(d, id) {
+    const w = actDay(d).w.find(x => x.id === id); if (!w) return;
+    openSheet(`<div class="hero"><span class="wic" style="width:52px;height:52px;border-radius:16px">${actIcon(w.type)}</span><div><h2>${esc((ACT[w.type] || ACT.other).n)}</h2><div class="muted small">${fmtDay(d)}</div></div></div>
+      <p class="small" style="margin:8px 0 0">${esc(wkSummary(w, d))}</p>
+      ${w.ex && w.ex.length ? `<div class="list" style="margin-top:10px">${w.ex.map(e => `<div class="exview"><b>${esc(e.n)}</b><span class="small muted">${esc(setsTxt(e.sets)) || 'без подходов'}</span></div>`).join('')}</div>` : ''}
+      ${w.note ? `<p class="small" style="margin:10px 0 0">${esc(w.note)}</p>` : ''}
+      <div class="stack">
+        <button class="btn block" data-act="wk-edit" data-day="${d}" data-id="${w.id}">Изменить</button>
+        ${d !== today() ? `<button class="btn ghost block" data-act="wk-repeat" data-day="${d}" data-id="${w.id}">Повторить сегодня</button>` : ''}
+        <button class="btn danger block" data-act="wk-del" data-day="${d}" data-id="${w.id}">Удалить</button>
+      </div>`);
+  }
+
   // ---------- Тост ----------
   let toastTimer = null;
-  function toast(msg, undo) {
+  function toast(msg, undo, shiny) {
     const el = $('#toast');
-    el.innerHTML = `<span>${esc(msg)}</span>${undo ? '<button data-act="undo">Отменить</button>' : ''}`;
+    el.innerHTML = `${shiny ? '<svg class="gem" viewBox="0 0 24 24" aria-hidden="true" style="width:20px;height:20px"><use href="#gem"/></svg>' : ''}<span>${esc(msg)}</span>${undo ? '<button data-act="undo">Отменить</button>' : ''}`;
     el.hidden = false;
     el._undo = undo || null;
     clearTimeout(toastTimer);
@@ -668,6 +842,55 @@
     'import-confirm'() { const d = $('#sheet')._import; if (!d) return; S = Object.assign(blank(), d, { settings: Object.assign(blank().settings, d.settings || {}) }); save(); closeSheet(); render(); toast('Данные восстановлены'); },
   };
 
+
+  Object.assign(actions, {
+    'goto-act'() { ui.view = 'act'; render(); window.scrollTo(0, 0); },
+    'act-day'(b) { ui.day = b.dataset.day; ui.followToday = ui.day === today(); render(); },
+    'steps-save'() {
+      const raw = $('#stepsIn').value.trim(); const v = num(raw);
+      if (raw && (v == null || v > 100000)) { toast('Проверь число шагов'); return; }
+      actDayMut(ui.day).steps = v ? Math.round(v) : null; save(); render();
+      const G = S.settings.stepGoal;
+      toast(v ? (G && v >= G ? 'Цель по шагам выполнена' : 'Шаги сохранены') : 'Шаги убраны', null, !!(v && G && v >= G));
+    },
+    'step-goal-apply'(b) { S.settings.stepGoal = +b.dataset.g; save(); render(); toast(`Цель: ${nf(+b.dataset.g)} шагов`); },
+    'save-stepgoal'() { const v = num($('#sStepGoal').value); S.settings.stepGoal = v ? Math.round(v) : null; save(); render(); toast(v ? `Цель: ${nf(v)} шагов` : 'Цель по шагам убрана'); },
+    'wk-new'(b) { wk = { id: null, d: ui.day, type: b.dataset.type, min: '', int: 'm', note: '', ex: b.dataset.type === 'strength' ? [{ n: '', sets: [{ w: '', r: '' }] }] : [] }; wkSheet(); },
+    'wk-type'(b) { wk.type = b.dataset.type; if (wk.type === 'strength' && !wk.ex.length) wk.ex.push({ n: '', sets: [{ w: '', r: '' }] }); wkSheet(); },
+    'wk-min'(b) { wk.min = +wk.min === +b.dataset.m ? '' : b.dataset.m; wkSheet(); },
+    'wk-int'(b) { wk.int = b.dataset.i; wkSheet(); },
+    'wk-ex-add'() { wk.ex.push({ n: '', sets: [{ w: '', r: '' }] }); wkSheet(`.exname[data-ex="${wk.ex.length - 1}"]`); },
+    'wk-ex-del'(b) { wk.ex.splice(+b.dataset.ex, 1); wkSheet(); },
+    'wk-set-add'(b) { const e = wk.ex[+b.dataset.ex]; const l = e.sets[e.sets.length - 1] || { w: '', r: '' }; e.sets.push({ w: l.w, r: l.r }); wkSheet(`.sw[data-ex="${b.dataset.ex}"][data-set="${e.sets.length - 1}"]`); },
+    'wk-set-del'(b) { const e = wk.ex[+b.dataset.ex]; e.sets.splice(+b.dataset.set, 1); if (!e.sets.length) e.sets.push({ w: '', r: '' }); wkSheet(); },
+    'wk-ex-copy'(b) { const e = wk.ex[+b.dataset.ex]; const L = lastSets(e.n, wk.d, wk.id); if (!L) return; e.sets = L.sets.map(s => ({ w: s.w != null ? String(s.w).replace('.', ',') : '', r: s.r != null ? String(s.r) : '' })); wkSheet(); },
+    'wk-save'() {
+      const minV = num(wk.min);
+      const rec = {
+        id: wk.id || uid(), t: Date.now(), type: wk.type, min: minV ? Math.round(minV) : null, int: wk.int, note: String(wk.note || '').trim(),
+        ex: wk.type === 'strength' ? wk.ex.filter(e => e.n.trim()).map(e => ({ n: e.n.trim(), sets: e.sets.map(s => ({ w: num(s.w), r: num(s.r) != null ? Math.round(num(s.r)) : null })).filter(s => s.w != null || s.r != null) })) : [],
+      };
+      const day = actDayMut(wk.d);
+      const i = day.w.findIndex(x => x.id === rec.id);
+      if (i >= 0) day.w[i] = rec; else day.w.push(rec);
+      const isNew = i < 0;
+      save(); closeSheet(); render();
+      toast(isNew ? 'Тренировка записана' : 'Сохранено', null, isNew);
+    },
+    'wk-open'(b) { wkDetail(b.dataset.day, b.dataset.id); },
+    'wk-edit'(b) { const w = actDay(b.dataset.day).w.find(x => x.id === b.dataset.id); if (!w) return; wk = wkFromRecord(w, b.dataset.day); wkSheet(); },
+    'wk-repeat'(b) {
+      const w = actDay(b.dataset.day).w.find(x => x.id === b.dataset.id); if (!w) return;
+      const copy = JSON.parse(JSON.stringify(w)); copy.id = uid(); copy.t = Date.now(); copy.note = '';
+      actDayMut(today()).w.push(copy); save(); closeSheet(); render(); toast('Добавлено на сегодня');
+    },
+    'wk-del'(b) {
+      if (ui.delArm !== 'w' + b.dataset.id) { ui.delArm = 'w' + b.dataset.id; b.textContent = 'Точно удалить? Нажми ещё раз'; return; }
+      const day = actDayMut(b.dataset.day); day.w = day.w.filter(x => x.id !== b.dataset.id);
+      ui.delArm = null; save(); closeSheet(); render(); toast('Тренировка удалена');
+    },
+  });
+
   async function exportData() {
     const json = JSON.stringify({ app: 'porcia', v: 1, exported: new Date().toISOString(), data: S });
     const name = 'porcia-' + today() + '.json';
@@ -706,10 +929,10 @@
   });
 
   // ---------- События ----------
-  const KEEP_FOCUS = new Set(['meal', 'draft-del', 'es-step', 'es-meal', 'ff-mode']);
+  const KEEP_FOCUS = new Set(['meal', 'draft-del', 'es-step', 'es-meal', 'ff-mode', 'wk-type', 'wk-int', 'wk-set-add', 'wk-ex-add', 'wk-set-del', 'wk-ex-del', 'wk-ex-copy']);
   document.addEventListener('click', ev => {
     const tab = ev.target.closest('.tab');
-    if (tab) { ui.view = tab.dataset.tab; ui.delArm = null; if (ui.view === 'today' && ui.followToday) ui.day = today(); render(); window.scrollTo(0, 0); return; }
+    if (tab) { ui.view = tab.dataset.tab; ui.delArm = null; if ((ui.view === 'today' || ui.view === 'act') && ui.followToday) ui.day = today(); render(); window.scrollTo(0, 0); return; }
     if (ev.target === $('#backdrop')) { closeSheet(); return; }
     const b = ev.target.closest('[data-act]');
     if (!b) return;
@@ -745,8 +968,33 @@
   });
 
   document.addEventListener('input', ev => {
+    const el = ev.target;
+    if (wk && $('#sheet').contains(el)) {
+      if (el.classList.contains('exname')) wk.ex[+el.dataset.ex].n = el.value;
+      else if (el.classList.contains('sw')) wk.ex[+el.dataset.ex].sets[+el.dataset.set].w = el.value;
+      else if (el.classList.contains('sr')) wk.ex[+el.dataset.ex].sets[+el.dataset.set].r = el.value;
+      else if (el.id === 'wkNote') wk.note = el.value;
+      else if (el.id === 'wkMin') {
+        wk.min = el.value;
+        $('#sheet').querySelectorAll('[data-act="wk-min"]').forEach(x => x.setAttribute('aria-pressed', 'false'));
+        const k = wkKcal(wk, wk.d); const kc = $('#wkKcal');
+        if (kc && k) kc.textContent = `Примерный расход ≈ ${k} ккал. К лимиту еды он не прибавляется.`;
+      }
+    }
     if (ev.target.id === 'hW' || ev.target.id === 'hBf') updateProteinHelper();
     if (ev.target.id === 'esG') { const e = dayItems(ui.day).find(x => x.id === $('#sheet').querySelector('[data-act="es-save"]').dataset.id); updateEntrySheetInfo(e, foodOf(e && e.fid)); }
+  });
+
+  document.addEventListener('change', ev => {
+    const el = ev.target;
+    if (wk && el.classList && el.classList.contains('exname')) {
+      const i = +el.dataset.ex; const h = $('#sheet').querySelector(`[data-hint="${i}"]`);
+      const key = el.value.trim().toLowerCase();
+      if (!h || h.dataset.key === key) return; // не пересоздаём кнопку «Повторить», пока по ней нажимают
+      h.dataset.key = key;
+      const L = lastSets(el.value, wk.d, wk.id);
+      h.innerHTML = L ? `В прошлый раз, ${fmtLong(L.d)}: ${esc(setsTxt(L.sets))} <button class="linkbtn" data-act="wk-ex-copy" data-ex="${i}">Повторить</button>` : '';
+    }
   });
 
   document.addEventListener('submit', ev => {
@@ -803,6 +1051,13 @@
   if (!S.settings.onboarded) howtoSheet(true);
   try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) { /* нет поддержки */ }
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
+    const hadController = !!navigator.serviceWorker.controller;
+    let reloading = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      // Новая версия приложения: перезагружаемся, если ничего не набрано
+      if (!hadController || reloading || $('#food').value.trim() || !$('#backdrop').hidden) return;
+      reloading = true; location.reload();
+    });
     window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
   }
 })();
