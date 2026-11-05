@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Порция</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Дневник питания: пишешь, что съела, — приложение считает калории и белок.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Порция">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="format-detection" content="telephone=no">
+<meta name="theme-color" content="#F5F3F8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#100E14" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<style>
+/* Раскладка: нативный дневник под iPhone — кольцо калорий как главный экран, сгруппированные списки, нижняя панель вкладок */
+:root {
+  --bg: #F5F3F8;
+  --surface: #FFFFFF;
+  --surface-2: #EFEBF4;
+  --ink: #1E1A26;
+  --muted: #6D6778;
+  --line: #E4DFEB;
+  --accent: #6A3FB5;
+  --accent-ink: #FFFFFF;
+  --accent-soft: #EEE6FA;
+  --protein: #0E8A7A;
+  --protein-soft: #DCF2EE;
+  --fat: #B86E0C;
+  --carb: #2F68C0;
+  --warn: #CF3446;
+  --warn-soft: #FBE3E6;
+  --track: #E8E2F0;
+  --shadow: 0 1px 2px rgba(30, 20, 50, .06), 0 6px 20px rgba(30, 20, 50, .05);
+  --font-display: ui-rounded, "SF Pro Rounded", -apple-system, BlinkMacSystemFont, system-ui, "Segoe UI", Roboto, sans-serif;
+  --font-body: -apple-system, BlinkMacSystemFont, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --r-lg: 20px;
+  --r-md: 14px;
+  --tabbar-h: 58px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #100E14;
+    --surface: #1B1821;
+    --surface-2: #25212D;
+    --ink: #F3EFF8;
+    --muted: #A39CB0;
+    --line: #2E2938;
+    --accent: #B794F6;
+    --accent-ink: #1B1024;
+    --accent-soft: #2C2240;
+    --protein: #4FD1BC;
+    --protein-soft: #163833;
+    --fat: #F0B45A;
+    --carb: #7FAEF5;
+    --warn: #FF6B7A;
+    --warn-soft: #3A1C22;
+    --track: #2C2736;
+    --shadow: none;
+    color-scheme: dark;
+  }
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; background: var(--bg); color: var(--ink); }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  font: 16px/1.4 var(--font-body);
+  min-height: 100%;
+  padding-top: env(safe-area-inset-top, 0px);
+  overscroll-behavior-y: none;
+}
+button, input, textarea, select { font: inherit; color: inherit; }
+button { touch-action: manipulation; cursor: pointer; }
+[hidden] { display: none !important; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.num { font-family: var(--font-display); font-variant-numeric: tabular-nums; }
+
+.app {
+  max-width: 560px;
+  margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px) + 24px);
+}
+.view { display: grid; gap: 14px; padding-block: 8px 0; }
+
+/* Заголовки экранов */
+.vhead { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 2px 2px; }
+.vhead h1 { font: 700 30px/1.15 var(--font-display); margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+.daynav { display: flex; align-items: center; gap: 4px; }
+.daynav h1 { font-size: 26px; }
+.iconbtn {
+  width: 38px; height: 38px; border-radius: 50%; border: 0; display: grid; place-items: center;
+  background: var(--surface); color: var(--accent); box-shadow: var(--shadow);
+}
+.iconbtn:disabled { opacity: .35; }
+.iconbtn svg { width: 20px; height: 20px; }
+.linkbtn { border: 0; background: none; color: var(--accent); font-weight: 600; padding: 6px 4px; }
+
+/* Карточки */
+.card { background: var(--surface); border-radius: var(--r-lg); padding: 16px; box-shadow: var(--shadow); min-width: 0; }
+.card h2 { font: 600 13px/1.2 var(--font-body); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 10px; }
+.muted { color: var(--muted); }
+.small { font-size: 14px; }
+.tiny { font-size: 12.5px; }
+
+/* Сводка дня */
+.summary { display: grid; grid-template-columns: auto 1fr; gap: 16px; align-items: center; }
+.ring { position: relative; width: 128px; height: 128px; }
+.ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.ring .trk { stroke: var(--track); }
+.ring .val { stroke: var(--accent); transition: stroke-dashoffset .5s ease; }
+.ring.over .val { stroke: var(--warn); }
+.ring .mid { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; }
+.ring .big { font: 700 26px/1 var(--font-display); font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.ring .cap { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
+.ring.over .big, .ring.over .cap { color: var(--warn); }
+.stats { display: grid; gap: 10px; min-width: 0; }
+.stat-top { font-size: 15px; }
+.stat-top b { font: 700 20px/1 var(--font-display); font-variant-numeric: tabular-nums; }
+.bar { height: 8px; border-radius: 99px; background: var(--track); overflow: hidden; }
+.bar > i { display: block; height: 100%; border-radius: inherit; background: var(--protein); }
+.bar.accent > i { background: var(--accent); }
+.bar.over > i { background: var(--warn); }
+.mrow { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; margin-bottom: 5px; }
+.mrow .k { color: var(--protein); font-weight: 600; }
+.macros { display: flex; gap: 14px; font-size: 13.5px; color: var(--muted); flex-wrap: wrap; }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; vertical-align: 1px; }
+.baseline-big { font: 700 34px/1 var(--font-display); font-variant-numeric: tabular-nums; }
+.chip-state { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); font-weight: 600; font-size: 13px; }
+.steps5 { display: flex; gap: 5px; margin: 10px 0 2px; }
+.steps5 i { flex: 1; height: 6px; border-radius: 3px; background: var(--track); }
+.steps5 i.on { background: var(--accent); }
+
+/* Подсказки-карточки */
+.tip { border: 1.5px solid var(--accent-soft); background: var(--surface); }
+.tip p { margin: 0 0 12px; }
+.tip.warn { border-color: var(--warn-soft); }
+.row-btns { display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* Кнопки */
+.btn {
+  border: 0; border-radius: 13px; padding: 12px 18px; font-weight: 600; font-size: 16px;
+  background: var(--accent); color: var(--accent-ink); min-height: 46px;
+}
+.btn.ghost { background: var(--accent-soft); color: var(--accent); }
+.btn.plain { background: var(--surface-2); color: var(--ink); }
+.btn.danger { background: var(--warn-soft); color: var(--warn); }
+.btn.block { width: 100%; }
+.btn:disabled { opacity: .45; }
+
+/* Ввод еды */
+.composer label.lbl { display: block; font: 700 20px/1.2 var(--font-display); margin-bottom: 10px; }
+textarea, .field input, .field select {
+  width: 100%; border: 1.5px solid var(--line); background: var(--bg); border-radius: var(--r-md);
+  padding: 12px 14px; font-size: 17px; line-height: 1.35; outline: none; transition: border-color .15s;
+}
+textarea { resize: none; min-height: 76px; }
+.field input { min-width: 0; }
+input[type="date"] { -webkit-appearance: none; appearance: none; display: block; min-height: 48px; text-align: left; }
+input[type="date"]::-webkit-date-and-time-value { text-align: left; }
+textarea:focus, .field input:focus, .field select:focus { border-color: var(--accent); }
+.meals { display: flex; gap: 6px; margin: 12px 0 0; overflow-x: auto; scrollbar-width: none; }
+.meals::-webkit-scrollbar { display: none; }
+.seg {
+  border: 0; border-radius: 99px; padding: 8px 14px; background: var(--surface-2); color: var(--ink);
+  font-size: 15px; white-space: nowrap; font-weight: 500;
+}
+.seg[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.hint { margin: 10px 0 0; font-size: 14px; color: var(--muted); }
+.preview { margin-top: 12px; display: grid; gap: 0; }
+.pitem { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); }
+.pitem:first-child { border-top: 0; }
+.pitem .nm { font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
+.pitem .sub { font-size: 13.5px; color: var(--muted); }
+.pitem .sub .pr { color: var(--protein); }
+.gram { display: flex; align-items: center; gap: 4px; }
+.gram input { width: 64px; text-align: right; padding: 7px 8px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--bg); font-size: 16px; font-variant-numeric: tabular-nums; }
+.gram span { font-size: 13px; color: var(--muted); }
+.xbtn { width: 30px; height: 30px; border-radius: 50%; border: 0; background: var(--surface-2); color: var(--muted); display: grid; place-items: center; }
+.xbtn svg { width: 14px; height: 14px; }
+.punk { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 12px; background: var(--warn-soft); margin-top: 8px; }
+.punk .nm { color: var(--warn); font-weight: 600; overflow-wrap: anywhere; }
+.ptotal { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 12px 0 12px; border-top: 1px solid var(--line); margin-top: 2px; }
+.ptotal b { font: 700 20px/1 var(--font-display); }
+
+/* Частое */
+.quick { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 6px; margin: 0 -2px; scrollbar-width: none; }
+.quick::-webkit-scrollbar { display: none; }
+.qchip {
+  flex: none; border: 1.5px solid var(--line); background: var(--surface); border-radius: 14px; padding: 9px 12px;
+  text-align: left; max-width: 220px; display: grid; gap: 2px;
+}
+.qchip .nm { font-weight: 600; font-size: 14.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.qchip .sub { font-size: 12.5px; color: var(--muted); }
+.qchip.fav { border-color: var(--accent-soft); background: var(--accent-soft); }
+
+/* Списки записей */
+.meal-group + .meal-group { margin-top: 14px; }
+.mg-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 4px; }
+.mg-head h3 { margin: 0; font: 700 17px/1.2 var(--font-display); }
+.mg-head span { font-size: 13.5px; color: var(--muted); }
+.entry { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; width: 100%; border: 0; background: none; text-align: left; padding: 9px 0; border-top: 1px solid var(--line); }
+.entry:first-of-type { border-top: 0; }
+.entry .nm { font-weight: 500; overflow-wrap: anywhere; }
+.entry .sub { font-size: 13.5px; color: var(--muted); }
+.entry .kc { font: 600 16px/1 var(--font-display); font-variant-numeric: tabular-nums; text-align: right; }
+.entry .kc small { display: block; font: 500 12.5px/1.4 var(--font-body); color: var(--protein); }
+.empty { text-align: center; color: var(--muted); padding: 18px 8px; font-size: 15px; }
+
+/* Дневник */
+.dlist { display: grid; }
+.drow { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; align-items: center; border: 0; background: none; width: 100%; text-align: left; padding: 12px 0; border-top: 1px solid var(--line); }
+.drow:first-child { border-top: 0; }
+.drow .d { font-weight: 600; }
+.drow .v { font: 600 16px/1 var(--font-display); font-variant-numeric: tabular-nums; text-align: right; }
+.drow .v small { font: 500 12.5px var(--font-body); color: var(--muted); }
+.drow .bar { grid-column: 1 / -1; height: 6px; }
+.drow .meta { grid-column: 1 / -1; font-size: 13px; color: var(--muted); display: flex; gap: 12px; flex-wrap: wrap; }
+.kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.kpi .v { font: 700 24px/1.1 var(--font-display); font-variant-numeric: tabular-nums; }
+.kpi .l { font-size: 12.5px; color: var(--muted); }
+
+/* Вес */
+.field { display: grid; gap: 6px; min-width: 0; }
+.field > span { font-size: 14px; color: var(--muted); }
+.fgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.chart { width: 100%; height: auto; display: block; }
+.chart .grid { stroke: var(--line); stroke-width: 1; }
+.chart .ln { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+.chart .ar { fill: var(--accent); opacity: .1; }
+.chart .pt { fill: var(--surface); stroke: var(--accent); stroke-width: 2; }
+.chart .pt.last { fill: var(--accent); }
+.chart text { fill: var(--muted); font: 11px var(--font-body); }
+.chart text.vl { fill: var(--ink); font: 600 12px var(--font-display); }
+.wtable { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+.wtable th { text-align: left; font-weight: 500; color: var(--muted); font-size: 12.5px; padding: 6px 4px; }
+.wtable td { padding: 9px 4px; border-top: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+.wtable td.dn { color: var(--protein); }
+.wtable td.up { color: var(--warn); }
+.tablewrap { overflow-x: auto; }
+.wtable tr[data-act] { cursor: pointer; }
+
+/* Настройки */
+.setrow { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: end; }
+.setrow .field input { font-size: 17px; }
+.list { display: grid; }
+.list .li { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); }
+.list .li:first-child { border-top: 0; }
+.helper { margin-top: 12px; padding: 12px; border-radius: var(--r-md); background: var(--surface-2); display: grid; gap: 10px; }
+.helper .res { font-size: 15px; }
+.helper .res b { font: 700 19px var(--font-display); color: var(--protein); }
+.howto { margin: 0; padding-left: 0; list-style: none; display: grid; gap: 12px; counter-reset: s; }
+.howto li { display: grid; grid-template-columns: 28px 1fr; gap: 10px; align-items: start; }
+.howto li::before { counter-increment: s; content: counter(s); width: 28px; height: 28px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font: 700 14px var(--font-display); }
+.foot { font-size: 13px; color: var(--muted); padding: 4px 4px 0; display: grid; gap: 6px; }
+
+/* Нижняя панель */
+.tabbar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  -webkit-backdrop-filter: saturate(1.6) blur(18px); backdrop-filter: saturate(1.6) blur(18px);
+  border-top: 1px solid var(--line);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px);
+}
+.tabbar .in { max-width: 560px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); height: var(--tabbar-h); }
+.tab { border: 0; background: none; display: grid; justify-items: center; align-content: center; gap: 2px; color: var(--muted); font-size: 11px; font-weight: 500; }
+.tab svg { width: 25px; height: 25px; }
+.tab[aria-current="page"] { color: var(--accent); }
+body.kb .tabbar { display: none; }
+
+/* Шторка */
+.backdrop { position: fixed; inset: 0; background: rgba(10, 6, 18, .42); z-index: 40; display: flex; align-items: flex-end; justify-content: center; }
+.sheet {
+  width: 100%; max-width: 560px; max-height: 88vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  background: var(--surface); border-radius: 22px 22px 0 0;
+  padding: 10px max(18px, env(safe-area-inset-right, 0px)) calc(18px + env(safe-area-inset-bottom, 0px)) max(18px, env(safe-area-inset-left, 0px));
+  animation: up .22s ease-out;
+}
+.sheet .grab { width: 38px; height: 5px; border-radius: 3px; background: var(--line); margin: 0 auto 12px; }
+.sheet h2 { font: 700 22px/1.2 var(--font-display); margin: 0 0 6px; text-wrap: balance; }
+.sheet .stack { display: grid; gap: 12px; margin-top: 12px; }
+@keyframes up { from { transform: translateY(30px); opacity: .6; } to { transform: none; opacity: 1; } }
+
+.toast {
+  position: fixed; left: 50%; transform: translateX(-50%); z-index: 50;
+  bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px) + 12px);
+  background: var(--ink); color: var(--bg); border-radius: 14px; padding: 10px 10px 10px 16px;
+  display: flex; align-items: center; gap: 12px; font-size: 15px; max-width: calc(100% - 32px); box-shadow: 0 8px 24px rgba(0,0,0,.2);
+}
+.toast button { border: 0; background: none; color: var(--accent-soft); font-weight: 700; padding: 6px 8px; }
+@media (prefers-color-scheme: dark) { .toast button { color: var(--accent-ink); } }
+
+@media (max-width: 360px) {
+  .ring { width: 108px; height: 108px; }
+  .ring .big { font-size: 23px; }
+  .vhead h1 { font-size: 26px; }
+  .daynav h1 { font-size: 22px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ring .val { transition: none; }
+  .sheet { animation: none; }
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+  <!-- Сегодня -->
+  <section class="view" id="v-today" aria-label="Сегодня">
+    <div class="vhead">
+      <div class="daynav">
+        <button class="iconbtn" data-act="day-prev" aria-label="Предыдущий день"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+        <h1 id="dayTitle" data-act="day-today">Сегодня</h1>
+        <button class="iconbtn" data-act="day-next" id="dayNext" aria-label="Следующий день"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
+      </div>
+    </div>
+    <div class="card" id="summary"></div>
+    <div id="tips" class="view" style="padding:0"></div>
+    <div class="card composer">
+      <label class="lbl" for="food" id="foodLbl">Что съела?</label>
+      <textarea id="food" rows="2" enterkeyhint="done" autocomplete="off" autocapitalize="sentences" spellcheck="false" placeholder="Например: 2 яйца, 150 г творога, кофе с молоком"></textarea>
+      <div class="meals" id="meals" role="group" aria-label="Приём пищи"></div>
+      <div id="preview" class="preview"></div>
+      <p class="hint" id="foodHint">Пиши как в сообщении: через запятую, с граммами или штуками. Понимаю «полпачки», «стакан», «2 куска», «150 мл».</p>
+    </div>
+    <div id="quickWrap"></div>
+    <div class="card" id="entries"></div>
+  </section>
+
+  <!-- Дневник -->
+  <section class="view" id="v-diary" aria-label="Дневник" hidden>
+    <div class="vhead"><h1>Дневник</h1></div>
+    <div class="card" id="diarySum"></div>
+    <div class="card"><h2>По дням</h2><div class="dlist" id="diaryList"></div></div>
+  </section>
+
+  <!-- Вес -->
+  <section class="view" id="v-body" aria-label="Вес и замеры" hidden>
+    <div class="vhead"><h1>Вес и замеры</h1></div>
+    <div class="card" id="bodyNext"></div>
+    <div class="card" id="bodyChart"></div>
+    <form class="card" id="bodyForm" autocomplete="off">
+      <h2>Новый замер</h2>
+      <div class="fgrid">
+        <label class="field"><span>Дата</span><input type="date" id="bDate"></label>
+        <label class="field"><span>Вес, кг</span><input type="text" inputmode="decimal" id="bW" placeholder="58,4"></label>
+        <label class="field"><span>Талия, см</span><input type="text" inputmode="decimal" id="bWaist" placeholder="—"></label>
+        <label class="field"><span>Бёдра, см</span><input type="text" inputmode="decimal" id="bHips" placeholder="—"></label>
+        <label class="field"><span>Грудь, см</span><input type="text" inputmode="decimal" id="bChest" placeholder="—"></label>
+        <label class="field"><span>Живот, см</span><input type="text" inputmode="decimal" id="bBelly" placeholder="—"></label>
+      </div>
+      <p class="hint">Утром натощак, после туалета. Сантиметр — по одной и той же линии каждый раз.</p>
+      <button class="btn block" type="submit" style="margin-top:12px">Сохранить замер</button>
+    </form>
+    <div class="card" id="bodyList"></div>
+  </section>
+
+  <!-- Настройки -->
+  <section class="view" id="v-more" aria-label="Настройки" hidden>
+    <div class="vhead"><h1>Настройки</h1></div>
+    <div class="card" id="setLimit"></div>
+    <div class="card" id="setProtein"></div>
+    <div class="card" id="setFoods"></div>
+    <div class="card" id="setBackup"></div>
+    <div class="card">
+      <h2>Как это работает</h2>
+      <button class="btn ghost block" data-act="howto">Открыть инструкцию</button>
+    </div>
+    <div class="card" id="setDanger"></div>
+    <div class="foot">
+      <span>Калорийность продуктов примерная, по средним таблицам. Для упакованных продуктов точнее взять цифры с этикетки и добавить в «Мои продукты».</span>
+      <span>Все записи хранятся только на этом телефоне.</span>
+      <span>Порция · версия 1.0</span>
+    </div>
+  </section>
+</div>
+
+<nav class="tabbar" aria-label="Разделы">
+  <div class="in">
+    <button class="tab" data-tab="today" aria-current="page">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5a8.5 8.5 0 0 1 8.5 8.5" stroke-width="3.2"/></svg>
+      Сегодня</button>
+    <button class="tab" data-tab="diary">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16M8 14h3M8 17h6"/></svg>
+      Дневник</button>
+    <button class="tab" data-tab="body">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4" width="17" height="16" rx="4"/><path d="M8.5 10a3.5 3.5 0 0 1 7 0"/><path d="M12 10l1.5-2"/></svg>
+      Вес</button>
+    <button class="tab" data-tab="more">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2.2"/><circle cx="8" cy="17" r="2.2"/></svg>
+      Настройки</button>
+  </div>
+</nav>
+
+<div class="backdrop" id="backdrop" hidden><div class="sheet" id="sheet" role="dialog" aria-modal="true"></div></div>
+<div class="toast" id="toast" role="status" hidden></div>
+<input type="file" id="importFile" accept=".json,application/json" hidden>
+
+<script src="core.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "name": "Порция — дневник питания",
+  "short_name": "Порция",
+  "description": "Пишешь, что съела, обычными словами — приложение считает калории и белок.",
+  "lang": "ru",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F5F3F8",
+  "theme_color": "#F5F3F8",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
