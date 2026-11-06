@@ -413,6 +413,7 @@
       <div class="setrow"><label class="field"><span>Цель по шагам в день</span><input id="sStepGoal" type="text" inputmode="numeric" value="${S.settings.stepGoal || ''}" placeholder="не задана"></label><button class="btn" data-act="save-stepgoal">Сохранить</button></div>
       <p class="hint">${sug ? `В среднем за последнюю неделю — ${nf(sug.avg)} шагов. ` : ''}Шаги удобнее прибавлять по 500 в неделю, а не сразу до 10 000.</p>
       <p class="hint">Веб-приложение на iPhone не может само читать шаги из «Здоровья», поэтому число вписывается вручную на экране «Активность».</p>`;
+    $('#setLook').innerHTML = lookCard();
     $('#setAi').innerHTML = aiCard();
     $('#setFoods').innerHTML = `<h2>Мои продукты</h2>
       ${S.custom.length ? `<div class="list">${S.custom.map(c => `<div class="li"><div style="min-width:0"><div style="font-weight:600;overflow-wrap:anywhere">${esc(c.name)}</div><div class="tiny muted num">${nf(c.kcal)} ккал · Б ${g1(c.p)} · Ж ${g1(c.f)} · У ${g1(c.c)} на 100 г${c.portion ? ' · порция ' + c.portion + ' г' : ''}</div></div><button class="btn plain" style="min-height:36px;padding:6px 12px" data-act="edit-food" data-id="${c.id}">Изменить</button></div>`).join('')}</div>`
@@ -428,6 +429,31 @@
       ? `<p class="small" style="margin:0 0 10px">Удалить все записи, замеры и настройки? Это нельзя отменить.</p><div class="row-btns"><button class="btn danger" data-act="wipe-confirm">Да, удалить всё</button><button class="btn plain" data-act="wipe-cancel">Отмена</button></div>`
       : `<button class="btn danger block" data-act="wipe">Удалить все данные</button>`}`;
   }
+  // ---------- Оформление: тема и приветствие ----------
+  const THEMES = [['auto', 'Как в телефоне'], ['light', 'Светлая'], ['dark', 'Тёмная']];
+  function themeGet() { try { const t = localStorage.getItem('porcia.theme'); return t === 'light' || t === 'dark' ? t : 'auto'; } catch (e) { return 'auto'; } }
+  function themeSet(t) {
+    const r = document.documentElement;
+    try { if (t === 'auto') localStorage.removeItem('porcia.theme'); else localStorage.setItem('porcia.theme', t); } catch (e) { /* только до перезапуска */ }
+    if (t === 'auto') r.removeAttribute('data-theme'); else r.setAttribute('data-theme', t);
+    document.querySelectorAll('meta[name="theme-color"]').forEach(m => {
+      const sysDark = (m.getAttribute('media') || '').includes('dark');
+      m.setAttribute('content', t === 'auto' ? (sysDark ? '#100E14' : '#F5F3F8') : t === 'dark' ? '#100E14' : '#F5F3F8');
+    });
+  }
+  const G = () => window.PorciaGreet;
+  function lookCard() {
+    const th = themeGet(), g = G(), gp = g ? g.prefs() : {};
+    const on = gp.on !== false;
+    return `<h2>Оформление</h2>
+      <div class="field"><span>Тема</span><div class="chips" role="group" aria-label="Тема">${THEMES.map(([k, n]) => `<button class="seg" data-act="theme" data-t="${k}" aria-pressed="${th === k}">${n}</button>`).join('')}</div></div>
+      ${g ? `<div class="field" style="margin-top:16px"><span>Приветствие при открытии</span><div class="chips" role="group" aria-label="Приветствие">
+        <button class="seg" data-act="greet-on" data-on="1" aria-pressed="${on}">Показывать</button><button class="seg" data-act="greet-on" data-on="0" aria-pressed="${!on}">Выключить</button></div></div>
+      <div class="setrow" style="margin-top:12px"><label class="field"><span>Имя в приветствии</span><input id="sGName" type="text" value="${esc(gp.name || '')}" placeholder="можно не писать" autocomplete="off" maxlength="24"></label><button class="btn" data-act="save-gname">Сохранить</button></div>
+      <p class="hint">Появляется, если не заходила 3 часа и больше. Всего ${g.V.length} заставок: одна показывается два раза, потом включается следующая.</p>
+      <button class="btn ghost block" data-act="greet-preview" style="margin-top:12px">Посмотреть заставки по очереди</button>` : ''}`;
+  }
+
   function updateProteinHelper() {
     const w = num($('#hW') && $('#hW').value), bf = num($('#hBf') && $('#hBf').value);
     const el = $('#hRes'); if (!el) return;
@@ -1196,6 +1222,10 @@
       toast(v ? (G && v >= G ? 'Цель по шагам выполнена' : 'Шаги сохранены') : 'Шаги убраны', null, !!(v && G && v >= G));
     },
     'step-goal-apply'(b) { S.settings.stepGoal = +b.dataset.g; save(); render(); toast(`Цель: ${nf(+b.dataset.g)} шагов`); },
+    theme(b) { themeSet(b.dataset.t); $('#setLook').innerHTML = lookCard(); },
+    'greet-on'(b) { const g = G(); if (!g) return; const p = g.prefs(); p.on = b.dataset.on === '1'; g.setPrefs(p); $('#setLook').innerHTML = lookCard(); toast(p.on ? 'Приветствие включено' : 'Приветствие выключено'); },
+    'save-gname'() { const g = G(); if (!g) return; const p = g.prefs(); p.name = $('#sGName').value.trim().slice(0, 24); g.setPrefs(p); $('#setLook').innerHTML = lookCard(); toast(p.name ? 'Имя сохранено' : 'Приветствие будет без имени'); },
+    'greet-preview'() { const g = G(); if (!g) return; const p = g.prefs(), n = $('#sGName') && $('#sGName').value.trim(); if (n && n !== p.name) { p.name = n.slice(0, 24); g.setPrefs(p); } g.showNext(); },
     'save-stepgoal'() { const v = num($('#sStepGoal').value); S.settings.stepGoal = v ? Math.round(v) : null; save(); render(); toast(v ? `Цель: ${nf(v)} шагов` : 'Цель по шагам убрана'); },
     'wk-new'(b) { wk = { id: null, d: ui.day, type: b.dataset.type, min: '', int: 'm', note: '', ex: b.dataset.type === 'strength' ? [{ n: '', sets: [{ w: '', r: '' }] }] : [] }; wkSheet(); },
     'wk-type'(b) { wk.type = b.dataset.type; if (wk.type === 'strength' && !wk.ex.length) wk.ex.push({ n: '', sets: [{ w: '', r: '' }] }); wkSheet(); },

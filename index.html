@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ru">
+<html lang="ru" data-porcia>
 <head>
 <meta charset="utf-8">
 <title>Порция</title>
@@ -12,6 +12,25 @@
 <meta name="format-detection" content="telephone=no">
 <meta name="theme-color" content="#F5F3F8" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#100E14" media="(prefers-color-scheme: dark)">
+<script>
+/* Тема и приветствие решаются до отрисовки, чтобы не мигало */
+(function () {
+  var r = document.documentElement;
+  try {
+    var t = localStorage.getItem('porcia.theme');
+    if (t === 'light' || t === 'dark') {
+      r.setAttribute('data-theme', t);
+      var c = t === 'dark' ? '#100E14' : '#F5F3F8', m = document.querySelectorAll('meta[name="theme-color"]');
+      for (var i = 0; i < m.length; i++) m[i].setAttribute('content', c);
+    }
+    var g = JSON.parse(localStorage.getItem('porcia.greet') || '{}') || {};
+    if (g.on !== false && Date.now() - (g.last || 0) >= 3 * 3600e3) {
+      r.classList.add('pg-hold');
+      setTimeout(function () { r.classList.remove('pg-hold'); }, 1500);
+    }
+  } catch (e) { /* без localStorage — как в системе, без приветствия */ }
+})();
+</script>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
@@ -51,7 +70,7 @@
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #100E14;
     --surface: #1B1821;
     --surface-2: #25212D;
@@ -79,6 +98,34 @@
     --shadow: none;
     color-scheme: dark;
   }
+}
+:root[data-theme="dark"] {
+  --bg: #100E14;
+  --surface: #1B1821;
+  --surface-2: #25212D;
+  --ink: #F3EFF8;
+  --muted: #A39CB0;
+  --line: #2E2938;
+  --accent: #B794F6;
+  --accent-ink: #1B1024;
+  --accent-soft: #2C2240;
+  --protein: #4FD1BC;
+  --protein-soft: #163833;
+  --fat: #F0B45A;
+  --carb: #7FAEF5;
+  --warn: #FF6B7A;
+  --warn-soft: #3A1C22;
+  --track: #2C2736;
+  --blush: #E58FB4;
+  --plush: #CDB0E0;
+  --plush-2: #EADCF2;
+  --plush-3: #A988C2;
+  --plush-ink: #2A1F33;
+  --sdk-peer: #262030;
+  --sdk-same: #5A2C45;
+  --sdk-sel: #4B3678;
+  --shadow: none;
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -311,7 +358,9 @@ body.kb .tabbar { display: none; }
   display: flex; align-items: center; gap: 12px; font-size: 15px; width: max-content; max-width: calc(100% - 32px); box-shadow: 0 8px 24px rgba(0,0,0,.2);
 }
 .toast button { border: 0; background: none; color: var(--accent-soft); font-weight: 700; padding: 6px 8px; }
-@media (prefers-color-scheme: dark) { .toast button { color: var(--accent-ink); } }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .toast button { color: var(--accent-ink); } }
+:root[data-theme="dark"] .toast button { color: var(--accent-ink); }
+html.pg-hold .app, html.pg-hold .tabbar { opacity: 0; }
 
 
 /* Милые детали: стразики и плюшевый мишка — в меру */
@@ -606,6 +655,7 @@ body.kb .tabbar { display: none; }
     <div class="card" id="setLimit"></div>
     <div class="card" id="setProtein"></div>
     <div class="card" id="setAct"></div>
+    <div class="card" id="setLook"></div>
     <div class="card" id="setAi"></div>
     <div class="card" id="setFoods"></div>
     <div class="card" id="setBackup"></div>
@@ -617,7 +667,7 @@ body.kb .tabbar { display: none; }
     <div class="foot">
       <span>Калорийность продуктов примерная, по средним таблицам. Для упакованных продуктов точнее взять цифры с этикетки и добавить в «Мои продукты».</span>
       <span>Все записи хранятся только на этом телефоне.</span>
-      <span>Порция · версия 1.4.2</span>
+      <span>Порция · версия 1.5.0</span>
     </div>
   </section>
 </div>
@@ -650,6 +700,7 @@ body.kb .tabbar { display: none; }
 <input type="file" id="importFile" accept=".json,application/json" hidden>
 <input type="file" id="photoFile" accept="image/*" hidden>
 
+<script src="greet.js"></script>
 <script src="core.js"></script>
 <script src="app.js"></script>
 </body>

@@ -1,6 +1,6 @@
 /* Порция — офлайн-кэш. При обновлении файлов на сайте поменяй VERSION. */
-const VERSION = 'porcia-v8';
-const ASSETS = ['./', './index.html', './core.js', './app.js', './manifest.webmanifest',
+const VERSION = 'porcia-v9';
+const ASSETS = ['./', './index.html', './greet.js', './core.js', './app.js', './manifest.webmanifest',
   './apple-touch-icon.png', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
