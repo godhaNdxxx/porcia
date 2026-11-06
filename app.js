@@ -91,6 +91,8 @@
   }
   function autoMeal() { const h = new Date().getHours() + new Date().getMinutes() / 60; return h < 11 ? 'b' : h < 16 ? 'l' : h < 21.5 ? 'd' : 's'; }
   function foodOf(fid) { return fid ? C.findFood(fid, S.custom) : null; }
+  function phFood(ph, drink) { return { kcal: ph.k, p: ph.p, f: ph.f, c: ph.c, units: {}, drink: !!drink }; }
+  function itemFood(it) { return it.fid ? foodOf(it.fid) : it.ph ? phFood(it.ph, it.drink || it.dr) : null; }
   function labelFor(food, g) {
     const u = food.units && food.units.pc;
     const gl = g + (food.drink ? ' мл' : ' г');
@@ -99,7 +101,7 @@
   }
 
   // ---------- Состояние интерфейса ----------
-  const ui = { view: 'today', day: today(), meal: autoMeal(), mealTouched: false, draft: [], delArm: null, followToday: true };
+  const ui = { view: 'today', day: today(), meal: autoMeal(), mealTouched: false, draft: [], delArm: null, followToday: true, photo: null, photoItems: [] };
 
   // ---------- Иконки ----------
   const IC = {
@@ -222,7 +224,7 @@
   }
   function renderPreview() {
     const el = $('#preview');
-    const has = ui.draft.length > 0;
+    const has = ui.draft.length > 0 || !!ui.photo;
     $('#foodHint').hidden = has || $('#food').value.trim().length > 0;
     if (!has) { el.innerHTML = ''; return; }
     const known = ui.draft.filter(i => !i.unknown);
@@ -231,13 +233,13 @@
         return `<div class="punk"><div><div class="nm">«${esc(it.src)}» — не нашла</div><div class="tiny muted">Добавь продукт с калорийностью, и я его запомню. Или напиши так: «${esc(it.name || 'блюдо')} 300 ккал».</div></div>
           <button class="btn ghost" style="min-height:38px;padding:8px 12px" data-act="add-food" data-name="${esc(it.name || it.src)}">Добавить</button></div>`;
       }
-      const gram = it.fid
+      const gram = it.fid || it.ph
         ? `<label class="gram"><input type="text" inputmode="numeric" value="${it.grams}" data-idx="${idx}" aria-label="Граммы: ${esc(it.name)}"><span>${it.drink ? 'мл' : 'г'}</span></label>`
         : `<span class="tiny muted">вручную</span>`;
       return `<div class="pitem" data-idx="${idx}"><div style="min-width:0"><div class="nm">${esc(it.name)}</div><div class="sub" data-sub="${idx}"><span class="num">${nf(it.kcal)}</span> ккал · <span class="pr">белок ${g1(it.p)} г</span></div></div>${gram}<button class="xbtn" data-act="draft-del" data-idx="${idx}" aria-label="Убрать ${esc(it.name)}">${IC.x}</button></div>`;
     }).join('');
     const t = previewTotals();
-    el.innerHTML = rows + (known.length ? `<div class="ptotal"><span>Итого: <b class="num" id="ptK">${nf(t.kcal)}</b> ккал</span><span class="small" style="color:var(--protein)">белок <span class="num" id="ptP">${g1(t.p)}</span> г</span></div>
+    el.innerHTML = photoRow() + rows + (known.length ? `<div class="ptotal"><span>Итого: <b class="num" id="ptK">${nf(t.kcal)}</b> ккал</span><span class="small" style="color:var(--protein)">белок <span class="num" id="ptP">${g1(t.p)}</span> г</span></div>
       <button class="btn block" data-act="commit">Записать ${MEAL_TO[ui.meal]}</button>` : '');
   }
 
@@ -258,7 +260,7 @@
       .slice(0, Math.max(0, 10 - S.favs.length)).map(x => Object.assign(tpl(x.e), { key: x.key, fav: false }));
     return S.favs.map(f => Object.assign({}, f, { fav: true })).concat(freq);
   }
-  function tpl(e) { return { fid: e.fid || null, n: e.n, g: e.g, k: e.k, p: e.p, f: e.f, c: e.c, l: e.l, dr: e.dr || 0 }; }
+  function tpl(e) { return Object.assign({ fid: e.fid || null, n: e.n, g: e.g, k: e.k, p: e.p, f: e.f, c: e.c, l: e.l, dr: e.dr || 0 }, e.ph ? { ph: e.ph } : {}); }
   function renderQuick() {
     const list = quickList();
     const el = $('#quickWrap');
@@ -409,6 +411,7 @@
       <div class="setrow"><label class="field"><span>Цель по шагам в день</span><input id="sStepGoal" type="text" inputmode="numeric" value="${S.settings.stepGoal || ''}" placeholder="не задана"></label><button class="btn" data-act="save-stepgoal">Сохранить</button></div>
       <p class="hint">${sug ? `В среднем за последнюю неделю — ${nf(sug.avg)} шагов. ` : ''}Шаги удобнее прибавлять по 500 в неделю, а не сразу до 10 000.</p>
       <p class="hint">Веб-приложение на iPhone не может само читать шаги из «Здоровья», поэтому число вписывается вручную на экране «Активность».</p>`;
+    $('#setAi').innerHTML = aiCard();
     $('#setFoods').innerHTML = `<h2>Мои продукты</h2>
       ${S.custom.length ? `<div class="list">${S.custom.map(c => `<div class="li"><div style="min-width:0"><div style="font-weight:600;overflow-wrap:anywhere">${esc(c.name)}</div><div class="tiny muted num">${nf(c.kcal)} ккал · Б ${g1(c.p)} · Ж ${g1(c.f)} · У ${g1(c.c)} на 100 г${c.portion ? ' · порция ' + c.portion + ' г' : ''}</div></div><button class="btn plain" style="min-height:36px;padding:6px 12px" data-act="edit-food" data-id="${c.id}">Изменить</button></div>`).join('')}</div>`
         : `<p class="small muted" style="margin:0 0 10px">Сюда попадают продукты, которых нет в базе, — например, твой любимый йогурт с цифрами с этикетки.</p>`}
@@ -467,7 +470,7 @@
 
   function entrySheet(id) {
     const e = dayItems(ui.day).find(x => x.id === id); if (!e) return;
-    const food = foodOf(e.fid);
+    const food = itemFood(e);
     const favKey = (e.fid || 'n:' + e.n) + '|' + e.g;
     const isFav = S.favs.some(f => f.key === favKey);
     const step = food && food.units && food.units.pc && !food.drink ? food.units.pc : 10;
@@ -699,6 +702,116 @@
       </div>`);
   }
 
+
+  // ---------- Фото → Claude ----------
+  const AI_STORE = 'porcia.ai'; // ключ хранится отдельно и не попадает в резервную копию
+  const AI_MODELS = [['claude-haiku-5-5', 'Быстрее и дешевле'], ['claude-sonnet-5-5', 'Точнее']];
+  function aiCfg() { try { return JSON.parse(localStorage.getItem(AI_STORE)) || {}; } catch (e) { return {}; } }
+  function aiSave(c) { try { localStorage.setItem(AI_STORE, JSON.stringify(c)); return true; } catch (e) { return false; } }
+  const PHOTO_PROMPT = `На фото еда или напиток. Определи каждое отдельное блюдо или продукт, оцени вес порции в граммах (для напитков — в мл) и КБЖУ для всей этой порции.
+Правила:
+- Учитывай масло, соусы, заправки, сыр и сладкие добавки, если их видно или они обычно есть в таком блюде.
+- Если на фото упаковка с этикеткой, бери цифры с неё.
+- Названия короткие, по-русски, с заглавной буквы: «Гречка отварная», «Куриная котлета».
+- Если еды на фото нет, верни пустой список.
+Ответь только JSON, без пояснений и без markdown:
+{"items":[{"name":"Гречка отварная","grams":180,"kcal":198,"protein":7.6,"fat":2.0,"carbs":37.8}],"note":"коротко, в чём не уверен, или пустая строка"}`;
+
+  async function claudeCall(cfg, content, maxTokens) {
+    let res;
+    try {
+      res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-api-key': cfg.key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+        body: JSON.stringify({ model: cfg.model || AI_MODELS[0][0], max_tokens: maxTokens, messages: [{ role: 'user', content }] }),
+      });
+    } catch (e) { throw new Error('Нет связи с Claude. Проверь интернет и попробуй ещё раз.'); }
+    let data = null; try { data = await res.json(); } catch (e) { /* пустой ответ */ }
+    if (!res.ok) {
+      const m = (data && data.error && data.error.message) || '';
+      if (res.status === 401) throw new Error('Ключ не подошёл. Проверь его в настройках.');
+      if (res.status === 403) throw new Error('У этого ключа нет доступа к Claude API.' + (m ? ' (' + m + ')' : ''));
+      if (res.status === 429) throw new Error('Слишком много запросов. Попробуй через минуту.');
+      if (/credit|balance/i.test(m)) throw new Error('На балансе Claude API закончились деньги.');
+      if (res.status === 404 || /model/i.test(m)) throw new Error('Эта модель недоступна для ключа. Выбери другую в настройках.');
+      if (res.status >= 500) throw new Error('Claude сейчас перегружен. Попробуй чуть позже.');
+      throw new Error('Claude вернул ошибку' + (m ? ': ' + m : ' ' + res.status));
+    }
+    return ((data && data.content) || []).filter(b => b.type === 'text').map(b => b.text).join('');
+  }
+
+  function downscale(file, max, q) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        const s = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+        const cv = document.createElement('canvas');
+        cv.width = Math.max(1, Math.round(img.naturalWidth * s)); cv.height = Math.max(1, Math.round(img.naturalHeight * s));
+        cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+        URL.revokeObjectURL(url);
+        resolve(cv.toDataURL('image/jpeg', q).split(',')[1]);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Не получилось открыть фото. Попробуй другое.')); };
+      img.src = url;
+    });
+  }
+
+  const r1 = n => Math.round(n * 10) / 10;
+  function parseAi(txt) {
+    const a = txt.indexOf('{'), b = txt.lastIndexOf('}');
+    let o = null;
+    if (a >= 0 && b > a) { try { o = JSON.parse(txt.slice(a, b + 1)); } catch (e) { o = null; } }
+    if (!o || !Array.isArray(o.items)) throw new Error('Claude ответил не в том формате. Попробуй ещё раз.');
+    const items = o.items.map(x => {
+      const g = Math.max(1, Math.round(+x.grams || 100));
+      const k = Math.max(0, +x.kcal || 0), P = Math.max(0, +x.protein || 0), F = Math.max(0, +x.fat || 0), Cc = Math.max(0, +x.carbs || 0);
+      const name = String(x.name || 'Блюдо').trim().slice(0, 60);
+      return { fid: null, ai: true, ph: { k: k / g * 100, p: P / g * 100, f: F / g * 100, c: Cc / g * 100 },
+        name: name.charAt(0).toUpperCase() + name.slice(1), grams: g, kcal: Math.round(k), p: r1(P), f: r1(F), c: r1(Cc), label: g + ' г · по фото', src: 'фото' };
+    });
+    return { items, note: String(o.note || '').trim().slice(0, 200) };
+  }
+
+  async function analyzePhoto() {
+    const ph = ui.photo; if (!ph) return;
+    const cfg = aiCfg();
+    ph.state = 'loading'; ph.msg = ''; renderPreview();
+    try {
+      if (!ph.b64) ph.b64 = await downscale(ph.file, 1024, 0.82);
+      const txt = await claudeCall(cfg, [{ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: ph.b64 } }, { type: 'text', text: PHOTO_PROMPT }], 1024);
+      if (ui.photo !== ph) return; // фото уже убрали
+      const r = parseAi(txt);
+      ph.state = 'done'; ph.note = r.note;
+      ui.photoItems = r.items;
+      if (!r.items.length) { ph.state = 'error'; ph.msg = 'Еды на фото не нашлось.'; }
+    } catch (e) {
+      if (ui.photo !== ph) return;
+      ph.state = 'error'; ph.msg = e.message || 'Что-то пошло не так.';
+    }
+    reparse();
+  }
+
+  function photoRow() {
+    const ph = ui.photo; if (!ph) return '';
+    const body = ph.state === 'loading' ? '<span class="spin" aria-hidden="true"></span> Claude смотрит на фото…'
+      : ph.state === 'error' ? `<span style="color:var(--warn)">${esc(ph.msg)}</span> <button class="linkbtn small" data-act="photo-retry">Ещё раз</button>`
+      : `Распознано по фото${ph.note ? ': ' + esc(ph.note) : ''}. Проверь граммы перед записью.`;
+    return `<div class="phrow"><img src="${ph.url}" alt="Фото еды"><div class="small" style="min-width:0">${body}</div><button class="xbtn" data-act="photo-del" aria-label="Убрать фото">${IC.x}</button></div>`;
+  }
+
+  function aiCard() {
+    const cfg = aiCfg();
+    const model = cfg.model || AI_MODELS[0][0];
+    return `<h2>Распознавание по фото</h2>
+      <p class="small" style="margin:0 0 12px">Фото еды отправляется в Claude, он оценивает граммы и КБЖУ. Нужен ключ Claude API — он хранится только на этом телефоне и не попадает в резервную копию.</p>
+      <label class="field"><span>${cfg.key ? 'Ключ сохранён: ' + esc(cfg.key.slice(0, 10)) + '…' + esc(cfg.key.slice(-4)) + '. Чтобы заменить — вставь новый' : 'Ключ Claude API'}</span><input id="aiKey" type="password" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="sk-ant-…"></label>
+      <div class="field" style="margin-top:10px"><span>Модель</span><div class="chips">${AI_MODELS.map(([id, n]) => `<button class="seg" data-act="ai-model" data-m="${id}" aria-pressed="${model === id}">${n}</button>`).join('')}</div></div>
+      <div class="row-btns" style="margin-top:12px"><button class="btn" data-act="ai-save">Сохранить ключ</button>${cfg.key ? '<button class="btn plain" data-act="ai-test">Проверить</button><button class="btn danger" data-act="ai-clear">Удалить</button>' : ''}</div>
+      <p class="hint" id="aiRes"></p>
+      <p class="tiny muted" style="margin:8px 0 0">Каждое фото — платный запрос к Claude API, обычно меньше цента. Оценка по фото примерная.</p>`;
+  }
+
   // ---------- Тост ----------
   let toastTimer = null;
   function toast(msg, undo, shiny) {
@@ -713,16 +826,16 @@
   // ---------- Действия ----------
   function reparse() {
     const text = $('#food').value;
-    if (!text.trim()) { ui.draft = []; renderPreview(); return; }
+    if (!text.trim()) { ui.draft = ui.photoItems.slice(); renderPreview(); return; }
     const r = C.parse(text, S.custom);
-    ui.draft = r.items;
+    ui.draft = r.items.concat(ui.photoItems);
     if (r.meal && !ui.mealTouched && r.meal !== ui.meal) { ui.meal = r.meal; renderMeals(); renderQuick(); }
     renderPreview();
   }
   function addEntries(list, meal) {
     const arr = S.log[ui.day] || (S.log[ui.day] = []);
     const t = Date.now();
-    const added = list.map(i => ({ id: uid(), t, m: meal, n: i.n, g: i.g, k: i.k, p: i.p, f: i.f, c: i.c, fid: i.fid || null, l: i.l, dr: i.dr || 0 }));
+    const added = list.map(i => Object.assign({ id: uid(), t, m: meal, n: i.n, g: i.g, k: i.k, p: i.p, f: i.f, c: i.c, fid: i.fid || null, l: i.l, dr: i.dr || 0 }, i.ph ? { ph: i.ph } : {}));
     arr.push(...added);
     save();
     return added;
@@ -736,8 +849,9 @@
   function commitDraft() {
     const ok = ui.draft.filter(i => !i.unknown);
     if (!ok.length) return;
-    const added = addEntries(ok.map(i => ({ n: i.name, g: i.grams, k: i.kcal, p: i.p, f: i.f, c: i.c, fid: i.fid, l: i.label, dr: i.drink ? 1 : 0 })), ui.meal);
+    const added = addEntries(ok.map(i => ({ n: i.name, g: i.grams, k: i.kcal, p: i.p, f: i.f, c: i.c, fid: i.fid, l: i.label, dr: i.drink ? 1 : 0, ph: i.ph })), ui.meal);
     const left = ui.draft.filter(i => i.unknown);
+    ui.photo = null; ui.photoItems = [];
     $('#food').value = left.map(u => u.src).join(', ');
     ui.draft = left;
     ui.mealTouched = false;
@@ -752,12 +866,12 @@
     'day-next'() { if (ui.day < today()) { ui.day = addDays(ui.day, 1); ui.followToday = ui.day === today(); render(); } },
     'day-today'() { ui.day = today(); ui.followToday = true; render(); },
     meal(b) { ui.meal = b.dataset.m; ui.mealTouched = true; renderMeals(); renderPreview(); renderQuick(); },
-    'draft-del'(b) { ui.draft.splice(+b.dataset.idx, 1); if (!ui.draft.length) $('#food').value = ''; renderPreview(); },
+    'draft-del'(b) { const it = ui.draft[+b.dataset.idx]; ui.photoItems = ui.photoItems.filter(x => x !== it); ui.draft.splice(+b.dataset.idx, 1); if (!ui.draft.filter(x => !x.ai).length) $('#food').value = ''; renderPreview(); },
     commit() { commitDraft(); },
     quick(b) {
       const list = $('#quickWrap')._list || [];
       const q = list[+b.dataset.i]; if (!q) return;
-      const added = addEntries([{ n: q.n, g: q.g, k: q.k, p: q.p, f: q.f, c: q.c, fid: q.fid, l: q.l, dr: q.dr }], ui.meal);
+      const added = addEntries([{ n: q.n, g: q.g, k: q.k, p: q.p, f: q.f, c: q.c, fid: q.fid, l: q.l, dr: q.dr, ph: q.ph }], ui.meal);
       render();
       toast(`${q.n}: ${nf(q.k)} ккал — ${MEAL_TO[ui.meal]}`, () => undoAdd(added));
     },
@@ -765,16 +879,16 @@
     'es-step'(b) {
       const inp = $('#esG'); const v = Math.max(1, Math.round((num(inp.value) || 0) + +b.dataset.d)); inp.value = v;
       const e = dayItems(ui.day).find(x => x.id === $('#sheet').querySelector('[data-act="es-save"]').dataset.id);
-      updateEntrySheetInfo(e, foodOf(e && e.fid));
+      updateEntrySheetInfo(e, e && itemFood(e));
     },
     'es-meal'(b) { $('#sheet').dataset.meal = b.dataset.m; $('#sheet').querySelectorAll('[data-act="es-meal"]').forEach(x => x.setAttribute('aria-pressed', x === b)); },
     'es-save'(b) {
       const e = dayItems(ui.day).find(x => x.id === b.dataset.id); if (!e) return;
-      const food = foodOf(e.fid);
+      const food = itemFood(e);
       if (food) {
         const g = Math.max(1, Math.round(num($('#esG').value) || e.g));
         const n = C.nutrientsFor(food, g);
-        Object.assign(e, { g, k: n.kcal, p: n.p, f: n.f, c: n.c, l: labelFor(food, g) });
+        Object.assign(e, { g, k: n.kcal, p: n.p, f: n.f, c: n.c, l: labelFor(food, g) + (e.ph ? ' · по фото' : '') });
       } else {
         const k = num($('#esK').value); if (k != null) { const r = e.k ? k / e.k : 0; e.k = Math.round(k); e.p = Math.round(e.p * r * 10) / 10; e.f = Math.round(e.f * r * 10) / 10; e.c = Math.round(e.c * r * 10) / 10; e.l = Math.round(k) + ' ккал'; }
       }
@@ -838,7 +952,7 @@
     import() { $('#importFile').value = ''; $('#importFile').click(); },
     wipe() { ui.delArm = 'all'; renderMore(); },
     'wipe-cancel'() { ui.delArm = null; renderMore(); },
-    'wipe-confirm'() { S = blank(); S.settings.onboarded = true; ui.delArm = null; save(); ui.draft = []; $('#food').value = ''; render(); toast('Все данные удалены'); },
+    'wipe-confirm'() { try { localStorage.removeItem(AI_STORE); } catch (e) { /* нет доступа */ } ui.photo = null; ui.photoItems = []; S = blank(); S.settings.onboarded = true; ui.delArm = null; save(); ui.draft = []; $('#food').value = ''; render(); toast('Все данные удалены'); },
     'import-confirm'() { const d = $('#sheet')._import; if (!d) return; S = Object.assign(blank(), d, { settings: Object.assign(blank().settings, d.settings || {}) }); save(); closeSheet(); render(); toast('Данные восстановлены'); },
   };
 
@@ -891,6 +1005,50 @@
     },
   });
 
+
+  Object.assign(actions, {
+    photo() {
+      if (!aiCfg().key) {
+        openSheet(`<div class="hero">${bearSvg()}<h2>Фото еды</h2></div>
+          <p class="small">Чтобы считать КБЖУ по фото, нужен ключ Claude API. Его вставляют один раз в настройках, и он хранится только на этом телефоне.</p>
+          <div class="stack"><button class="btn block" data-act="goto-ai">Открыть настройки</button><button class="btn plain block" data-act="sheet-close">Позже</button></div>`);
+        return;
+      }
+      const f = $('#photoFile'); f.value = ''; f.click();
+    },
+    'goto-ai'() { closeSheet(); ui.view = 'more'; render(); setTimeout(() => { const c = $('#setAi'); c && c.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 60); },
+    'photo-retry'() { analyzePhoto(); },
+    'photo-del'() { if (ui.photo && ui.photo.url) URL.revokeObjectURL(ui.photo.url); ui.photo = null; ui.photoItems = []; reparse(); },
+    'ai-model'(b) { const c = aiCfg(); c.model = b.dataset.m; aiSave(c); $('#setAi').innerHTML = aiCard(); },
+    'ai-save'() {
+      const v = ($('#aiKey').value || '').trim();
+      if (!v) { toast('Вставь ключ в поле'); return; }
+      if (!/^sk-ant-/.test(v)) { toast('Ключ должен начинаться с sk-ant-'); return; }
+      const c = aiCfg(); c.key = v; if (!aiSave(c)) { toast('Не получилось сохранить ключ'); return; }
+      $('#setAi').innerHTML = aiCard(); toast('Ключ сохранён');
+    },
+    async 'ai-test'() {
+      const res = $('#aiRes'); res.textContent = 'Проверяю…';
+      try { await claudeCall(aiCfg(), [{ type: 'text', text: 'Ответь одним словом: ок' }], 5); res.innerHTML = '<span style="color:var(--protein)">Ключ работает. Можно фотографировать еду.</span>'; }
+      catch (e) { res.innerHTML = `<span style="color:var(--warn)">${esc(e.message)}</span>`; }
+    },
+    'ai-clear'(b) {
+      if (ui.delArm !== 'ai') { ui.delArm = 'ai'; b.textContent = 'Точно удалить?'; return; }
+      ui.delArm = null; const c = aiCfg(); delete c.key; aiSave(c); $('#setAi').innerHTML = aiCard(); toast('Ключ удалён');
+    },
+  });
+
+  $('#photoFile').addEventListener('change', ev => {
+    const file = ev.target.files && ev.target.files[0]; if (!file) return;
+    if (ui.photo && ui.photo.url) URL.revokeObjectURL(ui.photo.url);
+    ui.photo = { file, url: URL.createObjectURL(file), state: 'loading' };
+    ui.photoItems = [];
+    if (ui.view !== 'today') { ui.view = 'today'; render(); }
+    reparse();
+    setTimeout(() => { const p = $('#preview'); p && p.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }, 50);
+    analyzePhoto();
+  });
+
   async function exportData() {
     const json = JSON.stringify({ app: 'porcia', v: 1, exported: new Date().toISOString(), data: S });
     const name = 'porcia-' + today() + '.json';
@@ -929,7 +1087,7 @@
   });
 
   // ---------- События ----------
-  const KEEP_FOCUS = new Set(['meal', 'draft-del', 'es-step', 'es-meal', 'ff-mode', 'wk-type', 'wk-int', 'wk-set-add', 'wk-ex-add', 'wk-set-del', 'wk-ex-del', 'wk-ex-copy']);
+  const KEEP_FOCUS = new Set(['photo', 'meal', 'draft-del', 'es-step', 'es-meal', 'ff-mode', 'wk-type', 'wk-int', 'wk-set-add', 'wk-ex-add', 'wk-set-del', 'wk-ex-del', 'wk-ex-copy']);
   document.addEventListener('click', ev => {
     const tab = ev.target.closest('.tab');
     if (tab) { ui.view = tab.dataset.tab; ui.delArm = null; if ((ui.view === 'today' || ui.view === 'act') && ui.followToday) ui.day = today(); render(); window.scrollTo(0, 0); return; }
@@ -955,11 +1113,11 @@
   // Правка граммов в предпросмотре — без перерисовки, чтобы не терять фокус
   $('#preview').addEventListener('input', ev => {
     const inp = ev.target.closest('.gram input'); if (!inp) return;
-    const idx = +inp.dataset.idx; const it = ui.draft[idx]; if (!it || !it.fid) return;
-    const food = foodOf(it.fid); const g = Math.max(1, Math.round(num(inp.value) || 0));
+    const idx = +inp.dataset.idx; const it = ui.draft[idx]; if (!it || !(it.fid || it.ph)) return;
+    const food = itemFood(it); const g = Math.max(1, Math.round(num(inp.value) || 0));
     if (!food || !num(inp.value)) return;
     const n = C.nutrientsFor(food, g);
-    Object.assign(it, { grams: g, kcal: n.kcal, p: n.p, f: n.f, c: n.c, label: labelFor(food, g) });
+    Object.assign(it, { grams: g, kcal: n.kcal, p: n.p, f: n.f, c: n.c, label: labelFor(food, g) + (it.ai ? ' · по фото' : '') });
     const sub = document.querySelector(`[data-sub="${idx}"]`);
     if (sub) sub.innerHTML = `<span class="num">${nf(it.kcal)}</span> ккал · <span class="pr">белок ${g1(it.p)} г</span>`;
     const t = previewTotals();
@@ -982,7 +1140,7 @@
       }
     }
     if (ev.target.id === 'hW' || ev.target.id === 'hBf') updateProteinHelper();
-    if (ev.target.id === 'esG') { const e = dayItems(ui.day).find(x => x.id === $('#sheet').querySelector('[data-act="es-save"]').dataset.id); updateEntrySheetInfo(e, foodOf(e && e.fid)); }
+    if (ev.target.id === 'esG') { const e = dayItems(ui.day).find(x => x.id === $('#sheet').querySelector('[data-act="es-save"]').dataset.id); updateEntrySheetInfo(e, e && itemFood(e)); }
   });
 
   document.addEventListener('change', ev => {
