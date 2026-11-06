@@ -472,10 +472,13 @@
   FOODS.forEach(f => f.aliasTokens.forEach(at => at.forEach(t => BASE_STEMS.add(t))));
 
   function customToFood(cf) {
-    // «Йогурт Теос 2%» находится и по полному названию, и по слову «теос»
-    const own = norm(cf.name).split(/[^а-яa-z0-9]+/).filter(w => w.length >= 3 && !/^\d+$/.test(w) && !STOP.has(w) && !BASE_STEMS.has(stem(w)));
+    // «Творог мягкий Савушкин 5%» находится по любому слову названия: «творог», «савушкин», «мягкий творог».
+    // При равенстве свой продукт важнее базового (+0.05 в matchFoods).
+    const own = norm(cf.name).split(/[^а-яa-z0-9]+/).filter(w => w.length >= 3 && !/^\d+$/.test(w) && !STOP.has(w));
     const names = [cf.name].concat(cf.name, (cf.aliases || []), own);
     const o = { p: cf.portion || 100 };
+    const pm = norm(cf.name).match(/(\d+(?:[.,]\d+)?)\s*%/);
+    if (pm) o.pct = parseFloat(pm[1].replace(',', '.'));
     if (cf.unit) o.u = { pc: cf.unit };
     const food = buildFood([names.join('|'), +cf.kcal || 0, +cf.p || 0, +cf.f || 0, +cf.c || 0, o], true);
     food.id = cf.id;
@@ -656,6 +659,9 @@
       }
       items.push(it);
       words = words.filter((_, i) => !m.used.has(i));
+      // Слова из названия найденного продукта не считаем отдельной едой («творог савушкин» — один продукт, а не два)
+      const own = m.food.aliasTokens.reduce((a, t) => a.concat(t), []);
+      words = words.filter(w => !own.some(t => stemMatch(t, w) >= 0.85));
       first = false;
       if (m.food.composite) break;
     }

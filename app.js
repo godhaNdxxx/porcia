@@ -101,7 +101,7 @@
   }
 
   // ---------- Состояние интерфейса ----------
-  const ui = { view: 'today', day: today(), meal: autoMeal(), mealTouched: false, draft: [], delArm: null, followToday: true, photo: null, photoItems: [] };
+  const ui = { view: 'today', day: today(), meal: autoMeal(), mealTouched: false, draft: [], delArm: null, followToday: true, photo: null, photoItems: [], dismissed: new Set() };
 
   // ---------- Иконки ----------
   const IC = {
@@ -239,7 +239,8 @@
       return `<div class="pitem" data-idx="${idx}"><div style="min-width:0"><div class="nm">${esc(it.name)}</div><div class="sub" data-sub="${idx}"><span class="num">${nf(it.kcal)}</span> ккал · <span class="pr">белок ${g1(it.p)} г</span></div></div>${gram}<button class="xbtn" data-act="draft-del" data-idx="${idx}" aria-label="Убрать ${esc(it.name)}">${IC.x}</button></div>`;
     }).join('');
     const t = previewTotals();
-    el.innerHTML = photoRow() + rows + (known.length ? `<div class="ptotal"><span>Итого: <b class="num" id="ptK">${nf(t.kcal)}</b> ккал</span><span class="small" style="color:var(--protein)">белок <span class="num" id="ptP">${g1(t.p)}</span> г</span></div>
+    const note = known.length ? '<p class="tiny muted" style="margin:0 0 2px">Это предпросмотр. В дневник попадёт после кнопки «Записать».</p>' : '';
+    el.innerHTML = photoRow() + note + rows + (known.length ? `<div class="ptotal"><span>Итого: <b class="num" id="ptK">${nf(t.kcal)}</b> ккал</span><span class="small" style="color:var(--protein)">белок <span class="num" id="ptP">${g1(t.p)}</span> г</span></div>
       <button class="btn block" data-act="commit">Записать ${MEAL_TO[ui.meal]}</button>` : '');
   }
 
@@ -824,11 +825,13 @@
   }
 
   // ---------- Действия ----------
+  const draftKey = i => i.fid || 'n:' + String(i.name || '').toLowerCase();
   function reparse() {
     const text = $('#food').value;
-    if (!text.trim()) { ui.draft = ui.photoItems.slice(); renderPreview(); return; }
+    if (!text.trim()) { ui.dismissed.clear(); ui.draft = ui.photoItems.slice(); renderPreview(); return; }
     const r = C.parse(text, S.custom);
-    ui.draft = r.items.concat(ui.photoItems);
+    // Убранное крестиком не возвращаем, пока не очищено поле или не нажато «Записать»
+    ui.draft = r.items.filter(i => i.unknown || !ui.dismissed.has(draftKey(i))).concat(ui.photoItems);
     if (r.meal && !ui.mealTouched && r.meal !== ui.meal) { ui.meal = r.meal; renderMeals(); renderQuick(); }
     renderPreview();
   }
@@ -851,7 +854,7 @@
     if (!ok.length) return;
     const added = addEntries(ok.map(i => ({ n: i.name, g: i.grams, k: i.kcal, p: i.p, f: i.f, c: i.c, fid: i.fid, l: i.label, dr: i.drink ? 1 : 0, ph: i.ph })), ui.meal);
     const left = ui.draft.filter(i => i.unknown);
-    ui.photo = null; ui.photoItems = [];
+    ui.photo = null; ui.photoItems = []; ui.dismissed.clear();
     $('#food').value = left.map(u => u.src).join(', ');
     ui.draft = left;
     ui.mealTouched = false;
@@ -866,7 +869,7 @@
     'day-next'() { if (ui.day < today()) { ui.day = addDays(ui.day, 1); ui.followToday = ui.day === today(); render(); } },
     'day-today'() { ui.day = today(); ui.followToday = true; render(); },
     meal(b) { ui.meal = b.dataset.m; ui.mealTouched = true; renderMeals(); renderPreview(); renderQuick(); },
-    'draft-del'(b) { const it = ui.draft[+b.dataset.idx]; ui.photoItems = ui.photoItems.filter(x => x !== it); ui.draft.splice(+b.dataset.idx, 1); if (!ui.draft.filter(x => !x.ai).length) $('#food').value = ''; renderPreview(); },
+    'draft-del'(b) { const it = ui.draft[+b.dataset.idx]; if (it && !it.ai) ui.dismissed.add(draftKey(it)); ui.photoItems = ui.photoItems.filter(x => x !== it); ui.draft.splice(+b.dataset.idx, 1); if (!ui.draft.filter(x => !x.ai).length) $('#food').value = ''; renderPreview(); },
     commit() { commitDraft(); },
     quick(b) {
       const list = $('#quickWrap')._list || [];
