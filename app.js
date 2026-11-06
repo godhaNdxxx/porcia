@@ -979,16 +979,14 @@
         const wrong = g.check !== false ? v !== +g.solution[i] : PEERS[i].some(j => +g.vals[j] === v);
         if (wrong) cls.push('bad');
       }
-      if (CL(i) % 3 === 2 && CL(i) !== 8) cls.push('br');
-      if (RW(i) % 3 === 2 && RW(i) !== 8) cls.push('bb');
       let inner = '';
       if (v) inner = v;
       else if (g.notes[i]) { inner = '<span class="nt">' + [1, 2, 3, 4, 5, 6, 7, 8, 9].map(d => `<i>${g.notes[i] & (1 << d) ? d : ''}</i>`).join('') + '</span>'; }
-      cells.push(`<button class="${cls.join(' ')}" data-act="sdk-cell" data-i="${i}" aria-label="Ряд ${RW(i) + 1}, столбец ${CL(i) + 1}${v ? ', ' + v : ', пусто'}">${inner}</button>`);
+      cells[i] = (`<button class="${cls.join(' ')}" data-act="sdk-cell" data-i="${i}" aria-label="Ряд ${RW(i) + 1}, столбец ${CL(i) + 1}${v ? ', ' + v : ', пусто'}">${inner}</button>`);
     }
     const counts = Array(10).fill(0); for (const ch of g.vals) counts[+ch]++;
     $('#sdkBoard').innerHTML = `<div class="sdkhead"><span class="chip-state">${SDK_NAME[g.diff]}</span><span class="num sdktime" id="sdkTime">${fmtTime(g.elapsed)}</span><button class="linkbtn" data-act="sdk-newmenu">Новая игра</button></div>
-      <div class="sdkgrid" role="grid" aria-label="Поле судоку">${cells.join('')}</div>
+      <div class="sdkgrid" role="grid" aria-label="Поле судоку">${[0, 1, 2, 3, 4, 5, 6, 7, 8].map(bx => `<div class="sbox">${[0, 1, 2, 3, 4, 5, 6, 7, 8].map(k => cells[(((bx / 3) | 0) * 3 + ((k / 3) | 0)) * 9 + (bx % 3) * 3 + (k % 3)]).join('')}</div>`).join('')}</div>
       <div class="sdktools">
         <button class="tool" data-act="sdk-undo" ${sdkUndo.length ? '' : 'disabled'}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>Отменить</button>
         <button class="tool" data-act="sdk-erase"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20H9l-5-5 10-10 7 7-6 6"/><path d="M7 12l6 6"/></svg>Стереть</button>

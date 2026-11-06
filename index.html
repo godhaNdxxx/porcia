@@ -39,6 +39,9 @@
   --plush-2: #F8EEFB;
   --plush-3: #D5B8E8;
   --plush-ink: #3B2C47;
+  --sdk-peer: #EDE7F6;
+  --sdk-same: #F9CFE2;
+  --sdk-sel: #CDB8F2;
   --shadow: 0 1px 2px rgba(30, 20, 50, .06), 0 6px 20px rgba(30, 20, 50, .05);
   --font-display: ui-rounded, "SF Pro Rounded", -apple-system, BlinkMacSystemFont, system-ui, "Segoe UI", Roboto, sans-serif;
   --font-body: -apple-system, BlinkMacSystemFont, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -70,6 +73,9 @@
     --plush-2: #EADCF2;
     --plush-3: #A988C2;
     --plush-ink: #2A1F33;
+    --sdk-peer: #262030;
+    --sdk-same: #5A2C45;
+    --sdk-sel: #4B3678;
     --shadow: none;
     color-scheme: dark;
   }
@@ -394,29 +400,28 @@ body.kb .tabbar { display: none; }
 @keyframes pop { 0% { transform: scale(.3) rotate(-30deg); } 60% { transform: scale(1.3) rotate(8deg); } 100% { transform: scale(1); } }
 
 /* Судоку */
-.sdkhead { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.sdkhead { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; padding-inline: 10px; }
 .sdktime { font: 600 18px/1 var(--font-display); color: var(--muted); }
-.sdkgrid { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); width: 100%; max-width: 440px; margin: 0 auto; border: 2px solid var(--ink); border-radius: 10px; overflow: hidden; background: var(--line); gap: 1px; }
-.sc { aspect-ratio: 1; border: 0; padding: 0; background: var(--surface); color: var(--ink); font: 600 clamp(17px, 5.4vw, 24px)/1 var(--font-display); display: grid; place-items: center; min-width: 0; position: relative; }
-.sc.br { box-shadow: 2px 0 0 0 var(--ink); z-index: 1; }
-.sc.bb { box-shadow: 0 2px 0 0 var(--ink); z-index: 1; }
-.sc.br.bb { box-shadow: 2px 0 0 0 var(--ink), 0 2px 0 0 var(--ink), 2px 2px 0 0 var(--ink); }
-.sc.given { font-weight: 800; }
+.sdkgrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px; width: 100%; background: var(--ink); border: 2px solid var(--ink); border-radius: 8px; overflow: hidden; }
+.sbox { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; background: var(--line); min-width: 0; }
+.sc { aspect-ratio: 1; border: 0; padding: 0; background: var(--surface); color: var(--ink); font: 500 clamp(22px, 7.2vw, 34px)/1 var(--font-display); display: grid; place-items: center; min-width: 0; }
+.sc.given { font-weight: 700; }
 .sc.mine { color: var(--accent); }
-.sc.peer { background: var(--surface-2); }
-.sc.same { background: var(--accent-soft); }
-.sc.sel { background: var(--accent-soft); outline: 2px solid var(--accent); outline-offset: -2px; z-index: 2; }
+.sc.peer { background: var(--sdk-peer); }
+.sc.same { background: var(--sdk-same); }
+.sc.sel { background: var(--sdk-sel); }
 .sc.bad { color: var(--warn); }
+.sc.bad.mine:not(.sel) { background-image: linear-gradient(var(--warn-soft), var(--warn-soft)); }
 .sc .nt { display: grid; grid-template-columns: repeat(3, 1fr); width: 100%; height: 100%; padding: 1px; }
-.sc .nt i { font: 600 clamp(7px, 2vw, 10px)/1 var(--font-body); font-style: normal; color: var(--muted); display: grid; place-items: center; }
+.sc .nt i { font: 600 clamp(8px, 2.4vw, 12px)/1 var(--font-body); font-style: normal; color: var(--muted); display: grid; place-items: center; }
 .sdktools { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-top: 14px; }
 .tool { border: 0; background: none; color: var(--muted); display: grid; justify-items: center; gap: 3px; font-size: 12px; font-weight: 500; padding: 6px 0; }
 .tool svg { width: 24px; height: 24px; }
 .tool.on { color: var(--accent); background: var(--accent-soft); border-radius: 12px; }
 .tool:disabled { opacity: .35; }
 .numpad { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 5px; margin-top: 10px; }
-.nk { border: 0; border-radius: 12px; background: var(--surface-2); color: var(--accent); padding: 8px 0 5px; display: grid; justify-items: center; gap: 1px; min-width: 0; }
-.nk b { font: 700 22px/1 var(--font-display); }
+.nk { border: 0; border-radius: 12px; background: none; color: var(--accent); padding: 6px 0 4px; display: grid; justify-items: center; gap: 1px; min-width: 0; }
+.nk b { font: 600 clamp(26px, 8vw, 34px)/1 var(--font-display); }
 .nk small { font-size: 10px; color: var(--muted); min-height: 12px; }
 .nk:disabled { opacity: .25; }
 
@@ -555,7 +560,7 @@ body.kb .tabbar { display: none; }
   <!-- Судоку -->
   <section class="view" id="v-sudoku" aria-label="Судоку" hidden>
     <div class="vhead"><h1>Судоку</h1><span class="twinkle" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="#sparkle"/></svg><svg viewBox="0 0 24 24"><use href="#sparkle"/></svg></span></div>
-    <div class="card" id="sdkBoard"></div>
+    <div class="card" id="sdkBoard" style="padding-inline:6px"></div>
     <div class="card" id="sdkStats"></div>
   </section>
 
@@ -576,7 +581,7 @@ body.kb .tabbar { display: none; }
     <div class="foot">
       <span>Калорийность продуктов примерная, по средним таблицам. Для упакованных продуктов точнее взять цифры с этикетки и добавить в «Мои продукты».</span>
       <span>Все записи хранятся только на этом телефоне.</span>
-      <span>Порция · версия 1.4</span>
+      <span>Порция · версия 1.4.1</span>
     </div>
   </section>
 </div>
