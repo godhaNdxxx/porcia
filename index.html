@@ -279,8 +279,8 @@ textarea:focus, .field input:focus, .field select:focus { border-color: var(--ac
   padding-bottom: env(safe-area-inset-bottom, 0px);
   padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px);
 }
-.tabbar .in { max-width: 560px; margin: 0 auto; display: grid; grid-template-columns: repeat(5, 1fr); height: var(--tabbar-h); }
-.tab { border: 0; background: none; display: grid; justify-items: center; align-content: center; gap: 2px; color: var(--muted); font-size: 10.5px; font-weight: 500; white-space: nowrap; }
+.tabbar .in { max-width: 560px; margin: 0 auto; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); height: var(--tabbar-h); }
+.tab { border: 0; background: none; display: grid; justify-items: center; align-content: center; gap: 2px; color: var(--muted); font-size: 10px; font-weight: 500; white-space: nowrap; overflow: hidden; min-width: 0; }
 .tab svg { width: 25px; height: 25px; }
 .tab[aria-current="page"] { color: var(--accent); }
 body.kb .tabbar { display: none; }
@@ -302,7 +302,7 @@ body.kb .tabbar { display: none; }
   position: fixed; left: 50%; transform: translateX(-50%); z-index: 50;
   bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px) + 12px);
   background: var(--ink); color: var(--bg); border-radius: 14px; padding: 10px 10px 10px 16px;
-  display: flex; align-items: center; gap: 12px; font-size: 15px; max-width: calc(100% - 32px); box-shadow: 0 8px 24px rgba(0,0,0,.2);
+  display: flex; align-items: center; gap: 12px; font-size: 15px; width: max-content; max-width: calc(100% - 32px); box-shadow: 0 8px 24px rgba(0,0,0,.2);
 }
 .toast button { border: 0; background: none; color: var(--accent-soft); font-weight: 700; padding: 6px 8px; }
 @media (prefers-color-scheme: dark) { .toast button { color: var(--accent-ink); } }
@@ -337,7 +337,8 @@ body.kb .tabbar { display: none; }
 .week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
 .wday { border: 0; background: var(--surface-2); border-radius: 14px; padding: 8px 0 7px; display: grid; justify-items: center; gap: 4px; color: var(--ink); min-width: 0; }
 .wday .wd { font-size: 12px; color: var(--muted); font-weight: 600; }
-.wday .wg { height: 22px; display: grid; place-items: center; }
+.wday .wg { height: 22px; display: grid; place-items: center; position: relative; }
+.wday .gx { position: absolute; right: -9px; top: -5px; font: 700 10px/1 var(--font-display); background: var(--accent); color: var(--accent-ink); border-radius: 99px; padding: 2px 4px; }
 .wday .wg .gem { width: 22px; height: 22px; }
 .wday .wg i { width: 6px; height: 6px; border-radius: 50%; background: var(--track); }
 .wday .ws { font-size: 11px; color: var(--muted); }
@@ -383,12 +384,50 @@ body.kb .tabbar { display: none; }
 .spin { display: inline-block; width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--accent-soft); border-top-color: var(--accent); vertical-align: -2px; margin-right: 4px; animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+
+/* Шкатулка */
+.gembox { display: flex; align-items: center; gap: 14px; }
+.gem.gembig { width: 52px; height: 52px; filter: drop-shadow(0 3px 6px rgba(160, 90, 200, .25)); }
+.gemrow { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-top: 12px; }
+.gemrow .gem { width: 20px; height: 20px; }
+.toast .gem { animation: pop .5s ease-out; }
+@keyframes pop { 0% { transform: scale(.3) rotate(-30deg); } 60% { transform: scale(1.3) rotate(8deg); } 100% { transform: scale(1); } }
+
+/* Судоку */
+.sdkhead { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.sdktime { font: 600 18px/1 var(--font-display); color: var(--muted); }
+.sdkgrid { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); width: 100%; max-width: 440px; margin: 0 auto; border: 2px solid var(--ink); border-radius: 10px; overflow: hidden; background: var(--line); gap: 1px; }
+.sc { aspect-ratio: 1; border: 0; padding: 0; background: var(--surface); color: var(--ink); font: 600 clamp(17px, 5.4vw, 24px)/1 var(--font-display); display: grid; place-items: center; min-width: 0; position: relative; }
+.sc.br { box-shadow: 2px 0 0 0 var(--ink); z-index: 1; }
+.sc.bb { box-shadow: 0 2px 0 0 var(--ink); z-index: 1; }
+.sc.br.bb { box-shadow: 2px 0 0 0 var(--ink), 0 2px 0 0 var(--ink), 2px 2px 0 0 var(--ink); }
+.sc.given { font-weight: 800; }
+.sc.mine { color: var(--accent); }
+.sc.peer { background: var(--surface-2); }
+.sc.same { background: var(--accent-soft); }
+.sc.sel { background: var(--accent-soft); outline: 2px solid var(--accent); outline-offset: -2px; z-index: 2; }
+.sc.bad { color: var(--warn); }
+.sc .nt { display: grid; grid-template-columns: repeat(3, 1fr); width: 100%; height: 100%; padding: 1px; }
+.sc .nt i { font: 600 clamp(7px, 2vw, 10px)/1 var(--font-body); font-style: normal; color: var(--muted); display: grid; place-items: center; }
+.sdktools { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-top: 14px; }
+.tool { border: 0; background: none; color: var(--muted); display: grid; justify-items: center; gap: 3px; font-size: 12px; font-weight: 500; padding: 6px 0; }
+.tool svg { width: 24px; height: 24px; }
+.tool.on { color: var(--accent); background: var(--accent-soft); border-radius: 12px; }
+.tool:disabled { opacity: .35; }
+.numpad { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 5px; margin-top: 10px; }
+.nk { border: 0; border-radius: 12px; background: var(--surface-2); color: var(--accent); padding: 8px 0 5px; display: grid; justify-items: center; gap: 1px; min-width: 0; }
+.nk b { font: 700 22px/1 var(--font-display); }
+.nk small { font-size: 10px; color: var(--muted); min-height: 12px; }
+.nk:disabled { opacity: .25; }
+
 @media (max-width: 360px) {
   .ring { width: 108px; height: 108px; }
   .ring .big { font-size: 23px; }
   .vhead h1 { font-size: 26px; }
   .daynav h1 { font-size: 22px; }
   .peek { display: none; }
+  .tab { font-size: 8.5px; letter-spacing: -.02em; }
+  .tool { font-size: 11px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .twinkle svg, .peek .sp, .spin { animation: none; }
@@ -484,6 +523,7 @@ body.kb .tabbar { display: none; }
       </div>
       <span class="twinkle" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="#sparkle"/></svg><svg viewBox="0 0 24 24"><use href="#sparkle"/></svg></span>
     </div>
+    <div class="card" id="actGems"></div>
     <div class="card" id="actWeek"></div>
     <div class="card" id="actSteps"></div>
     <div class="card" id="actAdd"></div>
@@ -512,6 +552,13 @@ body.kb .tabbar { display: none; }
     <div class="card" id="bodyList"></div>
   </section>
 
+  <!-- Судоку -->
+  <section class="view" id="v-sudoku" aria-label="Судоку" hidden>
+    <div class="vhead"><h1>Судоку</h1><span class="twinkle" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="#sparkle"/></svg><svg viewBox="0 0 24 24"><use href="#sparkle"/></svg></span></div>
+    <div class="card" id="sdkBoard"></div>
+    <div class="card" id="sdkStats"></div>
+  </section>
+
   <!-- Настройки -->
   <section class="view" id="v-more" aria-label="Настройки" hidden>
     <div class="vhead"><h1>Настройки</h1><span class="twinkle" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="#sparkle"/></svg><svg viewBox="0 0 24 24"><use href="#sparkle"/></svg></span></div>
@@ -529,7 +576,7 @@ body.kb .tabbar { display: none; }
     <div class="foot">
       <span>Калорийность продуктов примерная, по средним таблицам. Для упакованных продуктов точнее взять цифры с этикетки и добавить в «Мои продукты».</span>
       <span>Все записи хранятся только на этом телефоне.</span>
-      <span>Порция · версия 1.3.1</span>
+      <span>Порция · версия 1.4</span>
     </div>
   </section>
 </div>
@@ -548,6 +595,9 @@ body.kb .tabbar { display: none; }
     <button class="tab" data-tab="body">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4" width="17" height="16" rx="4"/><path d="M8.5 10a3.5 3.5 0 0 1 7 0"/><path d="M12 10l1.5-2"/></svg>
       Вес</button>
+    <button class="tab" data-tab="sudoku">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="3"/><path d="M9.2 3.5v17M14.8 3.5v17M3.5 9.2h17M3.5 14.8h17"/></svg>
+      Судоку</button>
     <button class="tab" data-tab="more">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2.2"/><circle cx="8" cy="17" r="2.2"/></svg>
       Настройки</button>

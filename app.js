@@ -116,6 +116,7 @@
     if (ui.view === 'today') renderToday();
     else if (ui.view === 'diary') renderDiary();
     else if (ui.view === 'act') renderAct();
+    else if (ui.view === 'sudoku') renderSudoku();
     else if (ui.view === 'body') renderBody();
     else renderMore();
   }
@@ -612,6 +613,7 @@
   }
 
   function renderAct() {
+    renderGems();
     const t = today();
     $('#actTitle').textContent = fmtDay(ui.day);
     $('#actNext').disabled = ui.day >= t;
@@ -622,12 +624,12 @@
       const d = addDays(ws0, i); const a = actDay(d); const n = (a.w || []).length;
       nW += n; mins += (a.w || []).reduce((s, w) => s + (num(w.min) || 0), 0);
       if (a.steps) { stepSum += a.steps; stepN++; }
-      return `<button class="wday ${d === ui.day ? 'sel' : ''}" data-act="act-day" data-day="${d}" ${d > t ? 'disabled' : ''} aria-label="${fmtDay(d)}${n ? ', тренировка' : ''}"><span class="wd">${WD[i]}</span><span class="wg">${n ? GEM : '<i></i>'}</span><span class="ws num">${a.steps ? stepsK(a.steps) : '·'}</span></button>`;
+      return `<button class="wday ${d === ui.day ? 'sel' : ''}" data-act="act-day" data-day="${d}" ${d > t ? 'disabled' : ''} aria-label="${fmtDay(d)}${n ? ', тренировка' : ''}"><span class="wd">${WD[i]}</span><span class="wg">${n ? GEM + (n > 1 ? `<b class="gx">${n}</b>` : '') : '<i></i>'}</span><span class="ws num">${a.steps ? stepsK(a.steps) : '·'}</span></button>`;
     }).join('');
     const isThis = ws0 === weekStart(t);
     $('#actWeek').innerHTML = `<h2>${isThis ? 'Эта неделя' : 'Неделя с ' + fmtLong(ws0)}</h2><div class="week">${cells}</div>
       <p class="small" style="margin:12px 0 0">${nW ? `<b>${nW}</b> ${plural(nW, 'тренировка', 'тренировки', 'тренировок')}${mins ? ' · ' + fmtMin(mins) : ''}` : 'Тренировок пока нет'}${stepN ? ` · в среднем <b class="num">${nf(stepSum / stepN)}</b> шагов` : ''}</p>
-      <p class="tiny muted" style="margin:4px 0 0">За каждый день с тренировкой — стразик.</p>`;
+      <p class="tiny muted" style="margin:4px 0 0">За каждую тренировку — стразик в шкатулку.</p>`;
 
     const a = actDay(ui.day); const G = S.settings.stepGoal; const st = a.steps || 0;
     const sug = stepSuggest();
@@ -875,6 +877,163 @@
       <p class="tiny muted" style="margin:8px 0 0">Каждое фото — платный запрос к Claude API, обычно меньше цента. Оценка по фото примерная.</p>`;
   }
 
+
+  // ---------- Шкатулка со стразиками ----------
+  function gemsTotal() { return Object.values(S.act).reduce((s, a) => s + ((a && a.w) || []).length, 0); }
+  function gemsWeek(d) { const ws = weekStart(d); let n = 0; for (let i = 0; i < 7; i++) n += actDay(addDays(ws, i)).w.length; return n; }
+  const gemWord = n => plural(n, 'стразик', 'стразика', 'стразиков');
+  function renderGems() {
+    const total = gemsTotal(); const wk = gemsWeek(today());
+    const shown = Math.min(wk, 14);
+    $('#actGems').innerHTML = `<div class="gembox"><svg class="gem gembig" viewBox="0 0 24 24" aria-hidden="true"><use href="#gem"/></svg>
+      <div><div><span class="baseline-big">${total}</span> <span class="muted">${gemWord(total)} в шкатулке</span></div>
+      <div class="small muted">${wk ? `На этой неделе: +${wk}` : 'За каждую тренировку — стразик'}</div></div></div>
+      ${shown ? `<div class="gemrow" aria-hidden="true">${GEM.repeat(shown)}${wk > shown ? `<span class="small muted">+${wk - shown}</span>` : ''}</div>` : ''}`;
+  }
+  function gemToast() { const n = gemsTotal(); toast(`+1 стразик · всего ${n}`, null, true); }
+
+  // ---------- Судоку ----------
+  const SDK_DIFF = [['easy', 'Лёгкий', 38], ['medium', 'Средний', 31], ['hard', 'Сложный', 26]];
+  const SDK_NAME = { easy: 'Лёгкий', medium: 'Средний', hard: 'Сложный' };
+  const RW = i => (i / 9) | 0, CL = i => i % 9, BX = i => ((RW(i) / 3) | 0) * 3 + ((CL(i) / 3) | 0);
+  const PEERS = [];
+  for (let i = 0; i < 81; i++) { const p = []; for (let j = 0; j < 81; j++) if (j !== i && (RW(j) === RW(i) || CL(j) === CL(i) || BX(j) === BX(i))) p.push(j); PEERS.push(p); }
+  const bitCount = m => { let c = 0; while (m) { m &= m - 1; c++; } return c; };
+  function shuffleArr(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  // Решатель с битовыми масками: считает решения до limit, запоминает первое
+  function sdkSolve(grid, limit, random) {
+    const g = grid.slice(); const rows = Array(9).fill(0), cols = Array(9).fill(0), boxes = Array(9).fill(0);
+    for (let i = 0; i < 81; i++) if (g[i]) { const b = 1 << g[i]; if ((rows[RW(i)] | cols[CL(i)] | boxes[BX(i)]) & b) return { count: 0 }; rows[RW(i)] |= b; cols[CL(i)] |= b; boxes[BX(i)] |= b; }
+    let count = 0, first = null;
+    (function rec() {
+      let best = -1, mask = 0, cnt = 10;
+      for (let i = 0; i < 81; i++) if (!g[i]) {
+        const m = ~(rows[RW(i)] | cols[CL(i)] | boxes[BX(i)]) & 0x3FE; const c = bitCount(m);
+        if (c < cnt) { cnt = c; best = i; mask = m; if (c <= 1) break; }
+      }
+      if (best < 0) { count++; if (!first) first = g.slice(); return; }
+      if (!mask) return;
+      const ds = []; for (let d = 1; d <= 9; d++) if (mask & (1 << d)) ds.push(d);
+      if (random) shuffleArr(ds);
+      const r = RW(best), c = CL(best), x = BX(best);
+      for (const d of ds) {
+        const b = 1 << d; g[best] = d; rows[r] |= b; cols[c] |= b; boxes[x] |= b;
+        rec();
+        g[best] = 0; rows[r] &= ~b; cols[c] &= ~b; boxes[x] &= ~b;
+        if (count >= limit) return;
+      }
+    })();
+    return { count, first };
+  }
+  function sdkGenerate(diff) {
+    const target = (SDK_DIFF.find(d => d[0] === diff) || SDK_DIFF[0])[2];
+    const sol = sdkSolve(Array(81).fill(0), 1, true).first;
+    const pz = sol.slice(); let clues = 81;
+    for (const i of shuffleArr([...Array(41).keys()])) {
+      if (clues <= target) break;
+      const j = 80 - i; const a = pz[i], b = pz[j];
+      pz[i] = 0; pz[j] = 0;
+      if (sdkSolve(pz, 2, false).count !== 1) { pz[i] = a; pz[j] = b; } else clues -= i === j ? 1 : 2;
+    }
+    // Добиваем до нужного числа подсказок по одной клетке
+    for (const i of shuffleArr([...Array(81).keys()])) {
+      if (clues <= target) break;
+      if (!pz[i]) continue;
+      const a = pz[i]; pz[i] = 0;
+      if (sdkSolve(pz, 2, false).count !== 1) pz[i] = a; else clues--;
+    }
+    return { diff, puzzle: pz.join(''), solution: sol.join(''), vals: pz.join(''), notes: Array(81).fill(0), elapsed: 0, hints: 0, done: false, check: S.sudoku ? S.sudoku.check !== false : true };
+  }
+  const sdkUndo = [];
+  let sdkSel = -1, sdkNotes = false, sdkTimer = null, sdkSaveTick = 0;
+  const fmtTime = s => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+  function sdkSetVal(i, v) { const g = S.sudoku; g.vals = g.vals.slice(0, i) + v + g.vals.slice(i + 1); }
+  function sdkStats() { if (!S.sudokuStats) S.sudokuStats = { solved: {}, best: {} }; return S.sudokuStats; }
+
+  function sdkTimerSync() {
+    const run = ui.view === 'sudoku' && S.sudoku && !S.sudoku.done && document.visibilityState === 'visible';
+    if (run && !sdkTimer) sdkTimer = setInterval(() => {
+      if (!S.sudoku || S.sudoku.done) return;
+      S.sudoku.elapsed++; const t = $('#sdkTime'); if (t) t.textContent = fmtTime(S.sudoku.elapsed);
+      if (++sdkSaveTick % 10 === 0) save();
+    }, 1000);
+    if (!run && sdkTimer) { clearInterval(sdkTimer); sdkTimer = null; save(); }
+  }
+
+  function renderSudoku() {
+    const g = S.sudoku;
+    if (!g) {
+      $('#sdkBoard').innerHTML = `${emptyBear('Выбери сложность — и поехали.')}<div class="chips" style="justify-content:center;margin-top:12px">${SDK_DIFF.map(([k, n]) => `<button class="btn ghost" data-act="sdk-new" data-d="${k}">${n}</button>`).join('')}</div>`;
+      $('#sdkStats').innerHTML = sdkStatsHtml(); return;
+    }
+    const sel = sdkSel, selV = sel >= 0 ? +g.vals[sel] : 0;
+    const cells = [];
+    for (let i = 0; i < 81; i++) {
+      const v = +g.vals[i], given = g.puzzle[i] !== '0';
+      const cls = ['sc'];
+      if (given) cls.push('given'); else if (v) cls.push('mine');
+      if (i === sel) cls.push('sel');
+      else if (sel >= 0 && (RW(i) === RW(sel) || CL(i) === CL(sel) || BX(i) === BX(sel))) cls.push('peer');
+      if (v && selV && v === selV && i !== sel) cls.push('same');
+      if (v && !given) {
+        const wrong = g.check !== false ? v !== +g.solution[i] : PEERS[i].some(j => +g.vals[j] === v);
+        if (wrong) cls.push('bad');
+      }
+      if (CL(i) % 3 === 2 && CL(i) !== 8) cls.push('br');
+      if (RW(i) % 3 === 2 && RW(i) !== 8) cls.push('bb');
+      let inner = '';
+      if (v) inner = v;
+      else if (g.notes[i]) { inner = '<span class="nt">' + [1, 2, 3, 4, 5, 6, 7, 8, 9].map(d => `<i>${g.notes[i] & (1 << d) ? d : ''}</i>`).join('') + '</span>'; }
+      cells.push(`<button class="${cls.join(' ')}" data-act="sdk-cell" data-i="${i}" aria-label="Ряд ${RW(i) + 1}, столбец ${CL(i) + 1}${v ? ', ' + v : ', пусто'}">${inner}</button>`);
+    }
+    const counts = Array(10).fill(0); for (const ch of g.vals) counts[+ch]++;
+    $('#sdkBoard').innerHTML = `<div class="sdkhead"><span class="chip-state">${SDK_NAME[g.diff]}</span><span class="num sdktime" id="sdkTime">${fmtTime(g.elapsed)}</span><button class="linkbtn" data-act="sdk-newmenu">Новая игра</button></div>
+      <div class="sdkgrid" role="grid" aria-label="Поле судоку">${cells.join('')}</div>
+      <div class="sdktools">
+        <button class="tool" data-act="sdk-undo" ${sdkUndo.length ? '' : 'disabled'}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>Отменить</button>
+        <button class="tool" data-act="sdk-erase"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20H9l-5-5 10-10 7 7-6 6"/><path d="M7 12l6 6"/></svg>Стереть</button>
+        <button class="tool ${sdkNotes ? 'on' : ''}" data-act="sdk-notes" aria-pressed="${sdkNotes}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>Заметки</button>
+        <button class="tool" data-act="sdk-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg>Подсказка</button>
+      </div>
+      <div class="numpad">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(d => `<button class="nk" data-act="sdk-num" data-d="${d}" ${counts[d] >= 9 ? 'disabled' : ''}><b>${d}</b><small>${9 - counts[d] > 0 ? 9 - counts[d] : ''}</small></button>`).join('')}</div>
+      <div class="chips" style="margin-top:12px"><button class="seg" data-act="sdk-check" aria-pressed="${g.check !== false}">Подсвечивать ошибки</button>${g.hints ? `<span class="tiny muted">Подсказок: ${g.hints}</span>` : ''}</div>`;
+    $('#sdkStats').innerHTML = sdkStatsHtml();
+    sdkTimerSync();
+  }
+  function sdkStatsHtml() {
+    const st = sdkStats();
+    const rows = SDK_DIFF.map(([k, n]) => `<div class="li"><span>${n}</span><span class="small muted num">решено ${st.solved[k] || 0}${st.best[k] ? ' · лучшее ' + fmtTime(st.best[k]) : ''}</span></div>`).join('');
+    return `<h2>Статистика</h2><div class="list">${rows}</div>`;
+  }
+  function sdkPlace(d) {
+    const g = S.sudoku; const i = sdkSel;
+    if (!g || g.done || i < 0 || g.puzzle[i] !== '0') return;
+    sdkUndo.push({ vals: g.vals, notes: g.notes.slice() });
+    if (sdkNotes) {
+      if (+g.vals[i]) return;
+      g.notes[i] ^= 1 << d;
+    } else {
+      sdkSetVal(i, +g.vals[i] === d ? 0 : d);
+      g.notes[i] = 0;
+      if (+g.vals[i]) PEERS[i].forEach(j => { g.notes[j] &= ~(1 << d); });
+    }
+    if (sdkUndo.length > 200) sdkUndo.shift();
+    save(); sdkCheckWin(); renderSudoku();
+  }
+  function sdkCheckWin() {
+    const g = S.sudoku;
+    if (g.vals !== g.solution || g.done) return;
+    g.done = true;
+    const st = sdkStats();
+    st.solved[g.diff] = (st.solved[g.diff] || 0) + 1;
+    const best = st.best[g.diff]; const record = !g.hints && (!best || g.elapsed < best);
+    if (record) st.best[g.diff] = g.elapsed;
+    save(); sdkTimerSync();
+    setTimeout(() => openSheet(`<div class="hero">${bearSvg()}<h2>Судоку решено!</h2></div>
+      <p class="small" style="margin:0">${SDK_NAME[g.diff]} уровень за <b class="num">${fmtTime(g.elapsed)}</b>${g.hints ? `, подсказок: ${g.hints}` : ''}.${record ? ' Это новый рекорд!' : ''}</p>
+      <div class="stack">${SDK_DIFF.map(([k, n]) => `<button class="btn ${k === g.diff ? '' : 'ghost'} block" data-act="sdk-new" data-d="${k}">Ещё одну · ${n}</button>`).join('')}<button class="btn plain block" data-act="sheet-close">Полюбоваться</button></div>`), 250);
+  }
+
   // ---------- Тост ----------
   let toastTimer = null;
   function toast(msg, undo, shiny) {
@@ -1054,14 +1213,14 @@
       if (i >= 0) day.w[i] = rec; else day.w.push(rec);
       const isNew = i < 0;
       save(); closeSheet(); render();
-      toast(isNew ? 'Тренировка записана' : 'Сохранено', null, isNew);
+      if (isNew) gemToast(); else toast('Сохранено');
     },
     'wk-open'(b) { wkDetail(b.dataset.day, b.dataset.id); },
     'wk-edit'(b) { const w = actDay(b.dataset.day).w.find(x => x.id === b.dataset.id); if (!w) return; wk = wkFromRecord(w, b.dataset.day); wkSheet(); },
     'wk-repeat'(b) {
       const w = actDay(b.dataset.day).w.find(x => x.id === b.dataset.id); if (!w) return;
       const copy = JSON.parse(JSON.stringify(w)); copy.id = uid(); copy.t = Date.now(); copy.note = '';
-      actDayMut(today()).w.push(copy); save(); closeSheet(); render(); toast('Добавлено на сегодня');
+      actDayMut(today()).w.push(copy); save(); closeSheet(); render(); gemToast();
     },
     'wk-del'(b) {
       if (ui.delArm !== 'w' + b.dataset.id) { ui.delArm = 'w' + b.dataset.id; b.textContent = 'Точно удалить? Нажми ещё раз'; return; }
@@ -1114,6 +1273,50 @@
     analyzePhoto();
   });
 
+
+  Object.assign(actions, {
+    'sdk-new'(b) {
+      closeSheet();
+      $('#sdkBoard').innerHTML = '<div class="empty"><span class="spin"></span> Собираю поле…</div>';
+      setTimeout(() => { S.sudoku = sdkGenerate(b.dataset.d); sdkUndo.length = 0; sdkSel = -1; sdkNotes = false; save(); renderSudoku(); }, 30);
+    },
+    'sdk-newmenu'() {
+      openSheet(`<h2>Новая игра</h2><p class="small muted" style="margin:0">Текущая партия${S.sudoku && !S.sudoku.done ? ' не решена и' : ''} будет заменена.</p>
+        <div class="stack">${SDK_DIFF.map(([k, n]) => `<button class="btn ghost block" data-act="sdk-new" data-d="${k}">${n}</button>`).join('')}<button class="btn plain block" data-act="sheet-close">Отмена</button></div>`);
+    },
+    'sdk-cell'(b) { sdkSel = +b.dataset.i; renderSudoku(); },
+    'sdk-num'(b) { sdkPlace(+b.dataset.d); },
+    'sdk-erase'() {
+      const g = S.sudoku; const i = sdkSel; if (!g || g.done || i < 0 || g.puzzle[i] !== '0') return;
+      sdkUndo.push({ vals: g.vals, notes: g.notes.slice() }); sdkSetVal(i, 0); g.notes[i] = 0; save(); renderSudoku();
+    },
+    'sdk-undo'() { const g = S.sudoku; const u = sdkUndo.pop(); if (!g || !u || g.done) return; g.vals = u.vals; g.notes = u.notes; save(); renderSudoku(); },
+    'sdk-notes'() { sdkNotes = !sdkNotes; renderSudoku(); },
+    'sdk-check'() { const g = S.sudoku; if (!g) return; g.check = g.check === false; save(); renderSudoku(); },
+    'sdk-hint'() {
+      const g = S.sudoku; if (!g || g.done) return;
+      let i = sdkSel;
+      if (i < 0 || g.puzzle[i] !== '0' || g.vals[i] === g.solution[i]) {
+        const empty = []; for (let k = 0; k < 81; k++) if (g.vals[k] !== g.solution[k]) empty.push(k);
+        if (!empty.length) return; i = empty[Math.random() * empty.length | 0];
+      }
+      sdkUndo.push({ vals: g.vals, notes: g.notes.slice() });
+      const d = +g.solution[i]; sdkSetVal(i, d); g.notes[i] = 0; PEERS[i].forEach(j => { g.notes[j] &= ~(1 << d); });
+      g.hints++; sdkSel = i; save(); sdkCheckWin(); renderSudoku();
+    },
+  });
+  document.addEventListener('keydown', ev => {
+    if (ui.view !== 'sudoku' || !S.sudoku || !$('#backdrop').hidden || ev.target.matches('input, textarea')) return;
+    if (/^[1-9]$/.test(ev.key)) { sdkPlace(+ev.key); ev.preventDefault(); }
+    else if (ev.key === 'Backspace' || ev.key === 'Delete' || ev.key === '0') { actions['sdk-erase'](); ev.preventDefault(); }
+    else if (ev.key.startsWith('Arrow') && sdkSel >= 0) {
+      const r = RW(sdkSel), c = CL(sdkSel);
+      const nr = ev.key === 'ArrowUp' ? (r + 8) % 9 : ev.key === 'ArrowDown' ? (r + 1) % 9 : r;
+      const nc = ev.key === 'ArrowLeft' ? (c + 8) % 9 : ev.key === 'ArrowRight' ? (c + 1) % 9 : c;
+      sdkSel = nr * 9 + nc; renderSudoku(); ev.preventDefault();
+    }
+  });
+
   async function exportData() {
     const json = JSON.stringify({ app: 'porcia', v: 1, exported: new Date().toISOString(), data: S });
     const name = 'porcia-' + today() + '.json';
@@ -1155,7 +1358,7 @@
   const KEEP_FOCUS = new Set(['photo', 'meal', 'draft-del', 'es-step', 'es-meal', 'ff-mode', 'wk-type', 'wk-int', 'wk-set-add', 'wk-ex-add', 'wk-set-del', 'wk-ex-del', 'wk-ex-copy']);
   document.addEventListener('click', ev => {
     const tab = ev.target.closest('.tab');
-    if (tab) { ui.view = tab.dataset.tab; ui.delArm = null; if ((ui.view === 'today' || ui.view === 'act') && ui.followToday) ui.day = today(); render(); window.scrollTo(0, 0); return; }
+    if (tab) { ui.view = tab.dataset.tab; setTimeout(sdkTimerSync, 0); ui.delArm = null; if ((ui.view === 'today' || ui.view === 'act') && ui.followToday) ui.day = today(); render(); window.scrollTo(0, 0); return; }
     if (ev.target === $('#backdrop')) { closeSheet(); return; }
     const b = ev.target.closest('[data-act]');
     if (!b) return;
@@ -1263,6 +1466,7 @@
 
   // После полуночи «Сегодня» переключается на новый день
   document.addEventListener('visibilitychange', () => {
+    sdkTimerSync();
     if (document.visibilityState === 'visible') {
       if (ui.followToday && ui.day !== today()) { ui.day = today(); ui.meal = autoMeal(); render(); }
       else if (!ui.mealTouched && !ui.draft.length) { ui.meal = autoMeal(); if (ui.view === 'today') { renderMeals(); renderPreview(); renderQuick(); } }
