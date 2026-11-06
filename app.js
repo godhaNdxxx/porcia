@@ -562,6 +562,10 @@
   };
   const actIcon = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ACT_IC[k] || ACT_IC.other}</svg>`;
   const GEM = '<svg class="gem" viewBox="0 0 24 24" aria-hidden="true"><use href="#gem"/></svg>';
+  // Разноцветные стразики: у каждой тренировки свой цвет, он не меняется
+  const GEM_COLORS = ['', '-lilac', '-blue', '-mint', '-gold', '-ruby'];
+  function gemColor(id) { let h = 0; for (const ch of String(id || '')) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return GEM_COLORS[h % GEM_COLORS.length]; }
+  const gemOf = (id, style) => `<svg class="gem" viewBox="0 0 24 24" aria-hidden="true"${style ? ` style="${style}"` : ''}><use href="#gem${gemColor(id)}"/></svg>`;
   const bearSvg = () => '<svg class="bear" viewBox="0 0 120 120" aria-hidden="true"><use href="#bear"/></svg>';
   const emptyBear = txt => `<div class="empty">${bearSvg()}<div>${txt}</div></div>`;
   const EX_NAMES = ['Приседания', 'Приседания со штангой', 'Гоблет-приседания', 'Жим ногами', 'Выпады', 'Болгарские выпады', 'Ягодичный мост', 'Ягодичный мост со штангой',
@@ -609,7 +613,7 @@
     const parts = [];
     if (a.steps) parts.push(`шаги <b class="num">${nf(a.steps)}</b>${G ? ' / ' + nf(G) : ''}`);
     if (ws.length) parts.push(ws.map(w => (ACT[w.type] || ACT.other).n.toLowerCase()).join(', '));
-    el.innerHTML = `<button class="actmini" data-act="goto-act"><span class="wic">${actIcon(ws.length ? ws[0].type : 'walk')}</span><span>${parts.length ? parts.join(' · ') : '<span class="muted">Добавить шаги или тренировку</span>'}${ws.length ? ' ' + GEM : ''}</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>`;
+    el.innerHTML = `<button class="actmini" data-act="goto-act"><span class="wic">${actIcon(ws.length ? ws[0].type : 'walk')}</span><span>${parts.length ? parts.join(' · ') : '<span class="muted">Добавить шаги или тренировку</span>'}${ws.length ? ' ' + ws.map(w => gemOf(w.id)).join('') : ''}</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>`;
   }
 
   function renderAct() {
@@ -624,7 +628,7 @@
       const d = addDays(ws0, i); const a = actDay(d); const n = (a.w || []).length;
       nW += n; mins += (a.w || []).reduce((s, w) => s + (num(w.min) || 0), 0);
       if (a.steps) { stepSum += a.steps; stepN++; }
-      return `<button class="wday ${d === ui.day ? 'sel' : ''}" data-act="act-day" data-day="${d}" ${d > t ? 'disabled' : ''} aria-label="${fmtDay(d)}${n ? ', тренировка' : ''}"><span class="wd">${WD[i]}</span><span class="wg">${n ? GEM + (n > 1 ? `<b class="gx">${n}</b>` : '') : '<i></i>'}</span><span class="ws num">${a.steps ? stepsK(a.steps) : '·'}</span></button>`;
+      return `<button class="wday ${d === ui.day ? 'sel' : ''}" data-act="act-day" data-day="${d}" ${d > t ? 'disabled' : ''} aria-label="${fmtDay(d)}${n ? ', тренировка' : ''}"><span class="wd">${WD[i]}</span><span class="wg">${n ? gemOf(a.w[a.w.length - 1].id) + (n > 1 ? `<b class="gx">${n}</b>` : '') : '<i></i>'}</span><span class="ws num">${a.steps ? stepsK(a.steps) : '·'}</span></button>`;
     }).join('');
     const isThis = ws0 === weekStart(t);
     $('#actWeek').innerHTML = `<h2>${isThis ? 'Эта неделя' : 'Неделя с ' + fmtLong(ws0)}</h2><div class="week">${cells}</div>
@@ -885,12 +889,14 @@
   function renderGems() {
     const total = gemsTotal(); const wk = gemsWeek(today());
     const shown = Math.min(wk, 14);
+    const weekIds = []; const ws0 = weekStart(today());
+    for (let i = 0; i < 7; i++) actDay(addDays(ws0, i)).w.forEach(w => weekIds.push(w.id));
     $('#actGems').innerHTML = `<div class="gembox"><svg class="gem gembig" viewBox="0 0 24 24" aria-hidden="true"><use href="#gem"/></svg>
       <div><div><span class="baseline-big">${total}</span> <span class="muted">${gemWord(total)} в шкатулке</span></div>
       <div class="small muted">${wk ? `На этой неделе: +${wk}` : 'За каждую тренировку — стразик'}</div></div></div>
-      ${shown ? `<div class="gemrow" aria-hidden="true">${GEM.repeat(shown)}${wk > shown ? `<span class="small muted">+${wk - shown}</span>` : ''}</div>` : ''}`;
+      ${shown ? `<div class="gemrow" aria-hidden="true">${weekIds.slice(0, shown).map(id => gemOf(id)).join('')}${wk > shown ? `<span class="small muted">+${wk - shown}</span>` : ''}</div>` : ''}`;
   }
-  function gemToast() { const n = gemsTotal(); toast(`+1 стразик · всего ${n}`, null, true); }
+  function gemToast(id) { const n = gemsTotal(); toast(`+1 стразик · всего ${n}`, null, id || true); }
 
   // ---------- Судоку ----------
   const SDK_DIFF = [['easy', 'Лёгкий', 38], ['medium', 'Средний', 31], ['hard', 'Сложный', 26]];
@@ -1036,7 +1042,7 @@
   let toastTimer = null;
   function toast(msg, undo, shiny) {
     const el = $('#toast');
-    el.innerHTML = `${shiny ? '<svg class="gem" viewBox="0 0 24 24" aria-hidden="true" style="width:20px;height:20px"><use href="#gem"/></svg>' : ''}<span>${esc(msg)}</span>${undo ? '<button data-act="undo">Отменить</button>' : ''}`;
+    el.innerHTML = `${shiny ? (typeof shiny === 'string' ? gemOf(shiny, 'width:22px;height:22px') : '<svg class="gem" viewBox="0 0 24 24" aria-hidden="true" style="width:22px;height:22px"><use href="#gem"/></svg>') : ''}<span>${esc(msg)}</span>${undo ? '<button data-act="undo">Отменить</button>' : ''}`;
     el.hidden = false;
     el._undo = undo || null;
     clearTimeout(toastTimer);
@@ -1211,14 +1217,14 @@
       if (i >= 0) day.w[i] = rec; else day.w.push(rec);
       const isNew = i < 0;
       save(); closeSheet(); render();
-      if (isNew) gemToast(); else toast('Сохранено');
+      if (isNew) gemToast(rec.id); else toast('Сохранено');
     },
     'wk-open'(b) { wkDetail(b.dataset.day, b.dataset.id); },
     'wk-edit'(b) { const w = actDay(b.dataset.day).w.find(x => x.id === b.dataset.id); if (!w) return; wk = wkFromRecord(w, b.dataset.day); wkSheet(); },
     'wk-repeat'(b) {
       const w = actDay(b.dataset.day).w.find(x => x.id === b.dataset.id); if (!w) return;
       const copy = JSON.parse(JSON.stringify(w)); copy.id = uid(); copy.t = Date.now(); copy.note = '';
-      actDayMut(today()).w.push(copy); save(); closeSheet(); render(); gemToast();
+      actDayMut(today()).w.push(copy); save(); closeSheet(); render(); gemToast(copy.id);
     },
     'wk-del'(b) {
       if (ui.delArm !== 'w' + b.dataset.id) { ui.delArm = 'w' + b.dataset.id; b.textContent = 'Точно удалить? Нажми ещё раз'; return; }

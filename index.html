@@ -447,6 +447,12 @@ body.kb .tabbar { display: none; }
   <defs>
     <linearGradient id="gemFill" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFE3F1"/><stop offset=".5" stop-color="#F3A9D0"/><stop offset="1" stop-color="#B7A4FF"/></linearGradient>
     <radialGradient id="gemCore" cx=".4" cy=".35" r=".7"><stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#F8C4E1"/></radialGradient>
+    <linearGradient id="gemFill-lilac" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F2E6FF"/><stop offset=".5" stop-color="#C6A6FF"/><stop offset="1" stop-color="#8E7CF0"/></linearGradient>
+    <linearGradient id="gemFill-blue" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#E3F3FF"/><stop offset=".5" stop-color="#94C8F5"/><stop offset="1" stop-color="#7F92FF"/></linearGradient>
+    <linearGradient id="gemFill-mint" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#E0FFF3"/><stop offset=".5" stop-color="#86DDBE"/><stop offset="1" stop-color="#5EAFE0"/></linearGradient>
+    <linearGradient id="gemFill-gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFF6D2"/><stop offset=".5" stop-color="#F6CC62"/><stop offset="1" stop-color="#EE9460"/></linearGradient>
+    <linearGradient id="gemFill-ruby" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFE2E6"/><stop offset=".5" stop-color="#F38FA4"/><stop offset="1" stop-color="#C9579A"/></linearGradient>
+    <radialGradient id="gemCoreW" cx=".4" cy=".35" r=".7"><stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#FFFFFF" stop-opacity=".25"/></radialGradient>
     <linearGradient id="sparkFill" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFC2E0"/><stop offset="1" stop-color="#B49CFF"/></linearGradient>
     <radialGradient id="beadFill" cx=".35" cy=".35" r=".75"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".45" stop-color="#F7B9DA"/><stop offset="1" stop-color="#A98BF0"/></radialGradient>
   </defs>
@@ -454,6 +460,36 @@ body.kb .tabbar { display: none; }
   <symbol id="gem" viewBox="0 0 24 24">
     <path d="M12 2.5l6.7 2.8 2.8 6.7-2.8 6.7-6.7 2.8-6.7-2.8L2.5 12l2.8-6.7z" fill="url(#gemFill)"/>
     <path d="M12 7l3.5 1.5L17 12l-1.5 3.5L12 17l-3.5-1.5L7 12l1.5-3.5z" fill="url(#gemCore)" opacity=".92"/>
+    <path d="M12 2.5V7M18.7 5.3l-3.2 3.2M21.5 12H17M18.7 18.7l-3.2-3.2M12 21.5V17M5.3 18.7l3.2-3.2M2.5 12H7M5.3 5.3l3.2 3.2" stroke="#fff" stroke-opacity=".6" stroke-width=".8"/>
+    <circle cx="9.4" cy="8.7" r="1.3" fill="#fff"/>
+  </symbol>
+  <symbol id="gem-lilac" viewBox="0 0 24 24">
+    <path d="M12 2.5l6.7 2.8 2.8 6.7-2.8 6.7-6.7 2.8-6.7-2.8L2.5 12l2.8-6.7z" fill="url(#gemFill-lilac)"/>
+    <path d="M12 7l3.5 1.5L17 12l-1.5 3.5L12 17l-3.5-1.5L7 12l1.5-3.5z" fill="url(#gemCoreW)" opacity=".92"/>
+    <path d="M12 2.5V7M18.7 5.3l-3.2 3.2M21.5 12H17M18.7 18.7l-3.2-3.2M12 21.5V17M5.3 18.7l3.2-3.2M2.5 12H7M5.3 5.3l3.2 3.2" stroke="#fff" stroke-opacity=".6" stroke-width=".8"/>
+    <circle cx="9.4" cy="8.7" r="1.3" fill="#fff"/>
+  </symbol>
+  <symbol id="gem-blue" viewBox="0 0 24 24">
+    <path d="M12 2.5l6.7 2.8 2.8 6.7-2.8 6.7-6.7 2.8-6.7-2.8L2.5 12l2.8-6.7z" fill="url(#gemFill-blue)"/>
+    <path d="M12 7l3.5 1.5L17 12l-1.5 3.5L12 17l-3.5-1.5L7 12l1.5-3.5z" fill="url(#gemCoreW)" opacity=".92"/>
+    <path d="M12 2.5V7M18.7 5.3l-3.2 3.2M21.5 12H17M18.7 18.7l-3.2-3.2M12 21.5V17M5.3 18.7l3.2-3.2M2.5 12H7M5.3 5.3l3.2 3.2" stroke="#fff" stroke-opacity=".6" stroke-width=".8"/>
+    <circle cx="9.4" cy="8.7" r="1.3" fill="#fff"/>
+  </symbol>
+  <symbol id="gem-mint" viewBox="0 0 24 24">
+    <path d="M12 2.5l6.7 2.8 2.8 6.7-2.8 6.7-6.7 2.8-6.7-2.8L2.5 12l2.8-6.7z" fill="url(#gemFill-mint)"/>
+    <path d="M12 7l3.5 1.5L17 12l-1.5 3.5L12 17l-3.5-1.5L7 12l1.5-3.5z" fill="url(#gemCoreW)" opacity=".92"/>
+    <path d="M12 2.5V7M18.7 5.3l-3.2 3.2M21.5 12H17M18.7 18.7l-3.2-3.2M12 21.5V17M5.3 18.7l3.2-3.2M2.5 12H7M5.3 5.3l3.2 3.2" stroke="#fff" stroke-opacity=".6" stroke-width=".8"/>
+    <circle cx="9.4" cy="8.7" r="1.3" fill="#fff"/>
+  </symbol>
+  <symbol id="gem-gold" viewBox="0 0 24 24">
+    <path d="M12 2.5l6.7 2.8 2.8 6.7-2.8 6.7-6.7 2.8-6.7-2.8L2.5 12l2.8-6.7z" fill="url(#gemFill-gold)"/>
+    <path d="M12 7l3.5 1.5L17 12l-1.5 3.5L12 17l-3.5-1.5L7 12l1.5-3.5z" fill="url(#gemCoreW)" opacity=".92"/>
+    <path d="M12 2.5V7M18.7 5.3l-3.2 3.2M21.5 12H17M18.7 18.7l-3.2-3.2M12 21.5V17M5.3 18.7l3.2-3.2M2.5 12H7M5.3 5.3l3.2 3.2" stroke="#fff" stroke-opacity=".6" stroke-width=".8"/>
+    <circle cx="9.4" cy="8.7" r="1.3" fill="#fff"/>
+  </symbol>
+  <symbol id="gem-ruby" viewBox="0 0 24 24">
+    <path d="M12 2.5l6.7 2.8 2.8 6.7-2.8 6.7-6.7 2.8-6.7-2.8L2.5 12l2.8-6.7z" fill="url(#gemFill-ruby)"/>
+    <path d="M12 7l3.5 1.5L17 12l-1.5 3.5L12 17l-3.5-1.5L7 12l1.5-3.5z" fill="url(#gemCoreW)" opacity=".92"/>
     <path d="M12 2.5V7M18.7 5.3l-3.2 3.2M21.5 12H17M18.7 18.7l-3.2-3.2M12 21.5V17M5.3 18.7l3.2-3.2M2.5 12H7M5.3 5.3l3.2 3.2" stroke="#fff" stroke-opacity=".6" stroke-width=".8"/>
     <circle cx="9.4" cy="8.7" r="1.3" fill="#fff"/>
   </symbol>
@@ -581,7 +617,7 @@ body.kb .tabbar { display: none; }
     <div class="foot">
       <span>Калорийность продуктов примерная, по средним таблицам. Для упакованных продуктов точнее взять цифры с этикетки и добавить в «Мои продукты».</span>
       <span>Все записи хранятся только на этом телефоне.</span>
-      <span>Порция · версия 1.4.1</span>
+      <span>Порция · версия 1.4.2</span>
     </div>
   </section>
 </div>
