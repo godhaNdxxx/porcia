@@ -713,18 +713,45 @@
 Правила:
 - Учитывай масло, соусы, заправки, сыр и сладкие добавки, если их видно или они обычно есть в таком блюде.
 - Если на фото упаковка с этикеткой, бери цифры с неё.
+- Если одинаковых штук много (котлеты, пельмени, конфеты), запиши их одной строкой с общим весом и укажи количество в названии: «Тефтели, ~12 шт».
 - Названия короткие, по-русски, с заглавной буквы: «Гречка отварная», «Куриная котлета».
 - Если еды на фото нет, верни пустой список.
-Ответь только JSON, без пояснений и без markdown:
-{"items":[{"name":"Гречка отварная","grams":180,"kcal":198,"protein":7.6,"fat":2.0,"carbs":37.8}],"note":"коротко, в чём не уверен, или пустая строка"}`;
+Запиши результат через инструмент record_food.`;
+  // Ответ в строгой структуре: Claude «вызывает инструмент», и данные приходят готовым объектом, а не текстом
+  const FOOD_TOOL = {
+    name: 'record_food',
+    description: 'Записать еду, распознанную на фото, с оценкой порций и КБЖУ.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        items: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              name: { type: 'string', description: 'Короткое название блюда по-русски' },
+              grams: { type: 'number', description: 'Вес порции в граммах (для напитков — в мл)' },
+              kcal: { type: 'number', description: 'Калории на всю порцию' },
+              protein: { type: 'number', description: 'Белки на всю порцию, г' },
+              fat: { type: 'number', description: 'Жиры на всю порцию, г' },
+              carbs: { type: 'number', description: 'Углеводы на всю порцию, г' },
+            },
+            required: ['name', 'grams', 'kcal', 'protein', 'fat', 'carbs'],
+          },
+        },
+        note: { type: 'string', description: 'Коротко, в чём не уверен; пустая строка, если всё ясно' },
+      },
+      required: ['items'],
+    },
+  };
 
-  async function claudeCall(cfg, content, maxTokens) {
+  async function claudeRequest(cfg, body) {
     let res;
     try {
       res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: { 'content-type': 'application/json', 'x-api-key': cfg.key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-        body: JSON.stringify({ model: cfg.model || AI_MODELS[0][0], max_tokens: maxTokens, messages: [{ role: 'user', content }] }),
+        body: JSON.stringify(Object.assign({ model: cfg.model || AI_MODELS[0][0] }, body)),
       });
     } catch (e) { throw new Error('Нет связи с Claude. Проверь интернет и попробуй ещё раз.'); }
     let data = null; try { data = await res.json(); } catch (e) { /* пустой ответ */ }
@@ -738,7 +765,22 @@
       if (res.status >= 500) throw new Error('Claude сейчас перегружен. Попробуй чуть позже.');
       throw new Error('Claude вернул ошибку' + (m ? ': ' + m : ' ' + res.status));
     }
-    return ((data && data.content) || []).filter(b => b.type === 'text').map(b => b.text).join('');
+    return data || {};
+  }
+  const textOf = data => (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+  async function claudeCall(cfg, content, maxTokens) {
+    return textOf(await claudeRequest(cfg, { max_tokens: maxTokens, messages: [{ role: 'user', content }] }));
+  }
+  async function claudeFood(cfg, b64) {
+    const data = await claudeRequest(cfg, {
+      max_tokens: 4096,
+      tools: [FOOD_TOOL],
+      tool_choice: { type: 'tool', name: 'record_food' },
+      messages: [{ role: 'user', content: [{ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: b64 } }, { type: 'text', text: PHOTO_PROMPT }] }],
+    });
+    const use = (data.content || []).find(b => b.type === 'tool_use' && b.input);
+    if (use) return { obj: use.input, raw: JSON.stringify(use.input), stop: data.stop_reason };
+    return { obj: null, raw: textOf(data), stop: data.stop_reason };
   }
 
   function downscale(file, max, q) {
@@ -759,14 +801,34 @@
   }
 
   const r1 = n => Math.round(n * 10) / 10;
-  function parseAi(txt) {
-    const a = txt.indexOf('{'), b = txt.lastIndexOf('}');
-    let o = null;
-    if (a >= 0 && b > a) { try { o = JSON.parse(txt.slice(a, b + 1)); } catch (e) { o = null; } }
-    if (!o || !Array.isArray(o.items)) throw new Error('Claude ответил не в том формате. Попробуй ещё раз.');
+  class FormatError extends Error {}
+  // Запасной разбор, если вместо структуры пришёл текст: блок ```json, затем любой кусок от «{» до «}»
+  function jsonFromText(txt) {
+    const tries = [];
+    const fence = txt.match(/```(?:json)?\s*([\s\S]*?)```/i);
+    if (fence) tries.push(fence[1]);
+    const b = txt.lastIndexOf('}');
+    for (let a = txt.indexOf('{'); a >= 0 && a < b; a = txt.indexOf('{', a + 1)) tries.push(txt.slice(a, b + 1));
+    for (const t of tries) {
+      for (const v of [t, t.replace(/,\s*([}\]])/g, '$1')]) {
+        try { const o = JSON.parse(v); if (o && (Array.isArray(o.items) || Array.isArray(o))) return Array.isArray(o) ? { items: o } : o; } catch (e) { /* дальше */ }
+      }
+    }
+    return null;
+  }
+  const numOf = v => { const n = parseFloat(String(v == null ? '' : v).replace(',', '.').replace(/[^\d.]/g, '')); return isFinite(n) ? n : 0; };
+  function parseAi(res) {
+    let o = res.obj;
+    if (o && !Array.isArray(o.items) && typeof o.items === 'string') { try { o = Object.assign({}, o, { items: JSON.parse(o.items) }); } catch (e) { /* ниже */ } }
+    if (!o || !Array.isArray(o.items)) o = jsonFromText(res.raw || '');
+    if (!o) {
+      const err = new FormatError(res.stop === 'max_tokens' ? 'На фото слишком много всего — ответ не поместился. Сними поближе одну тарелку.'
+        : !/[{]/.test(res.raw || '') ? 'Claude не смог разобрать это фото. Попробуй снять ближе и при хорошем свете.' : 'Claude ответил не в том формате. Попробуй ещё раз.');
+      err.raw = res.raw; throw err;
+    }
     const items = o.items.map(x => {
-      const g = Math.max(1, Math.round(+x.grams || 100));
-      const k = Math.max(0, +x.kcal || 0), P = Math.max(0, +x.protein || 0), F = Math.max(0, +x.fat || 0), Cc = Math.max(0, +x.carbs || 0);
+      const g = Math.max(1, Math.round(numOf(x.grams || x.weight) || 100));
+      const k = Math.max(0, numOf(x.kcal || x.calories)), P = Math.max(0, numOf(x.protein)), F = Math.max(0, numOf(x.fat)), Cc = Math.max(0, numOf(x.carbs || x.carbohydrates));
       const name = String(x.name || 'Блюдо').trim().slice(0, 60);
       return { fid: null, ai: true, ph: { k: k / g * 100, p: P / g * 100, f: F / g * 100, c: Cc / g * 100 },
         name: name.charAt(0).toUpperCase() + name.slice(1), grams: g, kcal: Math.round(k), p: r1(P), f: r1(F), c: r1(Cc), label: g + ' г · по фото', src: 'фото' };
@@ -777,18 +839,18 @@
   async function analyzePhoto() {
     const ph = ui.photo; if (!ph) return;
     const cfg = aiCfg();
-    ph.state = 'loading'; ph.msg = ''; renderPreview();
+    ph.state = 'loading'; ph.msg = ''; ph.raw = ''; renderPreview();
     try {
       if (!ph.b64) ph.b64 = await downscale(ph.file, 1024, 0.82);
-      const txt = await claudeCall(cfg, [{ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: ph.b64 } }, { type: 'text', text: PHOTO_PROMPT }], 1024);
+      const res = await claudeFood(cfg, ph.b64);
       if (ui.photo !== ph) return; // фото уже убрали
-      const r = parseAi(txt);
+      const r = parseAi(res);
       ph.state = 'done'; ph.note = r.note;
       ui.photoItems = r.items;
       if (!r.items.length) { ph.state = 'error'; ph.msg = 'Еды на фото не нашлось.'; }
     } catch (e) {
       if (ui.photo !== ph) return;
-      ph.state = 'error'; ph.msg = e.message || 'Что-то пошло не так.';
+      ph.state = 'error'; ph.msg = e.message || 'Что-то пошло не так.'; ph.raw = e.raw || '';
     }
     reparse();
   }
@@ -796,7 +858,7 @@
   function photoRow() {
     const ph = ui.photo; if (!ph) return '';
     const body = ph.state === 'loading' ? '<span class="spin" aria-hidden="true"></span> Claude смотрит на фото…'
-      : ph.state === 'error' ? `<span style="color:var(--warn)">${esc(ph.msg)}</span> <button class="linkbtn small" data-act="photo-retry">Ещё раз</button>`
+      : ph.state === 'error' ? `<span style="color:var(--warn)">${esc(ph.msg)}</span> <button class="linkbtn small" data-act="photo-retry">Ещё раз</button>${ph.raw ? `<details class="tiny muted" style="margin-top:4px"><summary>Подробнее</summary><div style="overflow-wrap:anywhere;margin-top:4px">Ответ Claude: ${esc(String(ph.raw).slice(0, 400))}</div></details>` : ''}`
       : `Распознано по фото${ph.note ? ': ' + esc(ph.note) : ''}. Проверь граммы перед записью.`;
     return `<div class="phrow"><img src="${ph.url}" alt="Фото еды"><div class="small" style="min-width:0">${body}</div><button class="xbtn" data-act="photo-del" aria-label="Убрать фото">${IC.x}</button></div>`;
   }
