@@ -37,8 +37,8 @@
   function blank() {
     return {
       v: 1, created: today(),
-      settings: { limits: [], protein: null, fat: null, stepGoal: null, onboarded: false, stallDismissed: null, baselineDismissed: false, weighSnooze: null, lastBackup: null },
-      log: {}, custom: [], body: [], favs: [], act: {},
+      settings: { limits: [], protein: null, fat: null, stepGoal: null, onboarded: false, stallDismissed: null, baselineDismissed: false, weighSnooze: null, lastBackup: null, water: null },
+      log: {}, custom: [], body: [], favs: [], act: {}, water: {},
     };
   }
   function load() {
@@ -89,6 +89,26 @@
     if (S.settings.stallDismissed === last.d) return null;
     return { from: prev, to: last, limit: L.k, next: r10(L.k * 0.9) };
   }
+  // ---------- Вода ----------
+  // Цель делится на 4–10 стаканов примерно по 250 мл. В S.water хранятся выпитые мл по дням.
+  function waterPlan(goal) {
+    const g = goal === undefined ? S.settings.water : goal;
+    if (!g) return null;
+    const n = Math.min(10, Math.max(4, Math.round(g / 250)));
+    return { goal: g, n, size: g / n };
+  }
+  function waterStore() { if (!S.water || typeof S.water !== 'object' || Array.isArray(S.water)) S.water = {}; return S.water; }
+  function waterCount(day, plan) { return Math.max(0, Math.min(plan.n, Math.round((waterStore()[day] || 0) / plan.size))); }
+  function setWaterCount(day, plan, c) {
+    const W = waterStore();
+    c = Math.max(0, Math.min(plan.n, c));
+    if (c) W[day] = Math.round(c * plan.size); else delete W[day];
+    save();
+  }
+  function waterPlanText(plan) {
+    const exact = Math.abs(plan.size - Math.round(plan.size)) < 0.01;
+    return `${plan.n} ${plural(plan.n, 'стакан', 'стакана', 'стаканов')} ${exact ? 'по' : 'примерно по'} ${nf(plan.size)} мл`;
+  }
   function autoMeal() { const h = new Date().getHours() + new Date().getMinutes() / 60; return h < 11 ? 'b' : h < 16 ? 'l' : h < 21.5 ? 'd' : 's'; }
   function foodOf(fid) { return fid ? C.findFood(fid, S.custom) : null; }
   function phFood(ph, drink) { return { kcal: ph.k, p: ph.p, f: ph.f, c: ph.c, units: {}, drink: !!drink }; }
@@ -107,18 +127,44 @@
   const IC = {
     x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
     star: '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.9.9-4.2 4.1 1 5.8L12 16.9l-5.3 2.7 1-5.8-4.2-4.1 5.9-.9z"/></svg>',
+    plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5.5v13M5.5 12h13"/></svg>',
+    minus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M5.5 12h13"/></svg>',
   };
+  const GLASS = 'M3.5 2.5h21a1.5 1.5 0 0 1 1.5 1.7l-2.5 26a3.6 3.6 0 0 1-3.6 3.3H8.1a3.6 3.6 0 0 1-3.6-3.3L2 4.2a1.5 1.5 0 0 1 1.5-1.7z';
+
+  // ---------- Анимация переходов ----------
+  const TAB_ORDER = ['today', 'act', 'body', 'diary', 'sudoku', 'more'];
+  // «Вес и замеры» открывается из «Активности», поэтому подсвечивается её вкладка
+  const TAB_OF = { body: 'act' };
+  const ANIM = ['from-r', 'from-l', 'day-r', 'day-l'];
+  const calm = () => !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const prevScreen = { view: null, day: null };
+  let animTimer = null;
+  function playEnter(el, cls) {
+    if (!el || calm()) return;
+    document.querySelectorAll('.view[id^="v-"]').forEach(v => v.classList.remove(...ANIM));
+    void el.offsetWidth;
+    el.classList.add(cls);
+    clearTimeout(animTimer);
+    animTimer = setTimeout(() => el.classList.remove(...ANIM), 460);
+  }
 
   // ---------- Рендер ----------
   function render() {
+    const viewChanged = prevScreen.view !== null && prevScreen.view !== ui.view;
+    const dayChanged = !viewChanged && (ui.view === 'today' || ui.view === 'act') && prevScreen.day !== null && prevScreen.day !== ui.day;
     document.querySelectorAll('.view[id^="v-"]').forEach(v => v.hidden = v.id !== 'v-' + ui.view);
-    document.querySelectorAll('.tab').forEach(t => { if (t.dataset.tab === ui.view) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current'); });
+    const curTab = TAB_OF[ui.view] || ui.view;
+    document.querySelectorAll('.tab').forEach(t => { if (t.dataset.tab === curTab) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current'); });
     if (ui.view === 'today') renderToday();
     else if (ui.view === 'diary') renderDiary();
     else if (ui.view === 'act') renderAct();
     else if (ui.view === 'sudoku') renderSudoku();
     else if (ui.view === 'body') renderBody();
     else renderMore();
+    if (viewChanged) playEnter($('#v-' + ui.view), TAB_ORDER.indexOf(ui.view) > TAB_ORDER.indexOf(prevScreen.view) ? 'from-r' : 'from-l');
+    else if (dayChanged) playEnter($('#v-' + ui.view), ui.day > prevScreen.day ? 'day-r' : 'day-l');
+    prevScreen.view = ui.view; prevScreen.day = ui.day;
   }
 
   function renderToday() {
@@ -127,12 +173,24 @@
     $('#dayNext').disabled = ui.day >= t;
     $('#foodLbl').textContent = ui.day === t ? 'Что съела?' : ui.day === addDays(t, -1) ? 'Что съела вчера?' : 'Что съела ' + fmtLong(ui.day) + '?';
     renderSummary();
+    renderWater();
     renderActMini();
     renderTips();
     renderMeals();
     renderPreview();
     renderQuick();
     renderEntries();
+    renderFoodTools();
+  }
+  function renderFoodTools() {
+    const n = S.custom.length;
+    $('#foodTools').innerHTML = `<button class="ftbtn" data-act="add-food">${IC.plus}Свой продукт</button>${n ? `<button class="ftbtn" data-act="my-foods">Мои продукты <span class="num muted">${n}</span></button>` : ''}`;
+  }
+  function myFoodsSheet() {
+    openSheet(`<h2>Мои продукты</h2>
+      <p class="muted small" style="margin:0">Они находятся по названию, когда пишешь, что съела.</p>
+      <div class="list" style="margin-top:8px">${S.custom.map(c => `<div class="li"><div style="min-width:0"><div style="font-weight:600;overflow-wrap:anywhere">${esc(c.name)}</div><div class="tiny muted num">${nf(c.kcal)} ккал · Б ${g1(c.p)} · Ж ${g1(c.f)} · У ${g1(c.c)} на 100 г${c.portion ? ' · порция ' + c.portion + ' г' : ''}</div></div><button class="btn plain" style="min-height:36px;padding:6px 12px" data-act="edit-food" data-id="${c.id}">Изменить</button></div>`).join('')}</div>
+      <div class="stack"><button class="btn ghost block" data-act="add-food">Добавить продукт</button><button class="btn plain block" data-act="sheet-close">Закрыть</button></div>`);
   }
 
   function proteinBlock(t) {
@@ -186,6 +244,52 @@
       ${isToday && b.count < 5 ? '<p class="small muted" style="margin:0">Ешь как обычно и записывай всё, даже чай с сахаром. Через 5 дней посчитаю твою обычную калорийность и предложу лимит.</p>' : ''}
       ${isToday && b.count >= 5 && S.settings.baselineDismissed ? '<p class="small muted" style="margin:0">Лимит не задан. Его можно поставить в настройках.</p>' : ''}
     </div>`;
+  }
+
+  // Карточка воды: разметка строится один раз на день, дальше меняются только классы — чтобы работала анимация
+  function renderWater(popFrom) {
+    const el = $('#water');
+    const plan = waterPlan();
+    if (!plan) { el.hidden = true; el.innerHTML = ''; el.dataset.sig = ''; return; }
+    el.hidden = false;
+    const c = waterCount(ui.day, plan);
+    const sig = ui.day + '|' + plan.n;
+    if (el.dataset.sig !== sig) {
+      el.dataset.sig = sig;
+      popFrom = null;
+      let cups = '';
+      for (let i = 0; i < plan.n; i++) {
+        cups += `<button class="glass${i < c ? ' on' : ''}" data-act="water-glass" data-i="${i}"><svg viewBox="0 0 28 36" aria-hidden="true"><clipPath id="glassClip${i}"><path d="${GLASS}"/></clipPath><path class="gl" d="${GLASS}"/><g clip-path="url(#glassClip${i})"><rect class="wt" x="0" y="0" width="28" height="36"/></g></svg></button>`;
+      }
+      el.innerHTML = `<div class="whead"><h2>Вода</h2><div class="wctl"><button class="wbtn" data-act="water-minus" aria-label="Убрать стакан воды">${IC.minus}</button><button class="wbtn" data-act="water-plus" aria-label="Добавить стакан воды">${IC.plus}</button></div></div>
+        <div class="wstat"><span><b class="num" id="wMl"></b> <span class="muted">из ${nf(plan.goal)} мл</span></span><span class="small" id="wLeft"></span></div>
+        <div class="glasses" role="group" aria-label="Стаканы воды">${cups}</div>`;
+    }
+    el.querySelectorAll('.glass').forEach((g, i) => {
+      const on = i < c;
+      const pop = popFrom != null && on && i >= popFrom;
+      g.classList.remove('pop');
+      g.style.setProperty('--gd', pop ? (i - popFrom) * 70 + 'ms' : '0ms');
+      g.classList.toggle('on', on);
+      g.setAttribute('aria-pressed', on);
+      g.setAttribute('aria-label', `Стакан ${i + 1} из ${plan.n}`);
+      if (pop && !calm()) { void g.offsetWidth; g.classList.add('pop'); }
+    });
+    $('#wMl').textContent = nf(Math.min(plan.goal, c * plan.size));
+    const left = plan.n - c;
+    const wl = $('#wLeft');
+    wl.textContent = left ? `${c} из ${plan.n} стаканов` : 'Цель выполнена';
+    wl.classList.toggle('done', !left);
+    el.querySelector('[data-act="water-minus"]').disabled = c <= 0;
+    el.querySelector('[data-act="water-plus"]').disabled = c >= plan.n;
+  }
+  function waterSet(next) {
+    const plan = waterPlan(); if (!plan) return;
+    const c = waterCount(ui.day, plan);
+    next = Math.max(0, Math.min(plan.n, next));
+    if (next === c) return;
+    setWaterCount(ui.day, plan, next);
+    renderWater(next > c ? c : null);
   }
 
   function renderTips() {
@@ -408,6 +512,13 @@
       <div class="setrow" style="margin-top:14px"><label class="field"><span>Жиры, г в день (можно не задавать)</span><input id="sFat" type="text" inputmode="numeric" value="${F || ''}" placeholder="не задано"></label><button class="btn" data-act="save-fat">Сохранить</button></div>`;
     updateProteinHelper();
 
+    const WG = S.settings.water;
+    $('#setWater').innerHTML = `<h2>Вода</h2>
+      <div class="setrow"><label class="field"><span>Цель, мл в день</span><input id="sWater" type="text" inputmode="numeric" value="${WG || ''}" placeholder="не задана"></label><button class="btn" data-act="save-water">Сохранить</button></div>
+      <p class="hint" id="sWaterHint"></p>
+      ${WG ? `<button class="linkbtn small" data-act="clear-water" style="margin-top:6px">Убрать цель</button>` : ''}`;
+    updateWaterHint();
+
     const sug = stepSuggest();
     $('#setAct').innerHTML = `<h2>Активность</h2>
       <div class="setrow"><label class="field"><span>Цель по шагам в день</span><input id="sStepGoal" type="text" inputmode="numeric" value="${S.settings.stepGoal || ''}" placeholder="не задана"></label><button class="btn" data-act="save-stepgoal">Сохранить</button></div>
@@ -454,6 +565,14 @@
       <button class="btn ghost block" data-act="greet-preview" style="margin-top:12px">Посмотреть заставки по очереди</button>` : ''}`;
   }
 
+  function updateWaterHint() {
+    const el = $('#sWaterHint'); if (!el) return;
+    const raw = $('#sWater').value.trim();
+    const v = num(raw);
+    if (!raw) { el.textContent = 'От 200 до 5000 мл. Цель сама делится на 4–10 стаканов примерно по 250 мл: например, 2000 мл — это 8 стаканов.'; return; }
+    if (!v || v < 200 || v > 5000) { el.textContent = 'Введи число от 200 до 5000 мл.'; return; }
+    el.textContent = `Это ${waterPlanText(waterPlan(Math.round(v)))}. Отмечай их на экране «Сегодня».`;
+  }
   function updateProteinHelper() {
     const w = num($('#hW') && $('#hW').value), bf = num($('#hBf') && $('#hBf').value);
     const el = $('#hRes'); if (!el) return;
@@ -467,16 +586,27 @@
 
   // ---------- Шторка ----------
   let sheetClose = null;
+  let sheetTimer = null;
+  const sheetClosing = () => $('#backdrop').classList.contains('closing');
   function openSheet(html, onClose) {
-    $('#sheet').innerHTML = '<div class="grab"></div>' + html;
-    $('#backdrop').hidden = false;
+    const bd = $('#backdrop'), sh = $('#sheet');
+    clearTimeout(sheetTimer);
+    const wasClosing = sheetClosing();
+    bd.classList.remove('closing');
+    sh.innerHTML = '<div class="grab"></div>' + html;
+    bd.hidden = false;
+    // Шторку открыли, пока прежняя ещё уезжала: запускаем появление заново
+    if (wasClosing) { sh.scrollTop = 0; bd.style.animation = sh.style.animation = 'none'; void sh.offsetWidth; bd.style.animation = sh.style.animation = ''; }
     sheetClose = onClose || null;
     document.body.style.overflow = 'hidden';
   }
   function closeSheet() {
-    $('#backdrop').hidden = true;
-    $('#sheet').innerHTML = '';
+    const bd = $('#backdrop');
     document.body.style.overflow = '';
+    clearTimeout(sheetTimer);
+    const finish = () => { bd.hidden = true; bd.classList.remove('closing'); $('#sheet').innerHTML = ''; };
+    if (bd.hidden || calm()) finish();
+    else { bd.classList.add('closing'); sheetTimer = setTimeout(finish, 210); }
     const f = sheetClose; sheetClose = null; if (f) f();
   }
 
@@ -642,8 +772,22 @@
     el.innerHTML = `<button class="actmini" data-act="goto-act"><span class="wic">${actIcon(ws.length ? ws[0].type : 'walk')}</span><span>${parts.length ? parts.join(' · ') : '<span class="muted">Добавить шаги или тренировку</span>'}${ws.length ? ' ' + ws.map(w => gemOf(w.id)).join('') : ''}</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>`;
   }
 
+  const SCALE_IC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4" width="17" height="16" rx="4"/><path d="M8.5 10a3.5 3.5 0 0 1 7 0"/><path d="M12 10l1.5-2"/></svg>';
+  function renderActBody() {
+    const w = weights(), last = w[w.length - 1];
+    let sub;
+    if (!last) sub = 'Сделай первый замер — от него считается прогресс';
+    else {
+      const left = 14 - daysBetween(last.d, today());
+      sub = left <= 0 ? `<span class="due">Пора взвеситься</span> · последний ${g1(last.w)} кг`
+        : `${g1(last.w)} кг, ${fmtLong(last.d)} · следующий через ${left} ${plural(left, 'день', 'дня', 'дней')}`;
+    }
+    $('#actBody').innerHTML = `<button class="actmini" data-act="goto-body"><span class="wic">${SCALE_IC}</span><span><b class="ttl">Вес и замеры</b><span class="sub">${sub}</span></span>${'<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>'}</button>`;
+  }
+
   function renderAct() {
     renderGems();
+    renderActBody();
     const t = today();
     $('#actTitle').textContent = fmtDay(ui.day);
     $('#actNext').disabled = ui.day >= t;
@@ -1180,8 +1324,29 @@
     'clear-limit'() { setLimit(null); toast('Лимит убран'); render(); },
     'save-protein'() { const v = num($('#sProtein').value); S.settings.protein = v ? Math.round(v) : null; save(); toast(v ? `Цель по белку: ${Math.round(v)} г` : 'Цель по белку убрана'); render(); },
     'use-protein'(b) { S.settings.protein = +b.dataset.g; save(); toast(`Цель по белку: ${b.dataset.g} г`); render(); },
+    'water-glass'(b) {
+      const plan = waterPlan(); if (!plan) return;
+      const i = +b.dataset.i, c = waterCount(ui.day, plan);
+      waterSet(i + 1 === c ? i : i + 1);
+    },
+    'water-plus'() { const plan = waterPlan(); if (plan) waterSet(waterCount(ui.day, plan) + 1); },
+    'water-minus'() { const plan = waterPlan(); if (plan) waterSet(waterCount(ui.day, plan) - 1); },
+    'save-water'() {
+      const raw = $('#sWater').value.trim();
+      if (!raw) {
+        if (S.settings.water) { S.settings.water = null; save(); toast('Цель по воде убрана'); render(); }
+        else toast('Введи число от 200 до 5000');
+        return;
+      }
+      const v = num(raw);
+      if (!v || v < 200 || v > 5000) { toast('Введи число от 200 до 5000'); return; }
+      S.settings.water = Math.round(v); save();
+      toast(`Вода: ${nf(v)} мл в день`); render();
+    },
+    'clear-water'() { S.settings.water = null; save(); toast('Цель по воде убрана'); render(); },
     'save-fat'() { const v = num($('#sFat').value); S.settings.fat = v ? Math.round(v) : null; save(); toast(v ? `Цель по жирам: ${Math.round(v)} г` : 'Цель по жирам убрана'); render(); },
     'add-food'(b) { foodSheet(b.dataset.name || ''); },
+    'my-foods'() { if (S.custom.length) myFoodsSheet(); else foodSheet(''); },
     'edit-food'(b) { foodSheet('', b.dataset.id); },
     'ff-mode'(b) {
       $('#sheet').dataset.ffMode = b.dataset.m;
@@ -1393,6 +1558,7 @@
   document.addEventListener('click', ev => {
     const tab = ev.target.closest('.tab');
     if (tab) { ui.view = tab.dataset.tab; setTimeout(sdkTimerSync, 0); ui.delArm = null; if ((ui.view === 'today' || ui.view === 'act') && ui.followToday) ui.day = today(); render(); window.scrollTo(0, 0); return; }
+    if (sheetClosing() && ev.target.closest('#backdrop')) return;
     if (ev.target === $('#backdrop')) { closeSheet(); return; }
     const b = ev.target.closest('[data-act]');
     if (!b) return;
@@ -1442,6 +1608,7 @@
       }
     }
     if (ev.target.id === 'hW' || ev.target.id === 'hBf') updateProteinHelper();
+    if (ev.target.id === 'sWater') updateWaterHint();
     if (ev.target.id === 'esG') { const e = dayItems(ui.day).find(x => x.id === $('#sheet').querySelector('[data-act="es-save"]').dataset.id); updateEntrySheetInfo(e, e && itemFood(e)); }
   });
 
@@ -1470,7 +1637,7 @@
       $('#bDate').value = today();
       renderBody(); toast('Замер сохранён');
     }
-    if (ev.target.id === 'foodForm') {
+    if (ev.target.id === 'foodForm' && !sheetClosing()) {
       const name = $('#ffName').value.trim();
       let k = num($('#ffK').value), p = num($('#ffP').value) || 0, f = num($('#ffF').value) || 0, c = num($('#ffC').value) || 0;
       const portion = Math.round(num($('#ffPortion').value) || 0) || null;
@@ -1490,7 +1657,7 @@
       const i = S.custom.findIndex(x => x.id === id);
       if (i >= 0) S.custom[i] = rec; else S.custom.unshift(rec);
       save(); closeSheet(); toast('Продукт сохранён');
-      if (ui.view === 'today') reparse(); else render();
+      if (ui.view === 'today') { reparse(); renderFoodTools(); } else render();
     }
   });
 
