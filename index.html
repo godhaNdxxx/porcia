@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ru" data-porcia>
+<html lang="ru" data-porcia class="nd">
 <head>
 <meta charset="utf-8">
 <title>Порция</title>
@@ -353,8 +353,8 @@ textarea:focus, .field input:focus, .field select:focus { border-color: var(--ac
 /* Переходы между разделами и днями */
 .view.from-r { animation: pz-view-r .3s cubic-bezier(.2, .85, .25, 1) both; }
 .view.from-l { animation: pz-view-l .3s cubic-bezier(.2, .85, .25, 1) both; }
-.view.day-r > :not(.vhead):not(#actGems):not(#actWeek):not(#actBody) { animation: pz-view-r .28s cubic-bezier(.2, .85, .25, 1) both; }
-.view.day-l > :not(.vhead):not(#actGems):not(#actWeek):not(#actBody) { animation: pz-view-l .28s cubic-bezier(.2, .85, .25, 1) both; }
+.view.day-r > :not(.vhead):not(#weekStrip):not(#actGems):not(#actWeek):not(#actBody) { animation: pz-view-r .28s cubic-bezier(.2, .85, .25, 1) both; }
+.view.day-l > :not(.vhead):not(#weekStrip):not(#actGems):not(#actWeek):not(#actBody) { animation: pz-view-l .28s cubic-bezier(.2, .85, .25, 1) both; }
 @keyframes pz-view-r { from { transform: translateX(22px); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes pz-view-l { from { transform: translateX(-22px); opacity: 0; } to { transform: none; opacity: 1; } }
 
@@ -368,6 +368,119 @@ textarea:focus, .field input:focus, .field select:focus { border-color: var(--ac
 .actmini .ttl { display: block; font-weight: 600; }
 .actmini .sub { display: block; font-size: 13.5px; color: var(--muted); margin-top: 1px; }
 .actmini .due { color: var(--accent); font-weight: 600; }
+
+/* Новый вариант оформления */
+.wstrip { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; margin-top: -4px; }
+.wsd { border: 0; background: none; border-radius: 18px; padding: 7px 0 8px; display: grid; justify-items: center; gap: 4px; color: var(--ink); min-width: 0; transition: background .2s; }
+.wsd .wd { font-size: 11.5px; color: var(--muted); font-weight: 600; }
+.wsd .wr { position: relative; width: 34px; height: 34px; display: grid; place-items: center; }
+.wsd svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+.wsd .trk { fill: none; stroke: var(--track); stroke-width: 3; }
+.wsd .val { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; transition: stroke-dashoffset .5s ease; }
+.wsd.over .val { stroke: var(--warn); }
+.wsd b { font: 600 13px/1 var(--font-display); }
+.wsd.sel { background: var(--surface); box-shadow: var(--shadow), inset 0 0 0 1.5px var(--accent); }
+.wsd.sel .wd, .wsd.now .wd { color: var(--accent); }
+.wsd:disabled { opacity: .35; }
+.formula { font-size: 13.5px; color: var(--muted); }
+.formula b { color: var(--ink); font-weight: 600; }
+.formula > span { white-space: nowrap; }
+.chip-state.warn { background: var(--warn-soft); color: var(--warn); }
+.mtiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 14px; }
+#summary > div > .mtiles { margin-top: 0; }
+.mtile { border: 0; border-radius: 18px; padding: 10px 4px 9px; display: grid; justify-items: center; gap: 1px; text-align: center; color: var(--ink); min-width: 0; background: color-mix(in srgb, var(--c) 9%, var(--surface)); }
+.mtile .mr { position: relative; width: 42px; height: 42px; display: grid; place-items: center; margin-bottom: 4px; }
+.mtile svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+.mtile .trk { fill: none; stroke: color-mix(in srgb, var(--c) 22%, var(--surface)); stroke-width: 4; }
+.mtile .val { fill: none; stroke: var(--c); stroke-width: 4; stroke-linecap: round; }
+.mtile .mr > span { font: 700 11px/1 var(--font-display); color: var(--c); }
+.mtile .nm { font-size: 12.5px; color: var(--muted); }
+.mtile .v { font: 700 16px/1.2 var(--font-display); }
+.mtile .s { font-size: 11.5px; color: var(--muted); }
+button.mtile .s { color: var(--accent); font-weight: 600; }
+.mealcards { display: grid; gap: 14px; min-width: 0; }
+.mcard { padding: 14px 16px 6px; }
+.mcard.mempty { padding-bottom: 14px; }
+.mchead { display: grid; grid-template-columns: 40px minmax(0, 1fr) 36px; gap: 12px; align-items: center; padding-bottom: 8px; }
+.mcard.mempty .mchead { padding-bottom: 0; }
+.mchead h3 { margin: 0; font: 700 17px/1.2 var(--font-display); }
+.mct { min-width: 0; display: grid; gap: 2px; }
+.madd { width: 36px; height: 36px; border-radius: 50%; border: 0; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; }
+.madd svg { width: 18px; height: 18px; }
+.mcard .entry:first-of-type { border-top: 1px solid var(--line); }
+html.nd #water { background: color-mix(in srgb, var(--carb) 7%, var(--surface)); }
+html.nd .actmini { background: color-mix(in srgb, var(--accent) 6%, var(--surface)); }
+.wtrio { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.wtrio > * { border: 0; background: var(--surface-2); border-radius: 18px; padding: 10px 6px; display: grid; gap: 3px; justify-items: center; text-align: center; color: var(--ink); min-width: 0; }
+.wtrio .l { font-size: 12px; color: var(--muted); font-weight: 600; }
+.wtrio b { font: 700 22px/1.1 var(--font-display); font-variant-numeric: tabular-nums; }
+.wtrio .s { font-size: 11.5px; color: var(--muted); }
+.wtrio .now { background: var(--accent-soft); }
+.wtrio .now .l { color: var(--accent); }
+.wtrio .goal { background: color-mix(in srgb, var(--protein) 11%, var(--surface)); }
+.wtrio .goal .l, .wtrio .goal .s { color: var(--protein); }
+.chart .goal { stroke: var(--protein); stroke-width: 1.5; stroke-dasharray: 4 4; }
+.chart text.gl { fill: var(--protein); font: 600 11px var(--font-body); }
+
+/* Мишка: облачко, прыжок, сон */
+#v-today > .vhead { position: relative; z-index: 6; }
+.peek { cursor: pointer; }
+.peek .bear { transform-origin: 50% 90%; }
+.peek.hop .bear { animation: bear-hop .62s cubic-bezier(.3, .7, .3, 1); }
+@keyframes bear-hop { 0% { transform: none; } 30% { transform: translateY(-7px) rotate(-6deg) scale(1.04); } 60% { transform: translateY(0) rotate(4deg) scale(.98); } 80% { transform: rotate(-2deg); } 100% { transform: none; } }
+.peek .zz { position: absolute; right: -2px; top: -10px; display: none; font: 700 11px/1 var(--font-display); color: var(--accent); pointer-events: none; }
+.peek.sleep .zz { display: block; }
+.peek.sleep .sp { display: none; }
+.zz i { position: absolute; right: 0; top: 0; font-style: normal; opacity: 0; animation: zz 3s ease-in-out infinite; }
+.zz i:nth-child(2) { animation-delay: 1s; font-size: 13px; }
+.zz i:nth-child(3) { animation-delay: 2s; font-size: 15px; }
+@keyframes zz { 0% { transform: translate(0, 6px); opacity: 0; } 30% { opacity: 1; } 100% { transform: translate(10px, -14px); opacity: 0; } }
+.bubble {
+  position: absolute; right: 66px; top: 6px; max-width: min(240px, calc(100% - 84px));
+  background: var(--surface); color: var(--ink); border-radius: 20px 6px 20px 20px; padding: 10px 14px;
+  font-size: 15px; line-height: 1.35; box-shadow: 0 8px 26px rgba(60, 30, 90, .16), 0 0 0 1.5px var(--accent-soft);
+  transform-origin: 100% 0; animation: bubble-in .44s cubic-bezier(.3, 1.4, .5, 1) both; cursor: pointer;
+}
+.bubble::before { content: ""; position: absolute; right: -6px; top: 10px; width: 13px; height: 13px; background: inherit; border-radius: 3px; transform: rotate(45deg); box-shadow: 1.5px -1.5px 0 0 var(--accent-soft); }
+.bubble.out { animation: bubble-out .26s ease-in forwards; }
+@keyframes bubble-in { from { transform: translate(16px, 6px) scale(.3); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes bubble-out { to { transform: translate(10px, 2px) scale(.7); opacity: 0; } }
+
+/* Настройки мишки */
+.bearset { display: grid; grid-template-columns: 104px minmax(0, 1fr); gap: 14px; align-items: center; margin-bottom: 14px; }
+.bearprev { width: 104px; height: 104px; overflow: hidden; border-radius: 26px; background: var(--surface-2); display: grid; place-items: center; border: 0; padding: 0; }
+.bearprev .bear { width: 86px; height: 86px; transform-origin: 50% 90%; }
+.bearprev.hop .bear { animation: bear-hop .62s cubic-bezier(.3, .7, .3, 1); }
+.saybox { position: relative; margin-top: 12px; align-self: start; justify-self: start; max-width: 100%; background: var(--surface-2); border-radius: 6px 18px 18px 18px; padding: 10px 14px; font-size: 15px; animation: bubble-in .4s cubic-bezier(.3, 1.4, .5, 1) both; transform-origin: 0 0; }
+.swatches { display: flex; flex-wrap: wrap; gap: 10px; }
+.swatch { width: 38px; height: 38px; border-radius: 50%; border: 0; padding: 0; background: var(--sw); box-shadow: inset 0 0 0 1.5px rgba(0, 0, 0, .06); position: relative; }
+.swatch[aria-pressed="true"] { box-shadow: 0 0 0 2.5px var(--surface), 0 0 0 4.5px var(--accent); }
+.swatch i { position: absolute; right: 7px; bottom: 7px; width: 9px; height: 9px; border-radius: 50%; background: var(--swb); }
+
+/* Стразики: иногда вспыхивает искорка (анимация внутри символов #gem…) */
+.gem { overflow: visible; }
+@media (prefers-reduced-motion: reduce) { :root { --glint: 0; } }
+
+/* Брызги звёздочек, когда выпита вся вода */
+#water { position: relative; }
+.wsp { position: absolute; width: var(--s, 14px); height: var(--s, 14px); pointer-events: none; animation: wsp .9s cubic-bezier(.2, .7, .3, 1) forwards; }
+@keyframes wsp { 0% { transform: translate(0, 0) scale(.3); opacity: 1; } 70% { opacity: 1; } 100% { transform: translate(var(--dx), var(--dy)) scale(1) rotate(90deg); opacity: 0; } }
+
+/* Падающие звёзды */
+:root { --star: #A97BE6; --star-glow: #E6A3D3; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --star: #E9DCFF; --star-glow: #B794F6; } }
+:root[data-theme="dark"] { --star: #E9DCFF; --star-glow: #B794F6; }
+.sky { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+.app { position: relative; z-index: 1; }
+.shoot { position: absolute; width: 150px; height: 2px; margin-left: -150px; transform-origin: 100% 50%; opacity: 0; animation: shoot var(--dur, 3.2s) cubic-bezier(.3, .15, .65, .95) forwards; }
+.shoot::before { content: ""; position: absolute; inset: 0; border-radius: 2px; background: linear-gradient(90deg, transparent, var(--star)); }
+.shoot::after { content: ""; position: absolute; right: -3px; top: -2px; width: 6px; height: 6px; border-radius: 50%; background: #fff; box-shadow: 0 0 4px 2px var(--star), 0 0 12px 4px var(--star-glow); }
+@keyframes shoot {
+  0% { transform: rotate(var(--ang)) translateX(0); opacity: 0; }
+  8% { opacity: .95; }
+  82% { opacity: .9; }
+  100% { transform: rotate(var(--ang)) translateX(var(--len)); opacity: 0; }
+}
 
 /* Нижняя панель */
 .tabbar {
@@ -534,7 +647,9 @@ html.pg-hold .app, html.pg-hold .tabbar { opacity: 0; }
   .ring .big { font-size: 23px; }
   .vhead h1 { font-size: 26px; }
   .daynav h1 { font-size: 22px; }
-  .peek { display: none; }
+  .peek { width: 50px; height: 44px; }
+  .bubble { right: 56px; max-width: calc(100% - 70px); font-size: 14.5px; }
+  .peek .bear { width: 48px; height: 48px; }
   .tab { font-size: 9px; }
   .tool { font-size: 11px; }
 }
@@ -542,7 +657,8 @@ html.pg-hold .app, html.pg-hold .tabbar { opacity: 0; }
   .twinkle svg, .peek .sp, .spin { animation: none; }
   .ring .val { transition: none; }
   .sheet { animation: none; }
-  .backdrop, .toast, .view, .view > *, .glass svg { animation: none !important; }
+  .backdrop, .toast, .view, .view > *, .glass svg, .bubble, .peek .bear, .zz i, .bearprev .bear { animation: none !important; }
+  .sky, .wsp { display: none; }
   .glass .wt, .tab svg { transition: none; }
 }
 </style>
@@ -568,36 +684,48 @@ html.pg-hold .app, html.pg-hold .tabbar { opacity: 0; }
     <path d="M12 7l3.5 1.5L17 12l-1.5 3.5L12 17l-3.5-1.5L7 12l1.5-3.5z" fill="url(#gemCore)" opacity=".92"/>
     <path d="M12 2.5V7M18.7 5.3l-3.2 3.2M21.5 12H17M18.7 18.7l-3.2-3.2M12 21.5V17M5.3 18.7l3.2-3.2M2.5 12H7M5.3 5.3l3.2 3.2" stroke="#fff" stroke-opacity=".6" stroke-width=".8"/>
     <circle cx="9.4" cy="8.7" r="1.3" fill="#fff"/>
+  
+    <g transform="translate(17.2 6.8)" style="opacity:var(--glint,1)"><g transform="scale(0)"><path d="M0-4.4C.4-1.4 1.4-.4 4.4 0 1.4.4.4 1.4 0 4.4-.4 1.4-1.4.4-4.4 0-1.4-.4-.4-1.4 0-4.4z" fill="#fff"/><circle r="1.1" fill="#fff"/><animateTransform attributeName="transform" type="scale" values="0;0;1.05;0.2;0" keyTimes="0;0.93;0.965;0.99;1" dur="12s" begin="0.8s" repeatCount="indefinite"/></g></g>
   </symbol>
   <symbol id="gem-lilac" viewBox="0 0 24 24">
     <path d="M12 2.5l6.7 2.8 2.8 6.7-2.8 6.7-6.7 2.8-6.7-2.8L2.5 12l2.8-6.7z" fill="url(#gemFill-lilac)"/>
     <path d="M12 7l3.5 1.5L17 12l-1.5 3.5L12 17l-3.5-1.5L7 12l1.5-3.5z" fill="url(#gemCoreW)" opacity=".92"/>
     <path d="M12 2.5V7M18.7 5.3l-3.2 3.2M21.5 12H17M18.7 18.7l-3.2-3.2M12 21.5V17M5.3 18.7l3.2-3.2M2.5 12H7M5.3 5.3l3.2 3.2" stroke="#fff" stroke-opacity=".6" stroke-width=".8"/>
     <circle cx="9.4" cy="8.7" r="1.3" fill="#fff"/>
+  
+    <g transform="translate(17.2 6.8)" style="opacity:var(--glint,1)"><g transform="scale(0)"><path d="M0-4.4C.4-1.4 1.4-.4 4.4 0 1.4.4.4 1.4 0 4.4-.4 1.4-1.4.4-4.4 0-1.4-.4-.4-1.4 0-4.4z" fill="#fff"/><circle r="1.1" fill="#fff"/><animateTransform attributeName="transform" type="scale" values="0;0;1.05;0.2;0" keyTimes="0;0.93;0.965;0.99;1" dur="12s" begin="2.9s" repeatCount="indefinite"/></g></g>
   </symbol>
   <symbol id="gem-blue" viewBox="0 0 24 24">
     <path d="M12 2.5l6.7 2.8 2.8 6.7-2.8 6.7-6.7 2.8-6.7-2.8L2.5 12l2.8-6.7z" fill="url(#gemFill-blue)"/>
     <path d="M12 7l3.5 1.5L17 12l-1.5 3.5L12 17l-3.5-1.5L7 12l1.5-3.5z" fill="url(#gemCoreW)" opacity=".92"/>
     <path d="M12 2.5V7M18.7 5.3l-3.2 3.2M21.5 12H17M18.7 18.7l-3.2-3.2M12 21.5V17M5.3 18.7l3.2-3.2M2.5 12H7M5.3 5.3l3.2 3.2" stroke="#fff" stroke-opacity=".6" stroke-width=".8"/>
     <circle cx="9.4" cy="8.7" r="1.3" fill="#fff"/>
+  
+    <g transform="translate(17.2 6.8)" style="opacity:var(--glint,1)"><g transform="scale(0)"><path d="M0-4.4C.4-1.4 1.4-.4 4.4 0 1.4.4.4 1.4 0 4.4-.4 1.4-1.4.4-4.4 0-1.4-.4-.4-1.4 0-4.4z" fill="#fff"/><circle r="1.1" fill="#fff"/><animateTransform attributeName="transform" type="scale" values="0;0;1.05;0.2;0" keyTimes="0;0.93;0.965;0.99;1" dur="12s" begin="5s" repeatCount="indefinite"/></g></g>
   </symbol>
   <symbol id="gem-mint" viewBox="0 0 24 24">
     <path d="M12 2.5l6.7 2.8 2.8 6.7-2.8 6.7-6.7 2.8-6.7-2.8L2.5 12l2.8-6.7z" fill="url(#gemFill-mint)"/>
     <path d="M12 7l3.5 1.5L17 12l-1.5 3.5L12 17l-3.5-1.5L7 12l1.5-3.5z" fill="url(#gemCoreW)" opacity=".92"/>
     <path d="M12 2.5V7M18.7 5.3l-3.2 3.2M21.5 12H17M18.7 18.7l-3.2-3.2M12 21.5V17M5.3 18.7l3.2-3.2M2.5 12H7M5.3 5.3l3.2 3.2" stroke="#fff" stroke-opacity=".6" stroke-width=".8"/>
     <circle cx="9.4" cy="8.7" r="1.3" fill="#fff"/>
+  
+    <g transform="translate(17.2 6.8)" style="opacity:var(--glint,1)"><g transform="scale(0)"><path d="M0-4.4C.4-1.4 1.4-.4 4.4 0 1.4.4.4 1.4 0 4.4-.4 1.4-1.4.4-4.4 0-1.4-.4-.4-1.4 0-4.4z" fill="#fff"/><circle r="1.1" fill="#fff"/><animateTransform attributeName="transform" type="scale" values="0;0;1.05;0.2;0" keyTimes="0;0.93;0.965;0.99;1" dur="12s" begin="7.1s" repeatCount="indefinite"/></g></g>
   </symbol>
   <symbol id="gem-gold" viewBox="0 0 24 24">
     <path d="M12 2.5l6.7 2.8 2.8 6.7-2.8 6.7-6.7 2.8-6.7-2.8L2.5 12l2.8-6.7z" fill="url(#gemFill-gold)"/>
     <path d="M12 7l3.5 1.5L17 12l-1.5 3.5L12 17l-3.5-1.5L7 12l1.5-3.5z" fill="url(#gemCoreW)" opacity=".92"/>
     <path d="M12 2.5V7M18.7 5.3l-3.2 3.2M21.5 12H17M18.7 18.7l-3.2-3.2M12 21.5V17M5.3 18.7l3.2-3.2M2.5 12H7M5.3 5.3l3.2 3.2" stroke="#fff" stroke-opacity=".6" stroke-width=".8"/>
     <circle cx="9.4" cy="8.7" r="1.3" fill="#fff"/>
+  
+    <g transform="translate(17.2 6.8)" style="opacity:var(--glint,1)"><g transform="scale(0)"><path d="M0-4.4C.4-1.4 1.4-.4 4.4 0 1.4.4.4 1.4 0 4.4-.4 1.4-1.4.4-4.4 0-1.4-.4-.4-1.4 0-4.4z" fill="#fff"/><circle r="1.1" fill="#fff"/><animateTransform attributeName="transform" type="scale" values="0;0;1.05;0.2;0" keyTimes="0;0.93;0.965;0.99;1" dur="12s" begin="9.2s" repeatCount="indefinite"/></g></g>
   </symbol>
   <symbol id="gem-ruby" viewBox="0 0 24 24">
     <path d="M12 2.5l6.7 2.8 2.8 6.7-2.8 6.7-6.7 2.8-6.7-2.8L2.5 12l2.8-6.7z" fill="url(#gemFill-ruby)"/>
     <path d="M12 7l3.5 1.5L17 12l-1.5 3.5L12 17l-3.5-1.5L7 12l1.5-3.5z" fill="url(#gemCoreW)" opacity=".92"/>
     <path d="M12 2.5V7M18.7 5.3l-3.2 3.2M21.5 12H17M18.7 18.7l-3.2-3.2M12 21.5V17M5.3 18.7l3.2-3.2M2.5 12H7M5.3 5.3l3.2 3.2" stroke="#fff" stroke-opacity=".6" stroke-width=".8"/>
     <circle cx="9.4" cy="8.7" r="1.3" fill="#fff"/>
+  
+    <g transform="translate(17.2 6.8)" style="opacity:var(--glint,1)"><g transform="scale(0)"><path d="M0-4.4C.4-1.4 1.4-.4 4.4 0 1.4.4.4 1.4 0 4.4-.4 1.4-1.4.4-4.4 0-1.4-.4-.4-1.4 0-4.4z" fill="#fff"/><circle r="1.1" fill="#fff"/><animateTransform attributeName="transform" type="scale" values="0;0;1.05;0.2;0" keyTimes="0;0.93;0.965;0.99;1" dur="12s" begin="11s" repeatCount="indefinite"/></g></g>
   </symbol>
   <symbol id="bear" viewBox="0 0 120 120">
     <ellipse cx="44" cy="111" rx="12" ry="7" style="fill:var(--plush-3)"/>
@@ -605,8 +733,8 @@ html.pg-hold .app, html.pg-hold .tabbar { opacity: 0; }
     <ellipse cx="60" cy="94" rx="29" ry="22" style="fill:var(--plush)"/>
     <ellipse cx="33" cy="90" rx="9" ry="13" transform="rotate(-28 33 90)" style="fill:var(--plush)"/>
     <ellipse cx="87" cy="90" rx="9" ry="13" transform="rotate(28 87 90)" style="fill:var(--plush)"/>
-    <path d="M60 107c-7-4.6-10.5-8.4-10.5-12.2 0-2.6 2-4.6 4.6-4.6 2.4 0 4.3 1.3 5.9 3.4 1.6-2.1 3.5-3.4 5.9-3.4 2.6 0 4.6 2 4.6 4.6 0 3.8-3.5 7.6-10.5 12.2z" style="fill:var(--blush)"/>
-    <path d="M60 107c-7-4.6-10.5-8.4-10.5-12.2 0-2.6 2-4.6 4.6-4.6 2.4 0 4.3 1.3 5.9 3.4 1.6-2.1 3.5-3.4 5.9-3.4 2.6 0 4.6 2 4.6 4.6 0 3.8-3.5 7.6-10.5 12.2z" transform="translate(60 98) scale(.74) translate(-60 -98)" fill="none" stroke="#fff" stroke-width="1.2" stroke-dasharray="2 2" opacity=".9"/>
+    <g style="opacity:var(--b-heart,1)"><path d="M60 107c-7-4.6-10.5-8.4-10.5-12.2 0-2.6 2-4.6 4.6-4.6 2.4 0 4.3 1.3 5.9 3.4 1.6-2.1 3.5-3.4 5.9-3.4 2.6 0 4.6 2 4.6 4.6 0 3.8-3.5 7.6-10.5 12.2z" style="fill:var(--blush)"/>
+    <path d="M60 107c-7-4.6-10.5-8.4-10.5-12.2 0-2.6 2-4.6 4.6-4.6 2.4 0 4.3 1.3 5.9 3.4 1.6-2.1 3.5-3.4 5.9-3.4 2.6 0 4.6 2 4.6 4.6 0 3.8-3.5 7.6-10.5 12.2z" transform="translate(60 98) scale(.74) translate(-60 -98)" fill="none" stroke="#fff" stroke-width="1.2" stroke-dasharray="2 2" opacity=".9"/></g>
     <circle cx="33" cy="27" r="12.5" style="fill:var(--plush)"/>
     <circle cx="87" cy="27" r="12.5" style="fill:var(--plush)"/>
     <circle cx="33" cy="28" r="6.5" style="fill:var(--blush)"/>
@@ -616,14 +744,30 @@ html.pg-hold .app, html.pg-hold .tabbar { opacity: 0; }
     <ellipse cx="60" cy="64" rx="15" ry="11" style="fill:var(--plush-2)"/>
     <ellipse cx="40" cy="61" rx="5.5" ry="3.4" style="fill:var(--blush)" opacity=".75"/>
     <ellipse cx="80" cy="61" rx="5.5" ry="3.4" style="fill:var(--blush)" opacity=".75"/>
+    <g style="opacity:calc(1 - var(--b-sleep,0))">
     <circle cx="46" cy="50" r="3.8" style="fill:var(--plush-ink)"/>
     <circle cx="74" cy="50" r="3.8" style="fill:var(--plush-ink)"/>
     <circle cx="47.4" cy="48.6" r="1.3" fill="#fff"/>
     <circle cx="75.4" cy="48.6" r="1.3" fill="#fff"/>
+    </g>
+    <g fill="none" stroke-width="2.2" stroke-linecap="round" style="opacity:var(--b-sleep,0);stroke:var(--plush-ink)"><path d="M41.5 50q4.5 3.6 9 0"/><path d="M69.5 50q4.5 3.6 9 0"/></g>
     <path d="M55.6 59.2c0-1.8 8.8-1.8 8.8 0 0 2.2-2.4 3.9-4.4 3.9s-4.4-1.7-4.4-3.9z" style="fill:var(--plush-ink)"/>
     <path d="M60 63v2.6M60 65.6c-1.2 1.9-3.6 2.2-5 .8M60 65.6c1.2 1.9 3.6 2.2 5 .8" fill="none" style="stroke:var(--plush-ink)" stroke-width="1.5" stroke-linecap="round"/>
+    <g style="opacity:var(--b-scarf-mint,0)"><path d="M33 77.5c17 7 37 7 54 0l1.5 7c-18.5 8-38.5 8-57 0z" fill="#8FD3C1"/><path d="M68 82.5l7.5 16-6.5 2.6-5.5-17z" fill="#7CC7B3"/><path d="M41 81.4v6.4M49 83.2v6.6M57 84v6.6M65 84v6.6M73 83.2v6.4M81 81.4v6" stroke="#fff" stroke-opacity=".6" stroke-width="2"/></g>
+    <g style="opacity:var(--b-scarf-polka,0)"><path d="M33 77.5c17 7 37 7 54 0l1.5 7c-18.5 8-38.5 8-57 0z" fill="#F5A3C5"/><path d="M68 82.5l7.5 16-6.5 2.6-5.5-17z" fill="#EE92B8"/><g fill="#fff" opacity=".9"><circle cx="39" cy="82.2" r="1.4"/><circle cx="47" cy="85" r="1.4"/><circle cx="55" cy="86.3" r="1.4"/><circle cx="63" cy="86.3" r="1.4"/><circle cx="71" cy="85" r="1.4"/><circle cx="79" cy="82.6" r="1.4"/><circle cx="43" cy="80.2" r="1"/><circle cx="59" cy="83.2" r="1"/><circle cx="75" cy="81" r="1"/><circle cx="70.6" cy="90" r="1.3"/><circle cx="72.6" cy="95.6" r="1.3"/></g></g>
+    <g style="opacity:var(--b-scarf-plaid,0)"><path d="M33 77.5c17 7 37 7 54 0l1.5 7c-18.5 8-38.5 8-57 0z" fill="#B9A3EE"/><path d="M68 82.5l7.5 16-6.5 2.6-5.5-17z" fill="#A890E6"/><path d="M33.6 81c17.2 7.2 36.4 7.2 53.6 0" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="1.4"/><path d="M42 81.6v7M52 83.8v7M62 84.4v7M72 83.2v7M82 80.8v6M70 87l5.6 12" stroke="#8C6FD6" stroke-opacity=".7" stroke-width="2.2"/></g>
+    <g style="opacity:var(--b-scarf-knit,0)"><path d="M33 77.5c17 7 37 7 54 0l1.5 7c-18.5 8-38.5 8-57 0z" fill="#9DC2F0"/><path d="M68 82.5l7.5 16-6.5 2.6-5.5-17z" fill="#8BB3EA"/><path d="M38 81.5l2 2.6 2-2.6M46 83.4l2 2.6 2-2.6M54 84.4l2 2.6 2-2.6M62 84.4l2 2.6 2-2.6M70 83.4l2 2.6 2-2.6M78 81.5l2 2.6 2-2.6M69.6 89.5l2 2.4 2-2.4M71.6 95l2 2.4 2-2.4" fill="none" stroke="#fff" stroke-opacity=".75" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M72 99.6l1.2 4M75 98.6l1.6 3.6M69.6 100.6l.8 4" stroke="#8BB3EA" stroke-width="1.6" stroke-linecap="round"/></g>
+    <g fill="rgba(255,255,255,.22)" stroke-width="1.8" style="opacity:var(--b-glasses,0);stroke:var(--plush-ink)"><circle cx="46" cy="50" r="7.6"/><circle cx="74" cy="50" r="7.6"/><path d="M53.6 49q6.4-3 12.8 0M38.4 48l-4.2-2.2M81.6 48l4.2-2.2" fill="none"/></g>
+    <g style="opacity:calc(var(--b-bow,1) * (1 - var(--b-hatany,0)))">
     <path d="M77 21l-9-6.5v13zM77 21l9-6.5v13z" style="fill:var(--blush)"/>
     <circle cx="77" cy="21" r="3.4" fill="url(#beadFill)" stroke="#fff" stroke-width="1"/>
+    </g>
+    <g style="opacity:calc(var(--b-flower,0) * (1 - var(--b-hatany,0)))"><g fill="#FFC2DD" stroke="#fff" stroke-width=".8"><circle cx="40.0" cy="13.1" r="3.3"/><circle cx="43.7" cy="15.8" r="3.3"/><circle cx="42.3" cy="20.2" r="3.3"/><circle cx="37.7" cy="20.2" r="3.3"/><circle cx="36.3" cy="15.8" r="3.3"/></g><circle cx="40" cy="17" r="2.4" fill="#F6CC62"/></g>
+    <g style="opacity:var(--b-hat-nightcap,0)"><path d="M37 29C38 13 52 3 68 4.5c11 1 18 8 24 14.5 3.2 3.5 6.4 5.4 9.6 5.8-4 3.6-10.4 3.4-15.6-.4 1.8 3.2 2.6 6.4 2 9.6z" fill="#A9B7F2"/><g fill="#fff" opacity=".85"><path d="M52 14.5l.9 1.9 2 .3-1.5 1.4.4 2-1.8-1-1.8 1 .4-2-1.5-1.4 2-.3z"/><path d="M70 10.5l.7 1.4 1.5.2-1.1 1 .3 1.5-1.4-.7-1.4.7.3-1.5-1.1-1 1.5-.2z"/><circle cx="62" cy="22" r="1.2"/><circle cx="80" cy="18" r="1.1"/><circle cx="45" cy="23.5" r="1"/></g><path d="M34.5 32c8-8.5 43-8.5 51 0l-.6 6.6c-9.6-7.4-40.2-7.4-49.8 0z" fill="#FFF6FB"/><circle cx="102" cy="25" r="5.6" fill="#FFF6FB"/></g>
+    <g style="opacity:var(--b-hat-beanie,0)"><path d="M32.5 33c0-16 12.3-27.5 27.5-27.5S87.5 17 87.5 33z" fill="#F4A9C8"/><path d="M44 10.5c-2 6-2.6 14-2 22M52 7c-1 7-1.2 17-.6 26M60 6v27M68 7c1 7 1.2 17 .6 26M76 10.5c2 6 2.6 14 2 22" stroke="#EA8FB6" stroke-width="1.4" fill="none"/><rect x="29" y="30" width="62" height="10.5" rx="5.2" fill="#F7BCD5"/><path d="M35 31.5v7.5M41 31.5v7.5M47 31.5v7.5M53 31.5v7.5M59 31.5v7.5M65 31.5v7.5M71 31.5v7.5M77 31.5v7.5M83 31.5v7.5" stroke="#EA8FB6" stroke-width="1.6" stroke-linecap="round"/><circle cx="60" cy="6" r="6.6" fill="#FFF6FB"/><circle cx="58" cy="4.4" r="1.6" fill="#fff"/></g>
+    <g style="opacity:var(--b-hat-beret,0)"><path d="M58 13.5l2.2-5.4" stroke="#9B78E0" stroke-width="2.6" stroke-linecap="round"/><ellipse cx="56" cy="23" rx="29" ry="10" transform="rotate(-9 56 23)" fill="#B794F6"/><path d="M30 27.5c9 4.6 34 2.8 52-3.6" fill="none" stroke="#9B78E0" stroke-width="2.2" stroke-linecap="round"/><ellipse cx="48" cy="18.5" rx="9" ry="3" transform="rotate(-12 48 18.5)" fill="#fff" opacity=".25"/></g>
+    <g style="opacity:var(--b-hat-sunhat,0)"><ellipse cx="60" cy="27.5" rx="36" ry="7.4" fill="#F3DDA8"/><path d="M43 27c0-11.5 7.6-17.5 17-17.5S77 15.5 77 27z" fill="#F6E4B6"/><path d="M43.2 21.4h33.6v5H43.2z" fill="#F4A9C8"/><path d="M27 28.5c10 4 56 4 66 0" fill="none" stroke="#E3C88A" stroke-width="1.2" opacity=".8"/><g transform="translate(73 23.6)"><circle r="2.6" cx="0" cy="-3" fill="#fff"/><circle r="2.6" cx="2.9" cy="-.9" fill="#fff"/><circle r="2.6" cx="1.8" cy="2.4" fill="#fff"/><circle r="2.6" cx="-1.8" cy="2.4" fill="#fff"/><circle r="2.6" cx="-2.9" cy="-.9" fill="#fff"/><circle r="1.8" fill="#F6CC62"/></g></g>
+    <g style="opacity:var(--b-hat-crown,0)"><path d="M48.5 25l1.6-11.5 5.6 6.2 4.3-8.7 4.3 8.7 5.6-6.2 1.6 11.5z" fill="url(#gemFill-gold)" stroke="#fff" stroke-width="1.1" stroke-linejoin="round"/><circle cx="60" cy="19.6" r="2.3" fill="url(#gemFill-ruby)"/><circle cx="52.4" cy="21.4" r="1.3" fill="#fff"/><circle cx="67.6" cy="21.4" r="1.3" fill="#fff"/></g>
   </symbol>
 </svg>
 
@@ -637,8 +781,10 @@ html.pg-hold .app, html.pg-hold .tabbar { opacity: 0; }
         <h1 id="dayTitle" data-act="day-today">Сегодня</h1>
         <button class="iconbtn" data-act="day-next" id="dayNext" aria-label="Следующий день"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
       </div>
-      <span class="peek" aria-hidden="true"><svg class="sp" viewBox="0 0 24 24"><use href="#sparkle"/></svg><svg class="bear" viewBox="0 0 120 120"><use href="#bear"/></svg></span>
+      <span class="peek" data-act="bear-tap" role="button" aria-label="Мишка"><svg class="sp" viewBox="0 0 24 24" aria-hidden="true"><use href="#sparkle"/></svg><svg class="bear" viewBox="0 0 120 120" aria-hidden="true"><use href="#bear"/></svg><span class="zz" aria-hidden="true"><i>z</i><i>z</i><i>z</i></span></span>
+      <div class="bubble" id="bearBubble" role="status" hidden></div>
     </div>
+    <div class="wstrip" id="weekStrip" role="group" aria-label="Дни недели" hidden></div>
     <div class="card" id="summary"></div>
     <div class="card" id="water" hidden></div>
     <div id="actMini"></div>
@@ -717,6 +863,7 @@ html.pg-hold .app, html.pg-hold .tabbar { opacity: 0; }
     <div class="card" id="setWater"></div>
     <div class="card" id="setAct"></div>
     <div class="card" id="setLook"></div>
+    <div class="card" id="setBear"></div>
     <div class="card" id="setAi"></div>
     <div class="card" id="setFoods"></div>
     <div class="card" id="setBackup"></div>
@@ -728,7 +875,7 @@ html.pg-hold .app, html.pg-hold .tabbar { opacity: 0; }
     <div class="foot">
       <span>Калорийность продуктов примерная, по средним таблицам. Для упакованных продуктов точнее взять цифры с этикетки и добавить в «Мои продукты».</span>
       <span>Все записи хранятся только на этом телефоне.</span>
-      <span>Порция · версия 1.7.0</span>
+      <span>Порция · версия 1.8.0</span>
     </div>
   </section>
 </div>

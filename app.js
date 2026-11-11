@@ -132,6 +132,260 @@
   };
   const GLASS = 'M3.5 2.5h21a1.5 1.5 0 0 1 1.5 1.7l-2.5 26a3.6 3.6 0 0 1-3.6 3.3H8.1a3.6 3.6 0 0 1-3.6-3.3L2 4.2a1.5 1.5 0 0 1 1.5-1.7z';
 
+  // ---------- Оформление 1.8: лента недели, плитки макросов, карточки приёмов, цель по весу ----------
+  const ND = () => true;
+  const svgI = d => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+  const MEAL_IC = {
+    b: svgI('<path d="M5 9h11v5a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5z"/><path d="M16 10h1.5a2.5 2.5 0 0 1 0 5H16"/><path d="M8.5 3.5c0 1 1 1.5 1 2.6M12.5 3.5c0 1 1 1.5 1 2.6"/>'),
+    l: svgI('<path d="M3.5 11h17a8.5 8.5 0 0 1-17 0z"/><path d="M8 20.5h8"/><path d="M14 7.5l4.5-4"/>'),
+    d: svgI('<path d="M19 14.5A7.5 7.5 0 1 1 9.5 5a6 6 0 0 0 9.5 9.5z"/>'),
+    s: svgI('<path d="M12 7.2c-1.5-1-5-1.2-6.4 1.6C4 12 6 18 8.6 19.6c1.2.7 2.2.2 3.4.2s2.2.5 3.4-.2C18 18 20 12 18.4 8.8 17 6 13.5 6.2 12 7.2z"/><path d="M12 7.2c0-2 1-3.5 2.6-4.2"/>'),
+  };
+  function renderWeekStrip() {
+    const el = $('#weekStrip');
+    if (!ND()) { el.hidden = true; el.innerHTML = ''; return; }
+    el.hidden = false;
+    const t = today(), ws = weekStart(ui.day), WD = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+    const R = 13, CI = 2 * Math.PI * R;
+    el.innerHTML = [0, 1, 2, 3, 4, 5, 6].map(i => {
+      const d = addDays(ws, i), k = totals(dayItems(d)).kcal, L = limitFor(d);
+      const frac = k ? (L ? Math.min(1, k / L) : 1) : 0, over = !!(L && k > L);
+      return `<button class="wsd${d === ui.day ? ' sel' : ''}${d === t ? ' now' : ''}${over ? ' over' : ''}" data-act="strip-day" data-day="${d}" ${d > t ? 'disabled' : ''} aria-label="${fmtDay(d)}${k ? ', ' + nf(k) + ' ккал' : ''}"><span class="wd">${WD[i]}</span><span class="wr"><svg viewBox="0 0 32 32" aria-hidden="true"><circle class="trk" cx="16" cy="16" r="${R}"/><circle class="val" cx="16" cy="16" r="${R}" stroke-dasharray="${CI.toFixed(1)}" stroke-dashoffset="${(CI * (1 - frac)).toFixed(1)}" ${frac ? '' : 'opacity="0"'}/></svg><b class="num">${toDate(d).getDate()}</b></span></button>`;
+    }).join('');
+  }
+  function macroTiles(t) {
+    const P = S.settings.protein, F = S.settings.fat, K = t.kcal || 0;
+    const R = 17, CI = 2 * Math.PI * R;
+    const tile = (name, v, goal, kpg, c, act) => {
+      const pct = goal ? v / goal * 100 : (K ? v * kpg / K * 100 : 0);
+      const frac = Math.min(1, pct / 100);
+      const inner = `<span class="mr"><svg viewBox="0 0 40 40" aria-hidden="true"><circle class="trk" cx="20" cy="20" r="${R}"/><circle class="val" cx="20" cy="20" r="${R}" stroke-dasharray="${CI.toFixed(1)}" stroke-dashoffset="${(CI * (1 - frac)).toFixed(1)}" ${frac > 0 ? '' : 'opacity="0"'}/></svg><span>${Math.round(pct)}%</span></span><span class="nm">${name}</span><span class="v num">${g1(v)} г</span><span class="s">${goal ? 'цель ' + nf(goal) + ' г' : act ? 'задать цель' : 'доля ккал'}</span>`;
+      return act && !goal ? `<button class="mtile" style="--c:var(--${c})" data-act="${act}">${inner}</button>` : `<div class="mtile" style="--c:var(--${c})">${inner}</div>`;
+    };
+    return `<div class="mtiles">${tile('Белок', t.p, P, 4, 'protein', 'goto-protein')}${tile('Жиры', t.f, F, 9, 'fat')}${tile('Углеводы', t.c, null, 4, 'carb')}</div>`;
+  }
+  const entryBtn = e => `<button class="entry" data-act="entry" data-id="${e.id}"><div style="min-width:0"><div class="nm">${esc(e.n)}</div><div class="sub">${esc(e.l || (e.g ? e.g + ' г' : ''))}</div></div><div class="kc">${nf(e.k)}<small>${g1(e.p)} г белка</small></div></button>`;
+  function renderMealCards(items, el) {
+    el.className = 'mealcards';
+    el.innerHTML = MEALS.map(([k, n]) => {
+      const arr = items.filter(i => i.m === k), t = totals(arr);
+      return `<div class="card mcard${arr.length ? '' : ' mempty'}"><div class="mchead"><span class="wic">${MEAL_IC[k]}</span><div class="mct"><h3>${n}</h3><span class="small muted num">${arr.length ? nf(t.kcal) + ' ккал · белок ' + g1(t.p) + ' г' : 'пока пусто'}</span></div><button class="madd" data-act="meal-add" data-m="${k}" aria-label="Добавить: ${n.toLowerCase()}">${IC.plus}</button></div>${arr.map(entryBtn).join('')}</div>`;
+    }).join('');
+  }
+  function bodyTrio(w, dueTxt) {
+    const first = w[0], last = w[w.length - 1], G = S.settings.goalWeight;
+    const dw = last.w - first.w;
+    let bar = '';
+    if (G && first.w > G) {
+      const frac = Math.max(0, Math.min(1, (first.w - last.w) / (first.w - G)));
+      bar = `<div class="bar" style="margin-top:14px"><i style="width:${(frac * 100).toFixed(0)}%"></i></div><div class="mrow tiny muted" style="margin:6px 0 0"><span>пройдено ${Math.round(frac * 100)}% пути</span><span>${last.w > G ? 'осталось ' + g1(last.w - G) + ' кг' : 'цель достигнута'}</span></div>`;
+    }
+    return `<h2>Прогресс</h2><div class="wtrio">
+      <div><span class="l">Старт</span><b>${g1(first.w)}</b><span class="s">${fmtShort(first.d)}</span></div>
+      <div class="now"><span class="l">Сейчас</span><b>${g1(last.w)}</b><span class="s">${w.length > 1 ? (dw > 0 ? '+' : dw < 0 ? '−' : '') + g1(Math.abs(dw)) + ' кг' : fmtShort(last.d)}</span></div>
+      <button class="goal" data-act="goal-weight"><span class="l">Цель</span><b>${G ? g1(G) : '—'}</b><span class="s">${G ? 'изменить' : 'задать'}</span></button>
+    </div>${bar}<p class="small" style="margin:12px 0 0">${dueTxt}</p>`;
+  }
+
+  // ---------- Мишка ----------
+  const BEAR_PAL = [
+    ['lilac', 'Сиреневый', null, '#E9D3F3', '#F4A9C8'],
+    ['pink', 'Розовый', ['#F7C6DA', '#FDEDF4', '#EBA3C2', '#F28DB5'], '#F7C6DA', '#F28DB5'],
+    ['honey', 'Медовый', ['#EDCFA4', '#F9EEDC', '#D9AE74', '#F2A39A'], '#EDCFA4', '#F2A39A'],
+    ['mint', 'Мятный', ['#C3E8D9', '#ECF9F3', '#96D0BA', '#F4A9C8'], '#C3E8D9', '#F4A9C8'],
+    ['sky', 'Голубой', ['#C6DCF6', '#EDF4FD', '#9EBEE8', '#F4A9C8'], '#C6DCF6', '#F4A9C8'],
+    ['cream', 'Молочный', ['#F7EFE4', '#FFFFFF', '#E3D3BE', '#F4B3C2'], '#F7EFE4', '#F4B3C2'],
+    ['choco', 'Шоколадный', ['#BE9175', '#EBD6C5', '#9A6D52', '#F2A0B0'], '#BE9175', '#F2A0B0'],
+  ];
+  const BEAR_HATS = [['none', 'Без шапки'], ['nightcap', 'Ночной колпак'], ['beanie', 'Шапка с помпоном'], ['beret', 'Беретик'], ['sunhat', 'Шляпка'], ['crown', 'Корона']];
+  const BEAR_SCARVES = [['none', 'Без шарфа'], ['mint', 'Мятный в полоску'], ['polka', 'Розовый в горошек'], ['plaid', 'Сиреневый клетчатый'], ['knit', 'Голубой вязаный']];
+  const BEAR_ACC = [['bow', 'Бантик'], ['heart', 'Сердечко'], ['flower', 'Цветочек'], ['glasses', 'Очки']];
+  const BEAR_DEF = { c: 'lilac', hat: 'none', scarf: 'none', a: { bow: 1, heart: 1 }, talk: true, stars: true };
+  function bearCfg() {
+    const b = S.settings.bear && typeof S.settings.bear === 'object' ? S.settings.bear : {};
+    const ok = (list, v) => list.some(x => x[0] === v) ? v : 'none';
+    return { c: b.c || BEAR_DEF.c, hat: ok(BEAR_HATS, b.hat), scarf: ok(BEAR_SCARVES, b.scarf), a: Object.assign({}, BEAR_DEF.a, b.a || {}), talk: b.talk !== false, stars: b.stars !== false };
+  }
+  function bearSet(patch) { S.settings.bear = Object.assign(bearCfg(), patch); save(); bearApply(); }
+  function bearApply() {
+    const B = bearCfg(), r = document.documentElement.style;
+    const pal = (BEAR_PAL.find(p => p[0] === B.c) || BEAR_PAL[0])[2];
+    ['--plush', '--plush-2', '--plush-3', '--blush'].forEach((k, i) => { if (pal) r.setProperty(k, pal[i]); else r.removeProperty(k); });
+    BEAR_ACC.forEach(([k]) => r.setProperty('--b-' + k, B.a[k] ? '1' : '0'));
+    BEAR_HATS.forEach(([k]) => { if (k !== 'none') r.setProperty('--b-hat-' + k, B.hat === k ? '1' : '0'); });
+    BEAR_SCARVES.forEach(([k]) => { if (k !== 'none') r.setProperty('--b-scarf-' + k, B.scarf === k ? '1' : '0'); });
+    r.setProperty('--b-hatany', B.hat !== 'none' ? '1' : '0');
+  }
+  // Мишка спит с часу ночи до шести; «перед сном» — с 21:00 до часу
+  const isNight = () => { const hr = new Date().getHours(); return hr >= 1 && hr < 6; };
+  const partOf = hr => hr >= 6 && hr < 11 ? 'morning' : hr >= 11 && hr < 17 ? 'day' : hr >= 17 && hr < 21 ? 'evening' : hr >= 21 || hr < 1 ? 'bed' : null;
+
+  const BEAR_SAY = {
+    morning: [
+      'Доброе утро! Сегодня всё получится', 'С добрым утром! Я в тебя верю', 'Новый день — новые маленькие победы',
+      'Доброе утро, солнышко! Начнём день нежно', 'Проснулась? А я уже соскучился', 'Утро — лучшее время, чтобы себя похвалить',
+      'Доброе утро! Начнём со стаканчика воды?', 'Сегодня будет хороший день, я чувствую', 'Улыбнись — день начинается с тебя',
+      'Доброе утро! Ты уже молодец, что здесь', 'Потянись, улыбнись — и вперёд', 'Утро доброе, а с тобой — ещё добрее',
+    ],
+    day: [
+      'Ты молодец, что не бросаешь', 'Маленькие шаги — тоже шаги', 'Горжусь тобой, правда', 'Ты справляешься лучше, чем думаешь',
+      'Не забывай отдыхать — это тоже важно', 'Ты сильнее, чем кажется', 'Каждая запись — маленькая победа',
+      'Сделай глубокий вдох — ты всё успеваешь', 'Я рядом и болею за тебя', 'Не нужно идеально — нужно просто продолжать',
+      'Держи обнимашку на середину дня', 'Полдня позади — так держать', 'Ты у меня такая упорная', 'Помни: ты делаешь это для себя',
+    ],
+    evening: [
+      'Какой хороший день получился', 'Ты сегодня большая молодец', 'Пора немного отдохнуть — ты заслужила',
+      'Вечер — время для чего-то приятного', 'Ты сегодня старалась, я видел', 'Укутайся в плед и выдохни',
+      'Чем бы ни закончился день — ты умница', 'Вечерние обнимашки уже в пути', 'Сегодня ты снова сделала шаг к цели',
+    ],
+    bed: [
+      'Спокойной ночи! Ты сегодня молодец', 'Сладких снов — завтра будет хороший день', 'Пора в кроватку, а я посторожу твои записи',
+      'Ложись отдыхать — ты сегодня всё сделала', 'Спокойной ночи, обнимаю', 'Хороший сон — тоже забота о себе. Спать пора',
+      'Завтра продолжим вместе. Сладких снов', 'Откладывай телефон — и баиньки', 'Ты сегодня была прекрасна. Доброй ночи',
+      'Пусть приснится что-нибудь волшебное',
+    ],
+    any: [
+      'У тебя всё получится', 'Обнимаю крепко-крепко', 'Ты сегодня прекрасна', 'Мишка в тебя верит', 'Не забывай себя хвалить',
+      'Ты — моя любимая хозяйка', 'Ты заслуживаешь заботы, особенно своей', 'Я так рад тебя видеть', 'Ты — самая лучшая',
+      'Будь к себе добрее, ладно?', 'Без тебя мне было скучно', 'Ты сияешь, как стразик',
+    ],
+  };
+  function bearLines(part) {
+    const hr = new Date().getHours(), t = today(), items = dayItems(t), tot = totals(items), L = limitFor(t);
+    const out = [];
+    const plan = waterPlan();
+    if (plan && hr >= 13 && part !== 'bed') { const c = waterCount(t, plan); if (c < plan.n / 2) out.push(`Стаканчик воды? Пока ${c} из ${plan.n}`); }
+    const P = S.settings.protein;
+    if (P && hr >= 16 && part !== 'bed' && items.length && tot.p < P * 0.7) out.push(`Белка пока ${g1(tot.p)} из ${nf(P)} г — творог или яйца выручат`);
+    if (actDay(t).w.length) out.push(part === 'bed' ? 'Сегодня была тренировка — мышцы скажут спасибо за сон' : 'Тренировка есть — я тобой горжусь!');
+    if (L && hr >= 18 && items.length && tot.kcal <= L) out.push(part === 'bed' ? 'День в лимите — спи сладко, умница' : 'Сегодня в лимите — умница!');
+    if (L && tot.kcal > L) out.push('Чуть выше лимита — ничего страшного. Завтра просто продолжаем');
+    if (!items.length && hr >= 12 && part !== 'bed') out.push('Не забудь записать, что ела, — я подожду');
+    return out;
+  }
+  // reason: 'morning' | 'day' | 'evening' | 'bed' — фраза к этому времени; без reason — по нажатию или «между делом»
+  function bearPick(reason) {
+    if (isNight()) return 'Ззз… я сплю, но я рядом. И тебе пора отдыхать';
+    const part = reason || partOf(new Date().getHours()) || 'day';
+    const ctx = part === 'morning' ? [] : bearLines(part);
+    const base = part === 'morning' || part === 'bed' ? BEAR_SAY[part] : BEAR_SAY[part].concat(BEAR_SAY.any);
+    const useCtx = ctx.length && Math.random() < (part === 'bed' ? 0.3 : 0.5);
+    const pool = useCtx ? ctx : base;
+    const st = bearState(), recent = Array.isArray(st.recent) ? st.recent : [];
+    const fresh = pool.filter(x => !recent.includes(x));
+    const from = fresh.length ? fresh : pool;
+    const txt = from[Math.floor(Math.random() * from.length)];
+    st.recent = recent.concat(txt).slice(-12); bearStateSave(st);
+    const g = G(), name = g && String(g.prefs().name || '').trim();
+    return name && Math.random() < 0.3 && !/[?]$/.test(txt) ? `${name}, ${txt.charAt(0).toLowerCase()}${txt.slice(1)}` : txt;
+  }
+  const BEAR_STORE = 'porcia.bearsay'; // когда мишка говорил — не в резервной копии
+  function bearState() { try { return JSON.parse(localStorage.getItem(BEAR_STORE)) || {}; } catch (e) { return {}; } }
+  function bearStateSave(s) { try { localStorage.setItem(BEAR_STORE, JSON.stringify(s)); } catch (e) { /* без памяти */ } }
+  let bubbleTimer = null;
+  function bearHop(el) { if (!el || calm()) return; el.classList.remove('hop'); void el.offsetWidth; el.classList.add('hop'); }
+  function bearSay(txt) {
+    const b = $('#bearBubble'); if (!b || ui.view !== 'today') return;
+    clearTimeout(bubbleTimer);
+    b.classList.remove('out'); b.textContent = txt || bearPick(); b.hidden = false;
+    b.style.animation = 'none'; void b.offsetWidth; b.style.animation = '';
+    bearHop($('.peek'));
+    bubbleTimer = setTimeout(bearHush, 6500);
+  }
+  function bearHush() {
+    const b = $('#bearBubble'); if (!b || b.hidden) return;
+    clearTimeout(bubbleTimer);
+    if (calm()) { b.hidden = true; return; }
+    b.classList.add('out'); bubbleTimer = setTimeout(() => { b.hidden = true; b.classList.remove('out'); }, 260);
+  }
+  // Сам по себе: утром при первом заходе, днём, вечером и перед сном — по разу,
+  // и иногда «между делом» — на третий заход после прошлой фразы. Между фразами не меньше полутора часов, всего до 5 в день.
+  const BEAR_GAP = 90 * 60e3, BEAR_MAX = 5, BEAR_EVERY = 3;
+  function bearMaybe(isOpen) {
+    const B = bearCfg();
+    if (!B.talk || isNight()) return;
+    const st = bearState(), t = today(), now = Date.now();
+    if (st.d !== t) { st.d = t; st.n = 0; st.slots = {}; st.since = 0; }
+    if (!st.slots) st.slots = {};
+    if (isOpen) st.since = (st.since || 0) + 1;
+    const ready = ui.view === 'today' && ui.day === t && $('#backdrop').hidden && st.n < BEAR_MAX && (!st.n || now - (st.last || 0) >= BEAR_GAP);
+    const part = partOf(new Date().getHours());
+    let reason = null;
+    if (ready && part && !st.slots[part]) reason = part;
+    else if (ready && isOpen && st.since >= BEAR_EVERY) reason = 'cheer';
+    if (reason) {
+      if (reason !== 'cheer') st.slots[reason] = 1;
+      st.n++; st.last = now; st.since = 0;
+    }
+    bearStateSave(st);
+    if (reason) bearSay(bearPick(reason === 'cheer' ? null : reason));
+  }
+  function bearWhenFree(fn, extra) {
+    // ждём, пока закончится приветствие
+    const tick = () => { if (document.querySelector('.pg') || document.documentElement.classList.contains('pg-hold')) setTimeout(tick, 400); else setTimeout(fn, extra || 0); };
+    tick();
+  }
+  function renderPeek() {
+    const p = $('.peek'); if (!p) return;
+    const sleep = isNight() && ui.day === today();
+    p.classList.toggle('sleep', sleep);
+    p.style.setProperty('--b-sleep', sleep ? '1' : '0');
+  }
+  function bearCard() {
+    const B = bearCfg(), night = ui.bearNight;
+    return `<h2>Мишка</h2>
+      <div class="bearset"><button class="bearprev" data-act="bear-prev" aria-label="Мишка — нажми" style="--b-sleep:${night ? 1 : 0}"><svg class="bear" viewBox="0 0 120 120" aria-hidden="true"><use href="#bear"/></svg></button>
+        <div class="field"><span>Посмотреть</span><div class="chips"><button class="seg" data-act="bear-night" data-n="0" aria-pressed="${!night}">Днём</button><button class="seg" data-act="bear-night" data-n="1" aria-pressed="${!!night}">Ночью</button></div></div></div>
+      <div class="field"><span>Цвет</span><div class="swatches" role="group" aria-label="Цвет мишки">${BEAR_PAL.map(([k, n, , sw, swb]) => `<button class="swatch" data-act="bear-color" data-c="${k}" style="--sw:${sw};--swb:${swb}" aria-pressed="${B.c === k}" aria-label="${n}" title="${n}"><i></i></button>`).join('')}</div></div>
+      <div class="field" style="margin-top:14px"><span>Шапка</span><div class="chips" role="group" aria-label="Шапка">${BEAR_HATS.map(([k, n]) => `<button class="seg" data-act="bear-hat" data-k="${k}" aria-pressed="${B.hat === k}">${n}</button>`).join('')}</div></div>
+      <div class="field" style="margin-top:14px"><span>Шарф</span><div class="chips" role="group" aria-label="Шарф">${BEAR_SCARVES.map(([k, n]) => `<button class="seg" data-act="bear-scarf" data-k="${k}" aria-pressed="${B.scarf === k}">${n}</button>`).join('')}</div></div>
+      <div class="field" style="margin-top:14px"><span>Ещё${B.hat !== 'none' ? ' · в шапке бантик и цветочек прячутся' : ''}</span><div class="chips" role="group" aria-label="Аксессуары">${BEAR_ACC.map(([k, n]) => `<button class="seg" data-act="bear-acc" data-a="${k}" aria-pressed="${!!B.a[k]}">${n}</button>`).join('')}</div></div>
+      <div class="field" style="margin-top:14px"><span>Послушать, что он говорит</span><div class="chips">${[['morning', 'Утром'], ['day', 'Днём'], ['evening', 'Вечером'], ['bed', 'Перед сном']].map(([k, n]) => `<button class="seg" data-act="bear-sample" data-p="${k}">${n}</button>`).join('')}</div>${ui.bearSample ? `<div class="saybox">${esc(ui.bearSample)}</div>` : ''}</div>
+      <div class="field" style="margin-top:14px"><span>Облачко со словами на «Сегодня»</span><div class="chips"><button class="seg" data-act="bear-talk" data-on="1" aria-pressed="${B.talk}">Показывать</button><button class="seg" data-act="bear-talk" data-on="0" aria-pressed="${!B.talk}">Выключить</button></div></div>
+      <p class="hint">Сам мишка говорит утром при первом заходе, один раз днём, вечером и перед сном, а иногда и просто между делом. Между фразами — не меньше полутора часов, всего не больше пяти в день. Если нажать на него на «Сегодня», скажет в любой момент. С часу ночи до шести утра он спит.</p>`;
+  }
+
+  // ---------- Падающие звёзды ----------
+  function skyInit() {
+    if (calm()) return;
+    const sky = document.createElement('div'); sky.className = 'sky'; sky.setAttribute('aria-hidden', 'true');
+    document.body.insertBefore(sky, document.body.firstChild);
+    const free = () => document.visibilityState === 'visible' && bearCfg().stars && !document.querySelector('.pg') && $('#backdrop').hidden && !document.body.classList.contains('kb');
+    function star() {
+      const W = innerWidth, Hh = innerHeight, s = document.createElement('i');
+      // старт у правого верхнего угла, финиш у левого нижнего
+      const x0 = W * (0.72 + Math.random() * 0.36), y0 = Hh * (-0.08 + Math.random() * 0.2);
+      const x1 = W * (-0.12 + Math.random() * 0.3), y1 = Hh * (0.8 + Math.random() * 0.3);
+      const dx = x1 - x0, dy = y1 - y0;
+      s.className = 'shoot';
+      s.style.cssText = `left:${x0.toFixed(0)}px;top:${y0.toFixed(0)}px;--ang:${(Math.atan2(dy, dx) * 180 / Math.PI).toFixed(1)}deg;--len:${Math.hypot(dx, dy).toFixed(0)}px;--dur:${(2.8 + Math.random() * 1.2).toFixed(2)}s`;
+      sky.appendChild(s); setTimeout(() => s.remove(), 4200);
+    }
+    // одна звезда раз в 15–35 секунд, иногда парой
+    const later = () => setTimeout(spawn, 15e3 + Math.random() * 20e3);
+    function spawn() {
+      if (free()) { star(); if (Math.random() < 0.25) setTimeout(() => { if (free()) star(); }, 500 + Math.random() * 900); }
+      later();
+    }
+    setTimeout(spawn, 10e3);
+  }
+
+  // ---------- Брызги, когда выпита вся вода ----------
+  function waterBurst() {
+    const card = $('#water'), last = card && card.querySelector('.glasses .glass:last-child');
+    if (!card || !last || calm()) return;
+    const cr = card.getBoundingClientRect(), gr = last.getBoundingClientRect();
+    const cx = gr.left - cr.left + gr.width / 2, cy = gr.top - cr.top + gr.height / 2;
+    for (let i = 0; i < 10; i++) {
+      const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('class', 'wsp'); s.setAttribute('aria-hidden', 'true');
+      s.innerHTML = `<use href="#${i % 3 ? 'sparkle' : 'gem-blue'}"/>`;
+      const ang = Math.PI * (1.05 + Math.random() * 0.9), r = 34 + Math.random() * 40, sz = 10 + Math.random() * 9;
+      s.style.cssText = `left:${(cx - sz / 2).toFixed(0)}px;top:${(cy - sz / 2).toFixed(0)}px;--s:${sz.toFixed(0)}px;--dx:${(Math.cos(ang) * r).toFixed(0)}px;--dy:${(Math.sin(ang) * r).toFixed(0)}px;animation-delay:${(i * 25)}ms`;
+      card.appendChild(s); setTimeout(() => s.remove(), 1200);
+    }
+  }
+
   // ---------- Анимация переходов ----------
   const TAB_ORDER = ['today', 'act', 'body', 'diary', 'sudoku', 'more'];
   // «Вес и замеры» открывается из «Активности», поэтому подсвечивается её вкладка
@@ -151,6 +405,7 @@
 
   // ---------- Рендер ----------
   function render() {
+    if (ui.view !== 'today') { const bb = $('#bearBubble'); if (bb && !bb.hidden) { clearTimeout(bubbleTimer); bb.hidden = true; } }
     const viewChanged = prevScreen.view !== null && prevScreen.view !== ui.view;
     const dayChanged = !viewChanged && (ui.view === 'today' || ui.view === 'act') && prevScreen.day !== null && prevScreen.day !== ui.day;
     document.querySelectorAll('.view[id^="v-"]').forEach(v => v.hidden = v.id !== 'v-' + ui.view);
@@ -171,6 +426,8 @@
     const t = today();
     $('#dayTitle').textContent = fmtDay(ui.day);
     $('#dayNext').disabled = ui.day >= t;
+    renderWeekStrip();
+    renderPeek();
     $('#foodLbl').textContent = ui.day === t ? 'Что съела?' : ui.day === addDays(t, -1) ? 'Что съела вчера?' : 'Что съела ' + fmtLong(ui.day) + '?';
     renderSummary();
     renderWater();
@@ -223,9 +480,8 @@
         </div>
         <div class="stats">
           <div class="stat-top"><b>${nf(t.kcal)}</b> <span class="muted">из ${nf(L)} ккал</span></div>
-          ${proteinBlock(t)}
-          ${macrosLine(t)}
-        </div></div>`;
+          ${ND() ? `<div class="formula"><span>лимит <b class="num">${nf(L)}</b></span> <span>− съедено <b class="num">${nf(t.kcal)}</b></span></div><div><span class="chip-state${over ? ' warn' : ''}">${over ? 'выше лимита' : 'в лимите'}</span></div>` : proteinBlock(t) + macrosLine(t)}
+        </div></div>${ND() ? macroTiles(t) : ''}`;
       return;
     }
     const isToday = ui.day === today();
@@ -239,8 +495,7 @@
     el.innerHTML = `<div style="display:grid;gap:12px">
       ${head}
       <div><span class="baseline-big">${nf(t.kcal)}</span> <span class="muted">ккал за день</span></div>
-      ${proteinBlock(t)}
-      ${macrosLine(t)}
+      ${ND() ? macroTiles(t) : proteinBlock(t) + macrosLine(t)}
       ${isToday && b.count < 5 ? '<p class="small muted" style="margin:0">Ешь как обычно и записывай всё, даже чай с сахаром. Через 5 дней посчитаю твою обычную калорийность и предложу лимит.</p>' : ''}
       ${isToday && b.count >= 5 && S.settings.baselineDismissed ? '<p class="small muted" style="margin:0">Лимит не задан. Его можно поставить в настройках.</p>' : ''}
     </div>`;
@@ -290,6 +545,7 @@
     if (next === c) return;
     setWaterCount(ui.day, plan, next);
     renderWater(next > c ? c : null);
+    if (next === plan.n && c < plan.n) { setTimeout(waterBurst, 260); if (bearCfg().talk && ui.day === today() && !isNight()) setTimeout(() => bearSay('Вся вода на сегодня выпита — умница!'), 500); }
   }
 
   function renderTips() {
@@ -380,6 +636,8 @@
   function renderEntries() {
     const items = dayItems(ui.day);
     const el = $('#entries');
+    if (ND()) { renderMealCards(items, el); return; }
+    el.className = 'card';
     if (!items.length) { el.innerHTML = `<h2>Записи</h2>${emptyBear('Здесь появится всё, что ты съешь за день.')}`; return; }
     const groups = MEALS.map(([k, n]) => {
       const arr = items.filter(i => i.m === k);
@@ -442,7 +700,8 @@
         const dwaist = withWaist.length > 1 ? withWaist[withWaist.length - 1].waist - withWaist[0].waist : null;
         prog = `<p class="small" style="margin:8px 0 0">С ${fmtLong(first.d)}: <b class="num" style="color:${dw <= 0 ? 'var(--protein)' : 'var(--warn)'}">${dw > 0 ? '+' : dw < 0 ? '−' : ''}${g1(Math.abs(dw))} кг</b>${dwaist != null ? ` · талия <b class="num">${dwaist > 0 ? '+' : dwaist < 0 ? '−' : ''}${g1(Math.abs(dwaist))} см</b>` : ''}</p>`;
       }
-      nb.innerHTML = `<h2>Последний замер · ${fmtLong(last.d)}</h2><div><span class="baseline-big">${g1(last.w)}</span> <span class="muted">кг</span></div><p class="small" style="margin:8px 0 0">${dueTxt}</p>${prog}`;
+      if (ND()) nb.innerHTML = bodyTrio(w, dueTxt);
+      else nb.innerHTML = `<h2>Последний замер · ${fmtLong(last.d)}</h2><div><span class="baseline-big">${g1(last.w)}</span> <span class="muted">кг</span></div><p class="small" style="margin:8px 0 0">${dueTxt}</p>${prog}`;
     }
     $('#bodyChart').innerHTML = `<h2>Вес</h2>` + (w.length >= 2 ? chartSvg(w) : emptyBear('График появится после второго замера.'));
     if (!$('#bDate').value) $('#bDate').value = today();
@@ -461,6 +720,8 @@
     const W = 330, H = 170, pl = 34, pr = 14, pt = 18, pb = 26;
     const ys = w.map(x => x.w);
     let lo = Math.min(...ys), hi = Math.max(...ys);
+    const GW = ND() && S.settings.goalWeight;
+    if (GW) { lo = Math.min(lo, GW); hi = Math.max(hi, GW); }
     const padY = Math.max(0.5, (hi - lo) * 0.15);
     lo = Math.floor((lo - padY) * 2) / 2; hi = Math.ceil((hi + padY) * 2) / 2;
     const t0 = toDate(w[0].d).getTime(), t1 = toDate(w[w.length - 1].d).getTime();
@@ -480,7 +741,7 @@
     const dots = pts.map((p, i) => `<circle class="pt ${i === pts.length - 1 ? 'last' : ''}" cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${i === pts.length - 1 ? 4.5 : 3.2}"/>`).join('');
     const lx = Math.min(W - pr - 2, lastP[0]);
     return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="График веса">
-      ${grid}<path class="ar" d="${area}"/><path class="ln" d="${line}"/>${dots}
+      ${grid}${GW ? `<line class="goal" x1="${pl}" x2="${W - pr}" y1="${Y(GW).toFixed(1)}" y2="${Y(GW).toFixed(1)}"/><text class="gl" x="${pl + 4}" y="${(Y(GW) - 5).toFixed(1)}">цель ${g1(GW)}</text>` : ''}<path class="ar" d="${area}"/><path class="ln" d="${line}"/>${dots}
       <text class="vl" x="${lx.toFixed(1)}" y="${(lastP[1] - 10).toFixed(1)}" text-anchor="end">${g1(w[w.length - 1].w)}</text>
       <text x="${pl}" y="${H - 6}">${fmtShort(w[0].d)}</text><text x="${W - pr}" y="${H - 6}" text-anchor="end">${fmtShort(w[w.length - 1].d)}</text></svg>`;
   }
@@ -525,6 +786,7 @@
       <p class="hint">${sug ? `В среднем за последнюю неделю — ${nf(sug.avg)} шагов. ` : ''}Шаги удобнее прибавлять по 500 в неделю, а не сразу до 10 000.</p>
       <p class="hint">Веб-приложение на iPhone не может само читать шаги из «Здоровья», поэтому число вписывается вручную на экране «Активность».</p>`;
     $('#setLook').innerHTML = lookCard();
+    $('#setBear').innerHTML = bearCard();
     $('#setAi').innerHTML = aiCard();
     $('#setFoods').innerHTML = `<h2>Мои продукты</h2>
       ${S.custom.length ? `<div class="list">${S.custom.map(c => `<div class="li"><div style="min-width:0"><div style="font-weight:600;overflow-wrap:anywhere">${esc(c.name)}</div><div class="tiny muted num">${nf(c.kcal)} ккал · Б ${g1(c.p)} · Ж ${g1(c.f)} · У ${g1(c.c)} на 100 г${c.portion ? ' · порция ' + c.portion + ' г' : ''}</div></div><button class="btn plain" style="min-height:36px;padding:6px 12px" data-act="edit-food" data-id="${c.id}">Изменить</button></div>`).join('')}</div>`
@@ -558,6 +820,7 @@
     const on = gp.on !== false;
     return `<h2>Оформление</h2>
       <div class="field"><span>Тема</span><div class="chips" role="group" aria-label="Тема">${THEMES.map(([k, n]) => `<button class="seg" data-act="theme" data-t="${k}" aria-pressed="${th === k}">${n}</button>`).join('')}</div></div>
+      <div class="field" style="margin-top:16px"><span>Падающие звёзды иногда пролетают по экрану</span><div class="chips"><button class="seg" data-act="stars" data-on="1" aria-pressed="${bearCfg().stars}">Показывать</button><button class="seg" data-act="stars" data-on="0" aria-pressed="${!bearCfg().stars}">Выключить</button></div></div>
       ${g ? `<div class="field" style="margin-top:16px"><span>Приветствие при открытии</span><div class="chips" role="group" aria-label="Приветствие">
         <button class="seg" data-act="greet-on" data-on="1" aria-pressed="${on}">Показывать</button><button class="seg" data-act="greet-on" data-on="0" aria-pressed="${!on}">Выключить</button></div></div>
       <div class="setrow" style="margin-top:12px"><label class="field"><span>Имя в приветствии</span><input id="sGName" type="text" value="${esc(gp.name || '')}" placeholder="можно не писать" autocomplete="off" maxlength="24"></label><button class="btn" data-act="save-gname">Сохранить</button></div>
@@ -1371,8 +1634,8 @@
     import() { $('#importFile').value = ''; $('#importFile').click(); },
     wipe() { ui.delArm = 'all'; renderMore(); },
     'wipe-cancel'() { ui.delArm = null; renderMore(); },
-    'wipe-confirm'() { try { localStorage.removeItem(AI_STORE); } catch (e) { /* нет доступа */ } ui.photo = null; ui.photoItems = []; S = blank(); S.settings.onboarded = true; ui.delArm = null; save(); ui.draft = []; $('#food').value = ''; render(); toast('Все данные удалены'); },
-    'import-confirm'() { const d = $('#sheet')._import; if (!d) return; S = Object.assign(blank(), d, { settings: Object.assign(blank().settings, d.settings || {}) }); save(); closeSheet(); render(); toast('Данные восстановлены'); },
+    'wipe-confirm'() { try { localStorage.removeItem(AI_STORE); } catch (e) { /* нет доступа */ } ui.photo = null; ui.photoItems = []; S = blank(); S.settings.onboarded = true; ui.delArm = null; save(); ui.draft = []; $('#food').value = ''; bearApply(); render(); toast('Все данные удалены'); },
+    'import-confirm'() { const d = $('#sheet')._import; if (!d) return; S = Object.assign(blank(), d, { settings: Object.assign(blank().settings, d.settings || {}) }); save(); closeSheet(); bearApply(); render(); toast('Данные восстановлены'); },
   };
 
 
@@ -1553,10 +1816,52 @@
     rd.readAsText(file);
   });
 
+  Object.assign(actions, {
+    'strip-day'(b) { ui.day = b.dataset.day; ui.followToday = ui.day === today(); render(); },
+    'meal-add'(b) {
+      ui.meal = b.dataset.m; ui.mealTouched = true; renderMeals(); renderPreview(); renderQuick();
+      $('#food').focus({ preventScroll: true });
+      $('.composer').scrollIntoView({ block: 'start', behavior: calm() ? 'auto' : 'smooth' });
+    },
+    'goal-weight'() {
+      const G = S.settings.goalWeight;
+      openSheet(`<h2>Целевой вес</h2><p class="muted small" style="margin:0">Появится на графике пунктиром, а над ним — сколько пути уже пройдено.</p>
+        <div class="stack"><div class="setrow"><label class="field"><span>Вес, кг</span><input id="gwIn" type="text" inputmode="decimal" value="${G ? String(G).replace('.', ',') : ''}" placeholder="например, 55"></label><button class="btn" data-act="goal-weight-save">Сохранить</button></div>
+        ${G ? '<button class="btn plain block" data-act="goal-weight-clear">Убрать цель</button>' : ''}</div>`);
+    },
+    'goal-weight-save'() {
+      const v = num($('#gwIn').value);
+      if (!v || v < 30 || v > 250) { toast('Проверь вес — похоже на опечатку'); return; }
+      S.settings.goalWeight = Math.round(v * 10) / 10; save(); closeSheet(); render(); toast(`Цель: ${g1(S.settings.goalWeight)} кг`);
+    },
+    'goal-weight-clear'() { S.settings.goalWeight = null; save(); closeSheet(); render(); toast('Цель по весу убрана'); },
+  });
+
+  Object.assign(actions, {
+    'bear-tap'() { if (ui.view === 'today') { const b = $('#bearBubble'); if (b && !b.hidden && !b.classList.contains('out')) bearHush(); else bearSay(); } },
+    'bear-prev'(b) { bearHop(b); },
+    'bear-night'(b) { ui.bearNight = b.dataset.n === '1'; $('#setBear').innerHTML = bearCard(); },
+    'bear-color'(b) { bearSet({ c: b.dataset.c }); $('#setBear').innerHTML = bearCard(); bearHop($('.bearprev')); },
+    'bear-acc'(b) { const B = bearCfg(); B.a[b.dataset.a] = B.a[b.dataset.a] ? 0 : 1; bearSet({ a: B.a }); $('#setBear').innerHTML = bearCard(); bearHop($('.bearprev')); },
+    'bear-hat'(b) { bearSet({ hat: b.dataset.k }); $('#setBear').innerHTML = bearCard(); bearHop($('.bearprev')); },
+    'bear-scarf'(b) { bearSet({ scarf: b.dataset.k }); $('#setBear').innerHTML = bearCard(); bearHop($('.bearprev')); },
+    'bear-sample'(b) {
+      const all = BEAR_SAY[b.dataset.p], prev = ui.bearSample;
+      let txt = all[Math.floor(Math.random() * all.length)];
+      if (txt === prev && all.length > 1) txt = all[(all.indexOf(txt) + 1) % all.length];
+      ui.bearSample = txt;
+      $('#setBear').innerHTML = bearCard(); bearHop($('.bearprev'));
+    },
+    'bear-talk'(b) { bearSet({ talk: b.dataset.on === '1' }); $('#setBear').innerHTML = bearCard(); },
+    stars(b) { bearSet({ stars: b.dataset.on === '1' }); $('#setLook').innerHTML = lookCard(); },
+  });
+  $('#bearBubble').addEventListener('click', ev => { ev.stopPropagation(); bearHush(); });
+
   // ---------- События ----------
   const KEEP_FOCUS = new Set(['photo', 'meal', 'draft-del', 'es-step', 'es-meal', 'ff-mode', 'wk-type', 'wk-int', 'wk-set-add', 'wk-ex-add', 'wk-set-del', 'wk-ex-del', 'wk-ex-copy']);
   document.addEventListener('click', ev => {
     const tab = ev.target.closest('.tab');
+    if (tab && tab.dataset.tab === 'today' && ui.view !== 'today') setTimeout(() => bearMaybe(false), 450);
     if (tab) { ui.view = tab.dataset.tab; setTimeout(sdkTimerSync, 0); ui.delArm = null; if ((ui.view === 'today' || ui.view === 'act') && ui.followToday) ui.day = today(); render(); window.scrollTo(0, 0); return; }
     if (sheetClosing() && ev.target.closest('#backdrop')) return;
     if (ev.target === $('#backdrop')) { closeSheet(); return; }
@@ -1666,16 +1971,23 @@
   document.addEventListener('focusout', () => { setTimeout(() => { if (!document.activeElement || !document.activeElement.matches('input, textarea')) document.body.classList.remove('kb'); }, 60); });
 
   // После полуночи «Сегодня» переключается на новый день
+  let bearHiddenAt = 0;
   document.addEventListener('visibilitychange', () => {
     sdkTimerSync();
+    if (document.visibilityState === 'hidden') bearHiddenAt = Date.now();
     if (document.visibilityState === 'visible') {
+      const away = bearHiddenAt ? Date.now() - bearHiddenAt : 0;
+      setTimeout(() => { renderPeek(); if (away >= 10 * 60e3) bearWhenFree(() => bearMaybe(true), 700); }, 0);
       if (ui.followToday && ui.day !== today()) { ui.day = today(); ui.meal = autoMeal(); render(); }
       else if (!ui.mealTouched && !ui.draft.length) { ui.meal = autoMeal(); if (ui.view === 'today') { renderMeals(); renderPreview(); renderQuick(); } }
     }
   });
 
   // ---------- Запуск ----------
+  bearApply();
   render();
+  skyInit();
+  if (S.settings.onboarded) bearWhenFree(() => bearMaybe(true), 900);
   if (!S.settings.onboarded) howtoSheet(true);
   try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) { /* нет поддержки */ }
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
