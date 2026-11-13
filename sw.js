@@ -1,7 +1,7 @@
 /* Порция — офлайн-кэш. При обновлении файлов на сайте поменяй VERSION. */
-const VERSION = 'porcia-v13';
+const VERSION = 'porcia-v14';
 const ASSETS = ['./', './index.html', './greet.js', './core.js', './app.js', './manifest.webmanifest',
-  './apple-touch-icon.png', './icon-192.png', './icon-512.png'];
+  './apple-touch-icon.png', './icon-192.png', './icon-512.png', './icon-maskable-512.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(ASSETS.map(u => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));

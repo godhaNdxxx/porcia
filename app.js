@@ -198,13 +198,13 @@
     ['choco', 'Шоколадный', ['#BE9175', '#EBD6C5', '#9A6D52', '#F2A0B0'], '#BE9175', '#F2A0B0'],
   ];
   const BEAR_HATS = [['none', 'Без шапки'], ['nightcap', 'Ночной колпак'], ['beanie', 'Шапка с помпоном'], ['beret', 'Беретик'], ['sunhat', 'Шляпка'], ['crown', 'Корона']];
-  const BEAR_SCARVES = [['none', 'Без шарфа'], ['mint', 'Мятный в полоску'], ['polka', 'Розовый в горошек'], ['plaid', 'Сиреневый клетчатый'], ['knit', 'Голубой вязаный']];
+  const BEAR_SCARVES = [['none', 'Без шарфа'], ['mint', 'Мятный в полоску'], ['polka', 'Розовый в горошек'], ['plaid', 'Сиреневый клетчатый'], ['knit', 'Голубой вязаный'], ['long', 'Длинный полосатый'], ['snood', 'Тёплый снуд'], ['bandana', 'Бандана']];
   const BEAR_ACC = [['bow', 'Бантик'], ['heart', 'Сердечко'], ['flower', 'Цветочек'], ['glasses', 'Очки']];
-  const BEAR_DEF = { c: 'lilac', hat: 'none', scarf: 'none', a: { bow: 1, heart: 1 }, talk: true, stars: true };
+  const BEAR_DEF = { c: 'lilac', hat: 'none', scarf: 'none', a: { bow: 1, heart: 1 }, talk: true, stars: true, season: true };
   function bearCfg() {
     const b = S.settings.bear && typeof S.settings.bear === 'object' ? S.settings.bear : {};
     const ok = (list, v) => list.some(x => x[0] === v) ? v : 'none';
-    return { c: b.c || BEAR_DEF.c, hat: ok(BEAR_HATS, b.hat), scarf: ok(BEAR_SCARVES, b.scarf), a: Object.assign({}, BEAR_DEF.a, b.a || {}), talk: b.talk !== false, stars: b.stars !== false };
+    return { c: b.c || BEAR_DEF.c, hat: ok(BEAR_HATS, b.hat), scarf: ok(BEAR_SCARVES, b.scarf), a: Object.assign({}, BEAR_DEF.a, b.a || {}), talk: b.talk !== false, stars: b.stars !== false, season: b.season !== false };
   }
   function bearSet(patch) { S.settings.bear = Object.assign(bearCfg(), patch); save(); bearApply(); }
   function bearApply() {
@@ -250,6 +250,12 @@
       'Будь к себе добрее, ладно?', 'Без тебя мне было скучно', 'Ты сияешь, как стразик',
     ],
   };
+  const BEAR_SEASON = {
+    autumn: ['Осень — время пледа, какао и заботы о себе', 'Дождик за окном, а у нас уютно', 'Листья падают, а ты — сияешь', 'Осенью особенно важно себя баловать'],
+    winter: ['Укутывайся теплее, снежинка', 'Зима — чтобы пить тёплый чай и мечтать', 'Снег идёт, а мишка тебя греет', 'Ты моя самая тёплая зимняя радость'],
+    spring: ['Весна! Всё расцветает — и ты тоже', 'Пахнет весной и новыми победами', 'Весеннее солнышко тебе к лицу', 'Весной всё получается легче'],
+    summer: ['Лето! Не забывай пить воду — жарко', 'Солнышко светит, а ты — ярче', 'Летом прогулки — лучшая тренировка', 'Пусть лето будет лёгким и вкусным'],
+  };
   function bearLines(part) {
     const hr = new Date().getHours(), t = today(), items = dayItems(t), tot = totals(items), L = limitFor(t);
     const out = [];
@@ -268,7 +274,7 @@
     if (isNight()) return 'Ззз… я сплю, но я рядом. И тебе пора отдыхать';
     const part = reason || partOf(new Date().getHours()) || 'day';
     const ctx = part === 'morning' ? [] : bearLines(part);
-    const base = part === 'morning' || part === 'bed' ? BEAR_SAY[part] : BEAR_SAY[part].concat(BEAR_SAY.any);
+    const base = part === 'morning' || part === 'bed' ? BEAR_SAY[part] : BEAR_SAY[part].concat(BEAR_SAY.any, BEAR_SEASON[seasonNow()]);
     const useCtx = ctx.length && Math.random() < (part === 'bed' ? 0.3 : 0.5);
     const pool = useCtx ? ctx : base;
     const st = bearState(), recent = Array.isArray(st.recent) ? st.recent : [];
@@ -339,7 +345,7 @@
       <div class="field"><span>Цвет</span><div class="swatches" role="group" aria-label="Цвет мишки">${BEAR_PAL.map(([k, n, , sw, swb]) => `<button class="swatch" data-act="bear-color" data-c="${k}" style="--sw:${sw};--swb:${swb}" aria-pressed="${B.c === k}" aria-label="${n}" title="${n}"><i></i></button>`).join('')}</div></div>
       <div class="field" style="margin-top:14px"><span>Шапка</span><div class="chips" role="group" aria-label="Шапка">${BEAR_HATS.map(([k, n]) => `<button class="seg" data-act="bear-hat" data-k="${k}" aria-pressed="${B.hat === k}">${n}</button>`).join('')}</div></div>
       <div class="field" style="margin-top:14px"><span>Шарф</span><div class="chips" role="group" aria-label="Шарф">${BEAR_SCARVES.map(([k, n]) => `<button class="seg" data-act="bear-scarf" data-k="${k}" aria-pressed="${B.scarf === k}">${n}</button>`).join('')}</div></div>
-      <div class="field" style="margin-top:14px"><span>Ещё${B.hat !== 'none' ? ' · в шапке бантик и цветочек прячутся' : ''}</span><div class="chips" role="group" aria-label="Аксессуары">${BEAR_ACC.map(([k, n]) => `<button class="seg" data-act="bear-acc" data-a="${k}" aria-pressed="${!!B.a[k]}">${n}</button>`).join('')}</div></div>
+      <div class="field" style="margin-top:14px"><span>Ещё${B.hat !== 'none' ? ' · в шапке бантик и цветочек прячутся' : ''}${B.scarf === 'bandana' ? ' · под банданой сердечко прячется' : ''}</span><div class="chips" role="group" aria-label="Аксессуары">${BEAR_ACC.map(([k, n]) => `<button class="seg" data-act="bear-acc" data-a="${k}" aria-pressed="${!!B.a[k]}">${n}</button>`).join('')}</div></div>
       <div class="field" style="margin-top:14px"><span>Послушать, что он говорит</span><div class="chips">${[['morning', 'Утром'], ['day', 'Днём'], ['evening', 'Вечером'], ['bed', 'Перед сном']].map(([k, n]) => `<button class="seg" data-act="bear-sample" data-p="${k}">${n}</button>`).join('')}</div>${ui.bearSample ? `<div class="saybox">${esc(ui.bearSample)}</div>` : ''}</div>
       <div class="field" style="margin-top:14px"><span>Облачко со словами на «Сегодня»</span><div class="chips"><button class="seg" data-act="bear-talk" data-on="1" aria-pressed="${B.talk}">Показывать</button><button class="seg" data-act="bear-talk" data-on="0" aria-pressed="${!B.talk}">Выключить</button></div></div>
       <p class="hint">Сам мишка говорит утром при первом заходе, один раз днём, вечером и перед сном, а иногда и просто между делом. Между фразами — не меньше полутора часов, всего не больше пяти в день. Если нажать на него на «Сегодня», скажет в любой момент. С часу ночи до шести утра он спит.</p>`;
@@ -368,6 +374,49 @@
       later();
     }
     setTimeout(spawn, 10e3);
+  }
+
+  // ---------- Сезонная погода ----------
+  // Иногда, примерно раз в 3–6 минут, на фоне за карточками секунд 20 идёт погода по сезону.
+  const SEASONS = [['autumn', 'Осень'], ['winter', 'Зима'], ['spring', 'Весна'], ['summer', 'Лето']];
+  const SEASON_IN = { autumn: 'осень', winter: 'зима', spring: 'весна', summer: 'лето' };
+  function seasonNow() { const m = new Date().getMonth(); return m === 11 || m < 2 ? 'winter' : m < 5 ? 'spring' : m < 8 ? 'summer' : 'autumn'; }
+  const LEAF = ['#EFA04C', '#E2794E', '#D9B04A', '#C9693A'];
+  function wxPlay(season, opt) {
+    opt = opt || {};
+    if (calm()) return null;
+    const host = opt.host || document.body;
+    const prev = host.querySelector(':scope > .wx'); if (prev) prev.remove();
+    const kind = season === 'winter' ? 's' : season === 'spring' ? 'p' : season === 'summer' ? 'g' : (opt.kind || (Math.random() < 0.65 ? 'r' : 'l'));
+    const k = opt.host ? 0.6 : 1;
+    const n = Math.round(({ r: 70, s: 46, p: 18, l: 14, g: 22 })[kind] * k);
+    const lay = document.createElement('div'); lay.className = 'wx' + (opt.host ? ' wx-pg' : ''); lay.setAttribute('aria-hidden', 'true');
+    let html = '';
+    const R = (a, b) => a + Math.random() * (b - a);
+    for (let i = 0; i < n; i++) {
+      let st = `left:${R(-5, 112).toFixed(1)}%;`;
+      if (kind === 'r') { const d = R(0.55, 0.95); st += `--h:${R(10, 20).toFixed(0)}px;animation-duration:${d.toFixed(2)}s;animation-delay:${(-R(0, d)).toFixed(2)}s`; }
+      else if (kind === 's') { const d = R(8, 14); st += `--z:${R(4, 8).toFixed(1)}px;--sx:${R(-20, 20).toFixed(0)}px;opacity:${R(.55, 1).toFixed(2)};animation-duration:${d.toFixed(1)}s;animation-delay:${(-R(0, d)).toFixed(1)}s`; }
+      else if (kind === 'p' || kind === 'l') { const d = R(9, 14); st += `--z:${R(kind === 'p' ? 8 : 10, kind === 'p' ? 12 : 14).toFixed(1)}px;--sx:${R(-40, 40).toFixed(0)}px;${kind === 'l' ? `--c:${LEAF[i % 4]};` : ''}animation-duration:${d.toFixed(1)}s;animation-delay:${(-R(0, d)).toFixed(1)}s`; }
+      else { const d = R(10, 16); st = `left:${R(0, 100).toFixed(1)}%;--z:${R(8, 13).toFixed(1)}px;--sx:${R(-30, 30).toFixed(0)}px;animation-duration:${d.toFixed(1)}s;animation-delay:${(-R(0, d)).toFixed(1)}s`; }
+      html += `<i class="${kind}" style="${st}"></i>`;
+    }
+    lay.innerHTML = html;
+    if (opt.host) host.appendChild(lay); else host.insertBefore(lay, host.firstChild);
+    const dur = opt.dur || 22e3;
+    if (!opt.host) setTimeout(() => { lay.classList.add('wx-out'); setTimeout(() => lay.remove(), 1900); }, dur);
+    return lay;
+  }
+  function wxInit() {
+    if (calm()) return;
+    const free = () => document.visibilityState === 'visible' && bearCfg().season && !document.body.classList.contains('kb') && !document.querySelector('body > .wx');
+    const later = () => setTimeout(tick, 180e3 + Math.random() * 180e3);
+    function tick(first) { if (free() && (!first || Math.random() < 0.5)) wxPlay(seasonNow()); later(); }
+    setTimeout(() => tick(true), 8e3 + Math.random() * 6e3);
+    // Заставка при входе — тоже с погодой по сезону
+    const dress = el => { if (bearCfg().season && el && el.classList && el.classList.contains('pg') && !el.querySelector('.wx')) wxPlay(seasonNow(), { host: el }); };
+    document.querySelectorAll('.pg').forEach(dress);
+    new MutationObserver(ms => ms.forEach(m => m.addedNodes.forEach(dress))).observe(document.body, { childList: true });
   }
 
   // ---------- Брызги, когда выпита вся вода ----------
@@ -821,6 +870,9 @@
     return `<h2>Оформление</h2>
       <div class="field"><span>Тема</span><div class="chips" role="group" aria-label="Тема">${THEMES.map(([k, n]) => `<button class="seg" data-act="theme" data-t="${k}" aria-pressed="${th === k}">${n}</button>`).join('')}</div></div>
       <div class="field" style="margin-top:16px"><span>Падающие звёзды иногда пролетают по экрану</span><div class="chips"><button class="seg" data-act="stars" data-on="1" aria-pressed="${bearCfg().stars}">Показывать</button><button class="seg" data-act="stars" data-on="0" aria-pressed="${!bearCfg().stars}">Выключить</button></div></div>
+      <div class="field" style="margin-top:16px"><span>Погода по сезону — сейчас ${SEASON_IN[seasonNow()]}</span><div class="chips"><button class="seg" data-act="season" data-on="1" aria-pressed="${bearCfg().season}">Показывать</button><button class="seg" data-act="season" data-on="0" aria-pressed="${!bearCfg().season}">Выключить</button></div></div>
+      <div class="field" style="margin-top:12px"><span>Посмотреть, как выглядит</span><div class="chips">${SEASONS.map(([k, n]) => `<button class="seg" data-act="season-try" data-s="${k}">${n}</button>`).join('')}</div></div>
+      <p class="hint">Иногда, примерно раз в 3–6 минут, на фоне за карточками секунд двадцать идёт погода: осенью дождик или листья, зимой снег, весной лепестки, летом солнечные искорки. На заставке при входе — тоже.</p>
       ${g ? `<div class="field" style="margin-top:16px"><span>Приветствие при открытии</span><div class="chips" role="group" aria-label="Приветствие">
         <button class="seg" data-act="greet-on" data-on="1" aria-pressed="${on}">Показывать</button><button class="seg" data-act="greet-on" data-on="0" aria-pressed="${!on}">Выключить</button></div></div>
       <div class="setrow" style="margin-top:12px"><label class="field"><span>Имя в приветствии</span><input id="sGName" type="text" value="${esc(gp.name || '')}" placeholder="можно не писать" autocomplete="off" maxlength="24"></label><button class="btn" data-act="save-gname">Сохранить</button></div>
@@ -1854,6 +1906,8 @@
     },
     'bear-talk'(b) { bearSet({ talk: b.dataset.on === '1' }); $('#setBear').innerHTML = bearCard(); },
     stars(b) { bearSet({ stars: b.dataset.on === '1' }); $('#setLook').innerHTML = lookCard(); },
+    season(b) { bearSet({ season: b.dataset.on === '1' }); $('#setLook').innerHTML = lookCard(); if (b.dataset.on !== '1') { const w = document.querySelector('body > .wx'); if (w) w.remove(); } },
+    'season-try'(b) { wxPlay(b.dataset.s, { dur: 14e3 }); toast({ autumn: 'Осенняя погода — смотри по краям и между карточками', winter: 'Пошёл снег — смотри по краям', spring: 'Летят лепестки — смотри по краям', summer: 'Солнечные искорки — смотри по краям' }[b.dataset.s]); },
   });
   $('#bearBubble').addEventListener('click', ev => { ev.stopPropagation(); bearHush(); });
 
@@ -1987,6 +2041,7 @@
   bearApply();
   render();
   skyInit();
+  wxInit();
   if (S.settings.onboarded) bearWhenFree(() => bearMaybe(true), 900);
   if (!S.settings.onboarded) howtoSheet(true);
   try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) { /* нет поддержки */ }
