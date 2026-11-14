@@ -134,6 +134,8 @@
 
   // ---------- Оформление 1.8: лента недели, плитки макросов, карточки приёмов, цель по весу ----------
   const ND = () => true;
+  const DZ = () => true;
+  const APP_VER = '1.10.0';
   const svgI = d => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
   const MEAL_IC = {
     b: svgI('<path d="M5 9h11v5a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5z"/><path d="M16 10h1.5a2.5 2.5 0 0 1 0 5H16"/><path d="M8.5 3.5c0 1 1 1.5 1 2.6M12.5 3.5c0 1 1 1.5 1 2.6"/>'),
@@ -289,7 +291,7 @@
   function bearState() { try { return JSON.parse(localStorage.getItem(BEAR_STORE)) || {}; } catch (e) { return {}; } }
   function bearStateSave(s) { try { localStorage.setItem(BEAR_STORE, JSON.stringify(s)); } catch (e) { /* без памяти */ } }
   let bubbleTimer = null;
-  function bearHop(el) { if (!el || calm()) return; el.classList.remove('hop'); void el.offsetWidth; el.classList.add('hop'); }
+  function bearHop(el) { if (!el || calm() || el.classList.contains('nod')) return; el.classList.remove('hop'); void el.offsetWidth; el.classList.add('hop'); }
   function bearSay(txt) {
     const b = $('#bearBubble'); if (!b || ui.view !== 'today') return;
     clearTimeout(bubbleTimer);
@@ -347,8 +349,151 @@
       <div class="field" style="margin-top:14px"><span>Шарф</span><div class="chips" role="group" aria-label="Шарф">${BEAR_SCARVES.map(([k, n]) => `<button class="seg" data-act="bear-scarf" data-k="${k}" aria-pressed="${B.scarf === k}">${n}</button>`).join('')}</div></div>
       <div class="field" style="margin-top:14px"><span>Ещё${B.hat !== 'none' ? ' · в шапке бантик и цветочек прячутся' : ''}${B.scarf === 'bandana' ? ' · под банданой сердечко прячется' : ''}</span><div class="chips" role="group" aria-label="Аксессуары">${BEAR_ACC.map(([k, n]) => `<button class="seg" data-act="bear-acc" data-a="${k}" aria-pressed="${!!B.a[k]}">${n}</button>`).join('')}</div></div>
       <div class="field" style="margin-top:14px"><span>Послушать, что он говорит</span><div class="chips">${[['morning', 'Утром'], ['day', 'Днём'], ['evening', 'Вечером'], ['bed', 'Перед сном']].map(([k, n]) => `<button class="seg" data-act="bear-sample" data-p="${k}">${n}</button>`).join('')}</div>${ui.bearSample ? `<div class="saybox">${esc(ui.bearSample)}</div>` : ''}</div>
-      <div class="field" style="margin-top:14px"><span>Облачко со словами на «Сегодня»</span><div class="chips"><button class="seg" data-act="bear-talk" data-on="1" aria-pressed="${B.talk}">Показывать</button><button class="seg" data-act="bear-talk" data-on="0" aria-pressed="${!B.talk}">Выключить</button></div></div>
+      ${DZ() ? `<div style="margin-top:8px">${swRow('talk', 'Облачко со словами', B.talk, 'Мишка говорит на экране «Сегодня»')}</div>` : `<div class="field" style="margin-top:14px"><span>Облачко со словами на «Сегодня»</span><div class="chips"><button class="seg" data-act="bear-talk" data-on="1" aria-pressed="${B.talk}">Показывать</button><button class="seg" data-act="bear-talk" data-on="0" aria-pressed="${!B.talk}">Выключить</button></div></div>`}
       <p class="hint">Сам мишка говорит утром при первом заходе, один раз днём, вечером и перед сном, а иногда и просто между делом. Между фразами — не меньше полутора часов, всего не больше пяти в день. Если нажать на него на «Сегодня», скажет в любой момент. С часу ночи до шести утра он спит.</p>`;
+  }
+
+  // ---------- 1.10: детали ----------
+  const HEART = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21c-5.6-3.7-9-7-9-10.6C3 7.6 5.1 5.5 7.8 5.5c1.8 0 3.2.9 4.2 2.4 1-1.5 2.4-2.4 4.2-2.4 2.7 0 4.8 2.1 4.8 4.9 0 3.6-3.4 6.9-9 10.6z" fill="currentColor"/></svg>';
+  function bearHeart() {
+    const p = $('.peek'); if (!p || calm() || ui.view !== 'today') return;
+    const s = document.createElement('span'); s.className = 'bh'; s.style.color = 'var(--blush)'; s.innerHTML = HEART;
+    p.appendChild(s); setTimeout(() => s.remove(), 1600);
+  }
+  function bearNod() {
+    const p = $('.peek'); if (!p || calm() || !DZ() || p.classList.contains('sleep')) return;
+    p.classList.remove('nod'); void p.offsetWidth; p.classList.add('nod');
+    setTimeout(() => p.classList.remove('nod'), 950);
+  }
+  function bearAte() { if (!DZ()) return; setTimeout(() => { bearNod(); setTimeout(bearHeart, 250); }, 380); }
+  // взгляд вниз, пока пишешь в поле «Что съела?»
+  function bearLook(on) {
+    const p = $('.peek'); if (!p) return;
+    on = on && DZ() && !p.classList.contains('sleep');
+    p.classList.toggle('lean', on);
+    p.style.setProperty('--b-look-x', on ? '-1.8px' : '0px');
+    p.style.setProperty('--b-look-y', on ? '2.4px' : '0px');
+  }
+  // моргает раз в несколько секунд
+  (function blinkLoop() {
+    setTimeout(() => {
+      const p = $('.peek');
+      if (p && DZ() && !calm() && !p.classList.contains('sleep') && document.visibilityState === 'visible') {
+        p.style.setProperty('--b-blink', '1'); setTimeout(() => p.style.setProperty('--b-blink', '0'), 130);
+        if (Math.random() < 0.3) setTimeout(() => { p.style.setProperty('--b-blink', '1'); setTimeout(() => p.style.setProperty('--b-blink', '0'), 120); }, 300);
+      }
+      blinkLoop();
+    }, 3200 + Math.random() * 3800);
+  })();
+  // сердечко вечером, если день в лимите — раз в день
+  function eveningHeart() {
+    if (!DZ() || ui.view !== 'today' || ui.day !== today()) return;
+    const hr = new Date().getHours(), t = totals(dayItems(today())), L = limitFor(today());
+    if (hr < 18 || !L || !t.kcal || t.kcal > L) return;
+    const st = bearState(); if (st.eh === today()) return;
+    st.eh = today(); bearStateSave(st); setTimeout(bearHeart, 1200);
+  }
+  function proteinHearts() {
+    const tile = $('#summary .mtile'); if (!tile || calm()) return;
+    const r = tile.getBoundingClientRect(), cx = r.width / 2, cy = 28;
+    for (let i = 0; i < 9; i++) {
+      const s = document.createElement('span'); s.className = 'hb'; s.innerHTML = HEART;
+      const ang = Math.PI * (1.1 + Math.random() * 0.8), d = 36 + Math.random() * 34, sz = 10 + Math.random() * 8;
+      s.style.cssText = `left:${(cx - sz / 2).toFixed(0)}px;top:${(cy - sz / 2).toFixed(0)}px;--s:${sz.toFixed(0)}px;--dx:${(Math.cos(ang) * d).toFixed(0)}px;--dy:${(Math.sin(ang) * d).toFixed(0)}px;--r:${(Math.random() * 50 - 25).toFixed(0)}deg;animation-delay:${i * 35}ms`;
+      tile.appendChild(s); setTimeout(() => s.remove(), 1400);
+    }
+    bearHeart();
+  }
+  // небо по времени суток
+  function skyPhase() { const hr = new Date().getHours(); return hr >= 5 && hr < 10 ? 'morning' : hr >= 10 && hr < 17 ? 'day' : hr >= 17 && hr < 21 ? 'sunset' : 'night'; }
+  let skyLock = null;
+  function skyApply(phase) {
+    const r = document.documentElement, ph = phase || skyLock || skyPhase();
+    r.dataset.sky = ph;
+    const el = $('#skyTint'); if (!el) return;
+    if (!el.childElementCount) {
+      el.innerHTML = Array.from({ length: 14 }, (_, i) => `<i style="left:${(5 + Math.random() * 90).toFixed(1)}%;top:${(8 + Math.random() * 46).toFixed(1)}%;animation-delay:${(-Math.random() * 4).toFixed(1)}s;animation-duration:${(3 + Math.random() * 3).toFixed(1)}s"></i>`).join('');
+    }
+    el.hidden = ui.view !== 'today';
+  }
+  setInterval(() => { if (!skyLock) skyApply(); }, 5 * 60e3);
+  // иконка вкладки оживает при переходе
+  function tabPop(tab) {
+    if (!DZ() || calm() || !tab) return;
+    tab.classList.remove('pop'); void tab.offsetWidth; tab.classList.add('pop');
+    setTimeout(() => tab.classList.remove('pop'), 900);
+  }
+  // шторку можно смахнуть вниз
+  (function sheetDrag() {
+    const sh = $('#sheet'); let y0 = null, dy = 0, t0 = 0, active = false;
+    const start = (y, target, touch) => {
+      if (!DZ() || calm() || $('#backdrop').hidden) return;
+      if (target.closest('input, textarea, select')) return;
+      if (!touch && !target.closest('.grab')) return;
+      if (sh.scrollTop > 0) return;
+      y0 = y; dy = 0; t0 = Date.now(); active = false;
+    };
+    const move = (y, ev) => {
+      if (y0 == null) return;
+      dy = Math.max(0, y - y0);
+      if (!active && dy > 8) { active = true; sh.classList.add('drag'); sh.classList.remove('snap'); }
+      if (active) { if (ev.cancelable) ev.preventDefault(); sh.style.transform = `translateY(${dy}px)`; $('#backdrop').style.backgroundColor = `rgba(10, 6, 18, ${(0.42 * Math.max(0.2, 1 - dy / 400)).toFixed(3)})`; }
+    };
+    const end = () => {
+      if (y0 == null) return; y0 = null;
+      if (!active) return;
+      sh.classList.remove('drag');
+      const fast = dy / Math.max(1, Date.now() - t0) > 0.6;
+      if (dy > 110 || (fast && dy > 40)) {
+        sh.classList.add('snap'); sh.style.transform = 'translateY(110%)';
+        setTimeout(() => { sh.classList.remove('snap'); sh.style.transform = ''; $('#backdrop').style.backgroundColor = ''; const bd = $('#backdrop'); bd.hidden = true; bd.classList.remove('closing'); sh.innerHTML = ''; document.body.style.overflow = ''; const f = sheetClose; sheetClose = null; if (f) f(); }, 260);
+      } else {
+        sh.classList.add('snap'); sh.style.transform = ''; $('#backdrop').style.backgroundColor = '';
+        setTimeout(() => sh.classList.remove('snap'), 300);
+      }
+      sh._dragged = Date.now();
+    };
+    sh.addEventListener('touchstart', ev => start(ev.touches[0].clientY, ev.target, true), { passive: true });
+    sh.addEventListener('touchmove', ev => move(ev.touches[0].clientY, ev), { passive: false });
+    sh.addEventListener('touchend', end); sh.addEventListener('touchcancel', end);
+    sh.addEventListener('mousedown', ev => start(ev.clientY, ev.target, false));
+    window.addEventListener('mousemove', ev => move(ev.clientY, ev));
+    window.addEventListener('mouseup', end);
+  })();
+  // переключатели: родной switch в Safari, нарисованный — в остальных браузерах
+  if (!('switch' in HTMLInputElement.prototype)) document.documentElement.classList.add('sw-fb');
+  const swRow = (key, label, on, note) => `<label class="swrow"><span>${label}${note ? `<small>${note}</small>` : ''}</span><input type="checkbox" switch data-sw="${key}" ${on ? 'checked' : ''} aria-label="${label}"></label>`;
+  function swChange(key, on) {
+    if (key === 'stars') bearSet({ stars: on });
+    else if (key === 'season') { bearSet({ season: on }); if (!on) { const w = document.querySelector('body > .wx'); if (w) w.remove(); } }
+    else if (key === 'talk') { bearSet({ talk: on }); if (!on) bearHush(); }
+    else if (key === 'greet') { const g = G(); if (g) { const p = g.prefs(); p.on = on; g.setPrefs(p); } }
+    else if (key === 'sky') { S.settings.sky = on; save(); document.documentElement.classList.toggle('dz-nosky', !on); }
+  }
+  // «Что нового» — один раз после обновления
+  const WN_KEY = 'porcia.whatsnew';
+  const WHATS_NEW = [
+    ['🌅', 'Небо по времени суток', 'утром персиковое, днём сиреневое, на закате розовое, ночью — со звёздочками'],
+    ['🔢', 'Цифры перекатываются', 'когда записываешь еду, «осталось» прокручивается, как счётчик'],
+    ['🧸', 'Мишка ещё живее', 'моргает, смотрит, как ты пишешь, и кивает после записи'],
+    ['💗', 'Сердечки за белок', 'когда набрана цель по белку'],
+    ['✨', 'Мелочи под пальцем', 'кнопки мягко проминаются, шторку можно смахнуть вниз, а в настройках — переключатели как в iPhone'],
+  ];
+  function whatsNew(force) {
+    let seen = null; try { seen = localStorage.getItem(WN_KEY); } catch (e) { /* нет памяти */ }
+    if (!force && (seen === APP_VER || !S.settings.onboarded)) { try { localStorage.setItem(WN_KEY, APP_VER); } catch (e) { /* */ } return; }
+    try { localStorage.setItem(WN_KEY, APP_VER); } catch (e) { /* */ }
+    const g = G(), name = g && String(g.prefs().name || '').trim();
+    openSheet(`<div class="wn"><svg class="bear" viewBox="0 0 120 120" aria-hidden="true"><use href="#bear"/></svg><span class="ver">версия ${APP_VER}</span>
+      <h2>${name ? esc(name) + ', смотри' : 'Смотри'}, что нового!</h2>
+      <ul>${WHATS_NEW.map(([e, t, d], i) => `<li style="--i:${i}"><span class="e" aria-hidden="true">${e}</span><span><b>${t}</b><span class="small muted">${d}</span></span></li>`).join('')}</ul>
+      <div class="sign">Твой мишка 🧸</div>
+      <button class="btn block" style="margin-top:12px" data-act="sheet-close">Ура, спасибо!</button></div>`);
+  }
+  // настройки «Детали»
+  function detailCard() {
+    return `<h2>Детали</h2>${swRow('sky', 'Небо по времени суток', S.settings.sky !== false, 'Цвет шапки «Сегодня» меняется утром, днём, на закате и ночью')}
+      <button class="btn plain block" style="margin-top:10px" data-act="whatsnew">Что нового в версии ${APP_VER}</button>`;
   }
 
   // ---------- Падающие звёзды ----------
@@ -468,7 +613,10 @@
     else renderMore();
     if (viewChanged) playEnter($('#v-' + ui.view), TAB_ORDER.indexOf(ui.view) > TAB_ORDER.indexOf(prevScreen.view) ? 'from-r' : 'from-l');
     else if (dayChanged) playEnter($('#v-' + ui.view), ui.day > prevScreen.day ? 'day-r' : 'day-l');
+    if (viewChanged) tabPop(document.querySelector(`.tab[data-tab="${TAB_OF[ui.view] || ui.view}"]`));
     prevScreen.view = ui.view; prevScreen.day = ui.day;
+    skyApply();
+    if (ui.view === 'today') eveningHeart();
   }
 
   function renderToday() {
@@ -512,7 +660,58 @@
     return `<div class="macros"><span><i class="dot" style="background:var(--fat)"></i>Жиры <span class="num">${g1(t.f)}${F ? ' / ' + nf(F) : ''}</span> г</span><span><i class="dot" style="background:var(--carb)"></i>Углеводы <span class="num">${g1(t.c)}</span> г</span></div>`;
   }
 
+  // Одометр: каждая цифра — колонка 0–9, которая прокручивается к новому значению
+  function odoHTML(str) {
+    return '<span class="odo" aria-hidden="true">' + [...str].map(ch => /\d/.test(ch)
+      ? `<span class="dg"><span class="col" style="transform:translateY(calc(-${ch} * var(--lh)))">${'0123456789'.split('').map(d => `<span>${d}</span>`).join('')}</span></span>`
+      : `<span class="sp"></span>`).join('') + '</span>';
+  }
+  function odoRoll(el, from, to) {
+    if (!el) return;
+    const fs = nf(from), ts = nf(to);
+    el.setAttribute('aria-label', ts);
+    if (!DZ() || calm() || from === to) { el.innerHTML = ts; return; }
+    const w = Math.max(fs.length, ts.length), F = fs.padStart(w, ' '), T = ts.padStart(w, ' ');
+    el.innerHTML = odoHTML(T.replace(/ /g, '\u00a0'));
+    const cols = el.querySelectorAll('.dg .col'); let k = 0;
+    const tchars = [...T];
+    tchars.forEach((ch, i) => {
+      if (!/\d/.test(ch)) return;
+      const col = cols[k++]; const f = /\d/.test(F[i]) ? F[i] : '0';
+      col.style.transition = 'none'; col.style.transform = `translateY(calc(-${f} * var(--lh)))`;
+      col.style.setProperty('--od', ((tchars.length - i) * 45) + 'ms');
+    });
+    void el.offsetWidth;
+    cols.forEach(c => { c.style.transition = ''; });
+    k = 0;
+    tchars.forEach(ch => { if (/\d/.test(ch)) cols[k++].style.transform = `translateY(calc(-${ch} * var(--lh)))`; });
+    clearTimeout(el._odoT); el._odoT = setTimeout(() => { el.textContent = ts; }, 1300);
+  }
+  const prevSum = { day: null, kcal: 0, p: 0 };
   function renderSummary() {
+    const was = prevSum.day === ui.day ? { kcal: prevSum.kcal, p: prevSum.p } : null;
+    renderSummaryInner();
+    const t = totals(dayItems(ui.day)), L = limitFor(ui.day);
+    prevSum.day = ui.day; prevSum.kcal = t.kcal; prevSum.p = t.p;
+    if (!was || was.kcal === t.kcal || !DZ()) return;
+    // кольцо и бусина плавно едут со старого места
+    const val = $('#summary .ring .val'), bead = $('#summary .ring .bead');
+    if (L && val) {
+      const R = 54, CI = 2 * Math.PI * R, f0 = Math.min(1, was.kcal / L), f1 = Math.min(1, t.kcal / L);
+      val.style.transition = 'none'; val.setAttribute('stroke-dashoffset', (CI * (1 - f0)).toFixed(1)); val.removeAttribute('opacity');
+      if (bead) { bead.style.transition = 'none'; bead.style.transform = `rotate(${(f0 * 360).toFixed(1)}deg)`; }
+      void val.getBoundingClientRect();
+      val.style.transition = ''; val.setAttribute('stroke-dashoffset', (CI * (1 - f1)).toFixed(1));
+      if (bead) { bead.style.transition = ''; bead.style.transform = `rotate(${(f1 * 360).toFixed(1)}deg)`; }
+    }
+    const big = $('#summary .ring .big'), top = $('#summary .stat-top b');
+    if (L && big) { odoRoll(big, Math.abs(L - was.kcal), Math.abs(L - t.kcal)); }
+    if (top) odoRoll(top, was.kcal, t.kcal);
+    // сердечки, когда набран белок
+    const P = S.settings.protein;
+    if (P && was.p < P && t.p >= P && ui.day === today()) setTimeout(proteinHearts, 450);
+  }
+  function renderSummaryInner() {
     const items = dayItems(ui.day);
     const t = totals(items);
     const L = limitFor(ui.day);
@@ -524,7 +723,7 @@
       el.innerHTML = `<div class="summary">
         <div class="ring ${over ? 'over' : ''}" role="img" aria-label="Съедено ${nf(t.kcal)} из ${nf(L)} ккал">
           <svg viewBox="0 0 128 128"><circle class="trk" cx="64" cy="64" r="${R}" fill="none" stroke-width="12"/>
-          <circle class="val" cx="64" cy="64" r="${R}" fill="none" stroke-width="12" stroke-linecap="round" stroke-dasharray="${CIRC.toFixed(1)}" stroke-dashoffset="${(CIRC * (1 - frac)).toFixed(1)}" ${t.kcal === 0 ? 'opacity="0"' : ''}/>${t.kcal > 0 && !over ? `<circle cx="${(64 + R * Math.cos(2 * Math.PI * frac)).toFixed(1)}" cy="${(64 + R * Math.sin(2 * Math.PI * frac)).toFixed(1)}" r="7.5" fill="url(#beadFill)" stroke="var(--surface)" stroke-width="2.5"/><circle cx="${(66 + R * Math.cos(2 * Math.PI * frac)).toFixed(1)}" cy="${(62 + R * Math.sin(2 * Math.PI * frac)).toFixed(1)}" r="1.8" fill="#fff"/>` : ''}</svg>
+          <circle class="val" cx="64" cy="64" r="${R}" fill="none" stroke-width="12" stroke-linecap="round" stroke-dasharray="${CIRC.toFixed(1)}" stroke-dashoffset="${(CIRC * (1 - frac)).toFixed(1)}" ${t.kcal === 0 ? 'opacity="0"' : ''}/>${t.kcal > 0 && !over ? `<g class="bead" style="transform:rotate(${(frac * 360).toFixed(1)}deg)"><circle cx="${64 + R}" cy="64" r="7.5" fill="url(#beadFill)" stroke="var(--surface)" stroke-width="2.5"/><circle cx="${66 + R}" cy="62" r="1.8" fill="#fff"/></g>` : ''}</svg>
           <div class="mid"><div class="big">${nf(Math.abs(L - t.kcal))}</div><div class="cap">${over ? 'перебор' : 'осталось'}</div></div>
         </div>
         <div class="stats">
@@ -836,6 +1035,7 @@
       <p class="hint">Веб-приложение на iPhone не может само читать шаги из «Здоровья», поэтому число вписывается вручную на экране «Активность».</p>`;
     $('#setLook').innerHTML = lookCard();
     $('#setBear').innerHTML = bearCard();
+    const sd = $('#setDetail'); if (sd) { sd.hidden = !DZ(); sd.innerHTML = DZ() ? detailCard() : ''; }
     $('#setAi').innerHTML = aiCard();
     $('#setFoods').innerHTML = `<h2>Мои продукты</h2>
       ${S.custom.length ? `<div class="list">${S.custom.map(c => `<div class="li"><div style="min-width:0"><div style="font-weight:600;overflow-wrap:anywhere">${esc(c.name)}</div><div class="tiny muted num">${nf(c.kcal)} ккал · Б ${g1(c.p)} · Ж ${g1(c.f)} · У ${g1(c.c)} на 100 г${c.portion ? ' · порция ' + c.portion + ' г' : ''}</div></div><button class="btn plain" style="min-height:36px;padding:6px 12px" data-act="edit-food" data-id="${c.id}">Изменить</button></div>`).join('')}</div>`
@@ -869,12 +1069,12 @@
     const on = gp.on !== false;
     return `<h2>Оформление</h2>
       <div class="field"><span>Тема</span><div class="chips" role="group" aria-label="Тема">${THEMES.map(([k, n]) => `<button class="seg" data-act="theme" data-t="${k}" aria-pressed="${th === k}">${n}</button>`).join('')}</div></div>
-      <div class="field" style="margin-top:16px"><span>Падающие звёзды иногда пролетают по экрану</span><div class="chips"><button class="seg" data-act="stars" data-on="1" aria-pressed="${bearCfg().stars}">Показывать</button><button class="seg" data-act="stars" data-on="0" aria-pressed="${!bearCfg().stars}">Выключить</button></div></div>
-      <div class="field" style="margin-top:16px"><span>Погода по сезону — сейчас ${SEASON_IN[seasonNow()]}</span><div class="chips"><button class="seg" data-act="season" data-on="1" aria-pressed="${bearCfg().season}">Показывать</button><button class="seg" data-act="season" data-on="0" aria-pressed="${!bearCfg().season}">Выключить</button></div></div>
+      ${DZ() ? `<div style="margin-top:12px">${swRow('stars', 'Падающие звёзды', bearCfg().stars, 'Иногда пролетают за карточками')}${swRow('season', 'Погода по сезону', bearCfg().season, 'Сейчас ' + SEASON_IN[seasonNow()])}</div>` : `<div class="field" style="margin-top:16px"><span>Падающие звёзды иногда пролетают по экрану</span><div class="chips"><button class="seg" data-act="stars" data-on="1" aria-pressed="${bearCfg().stars}">Показывать</button><button class="seg" data-act="stars" data-on="0" aria-pressed="${!bearCfg().stars}">Выключить</button></div></div>
+      <div class="field" style="margin-top:16px"><span>Погода по сезону — сейчас ${SEASON_IN[seasonNow()]}</span><div class="chips"><button class="seg" data-act="season" data-on="1" aria-pressed="${bearCfg().season}">Показывать</button><button class="seg" data-act="season" data-on="0" aria-pressed="${!bearCfg().season}">Выключить</button></div></div>`}
       <div class="field" style="margin-top:12px"><span>Посмотреть, как выглядит</span><div class="chips">${SEASONS.map(([k, n]) => `<button class="seg" data-act="season-try" data-s="${k}">${n}</button>`).join('')}</div></div>
       <p class="hint">Иногда, примерно раз в 3–6 минут, на фоне за карточками секунд двадцать идёт погода: осенью дождик или листья, зимой снег, весной лепестки, летом солнечные искорки. На заставке при входе — тоже.</p>
-      ${g ? `<div class="field" style="margin-top:16px"><span>Приветствие при открытии</span><div class="chips" role="group" aria-label="Приветствие">
-        <button class="seg" data-act="greet-on" data-on="1" aria-pressed="${on}">Показывать</button><button class="seg" data-act="greet-on" data-on="0" aria-pressed="${!on}">Выключить</button></div></div>
+      ${g ? `${DZ() ? `<div style="margin-top:6px">${swRow('greet', 'Приветствие при открытии', on, 'Заставка, если не заходила 3 часа')}</div>` : `<div class="field" style="margin-top:16px"><span>Приветствие при открытии</span><div class="chips" role="group" aria-label="Приветствие">
+        <button class="seg" data-act="greet-on" data-on="1" aria-pressed="${on}">Показывать</button><button class="seg" data-act="greet-on" data-on="0" aria-pressed="${!on}">Выключить</button></div></div>`}
       <div class="setrow" style="margin-top:12px"><label class="field"><span>Имя в приветствии</span><input id="sGName" type="text" value="${esc(gp.name || '')}" placeholder="можно не писать" autocomplete="off" maxlength="24"></label><button class="btn" data-act="save-gname">Сохранить</button></div>
       <p class="hint">Появляется, если не заходила 3 часа и больше. Всего ${g.V.length} заставок: одна показывается два раза, потом включается следующая.</p>
       <button class="btn ghost block" data-act="greet-preview" style="margin-top:12px">Посмотреть заставки по очереди</button>` : ''}`;
@@ -1571,6 +1771,7 @@
     const sum = added.reduce((s, a) => s + a.k, 0);
     render();
     if (!left.length) $('#food').blur();
+    bearAte();
     toast(`Записано: ${nf(sum)} ккал`, () => undoAdd(added));
   }
 
@@ -1585,7 +1786,7 @@
       const list = $('#quickWrap')._list || [];
       const q = list[+b.dataset.i]; if (!q) return;
       const added = addEntries([{ n: q.n, g: q.g, k: q.k, p: q.p, f: q.f, c: q.c, fid: q.fid, l: q.l, dr: q.dr, ph: q.ph }], ui.meal);
-      render();
+      render(); bearAte();
       toast(`${q.n}: ${nf(q.k)} ккал — ${MEAL_TO[ui.meal]}`, () => undoAdd(added));
     },
     entry(b) { entrySheet(b.dataset.id); },
@@ -1895,6 +2096,7 @@
     'bear-night'(b) { ui.bearNight = b.dataset.n === '1'; $('#setBear').innerHTML = bearCard(); },
     'bear-color'(b) { bearSet({ c: b.dataset.c }); $('#setBear').innerHTML = bearCard(); bearHop($('.bearprev')); },
     'bear-acc'(b) { const B = bearCfg(); B.a[b.dataset.a] = B.a[b.dataset.a] ? 0 : 1; bearSet({ a: B.a }); $('#setBear').innerHTML = bearCard(); bearHop($('.bearprev')); },
+    whatsnew() { closeSheet(); setTimeout(() => whatsNew(true), 230); },
     'bear-hat'(b) { bearSet({ hat: b.dataset.k }); $('#setBear').innerHTML = bearCard(); bearHop($('.bearprev')); },
     'bear-scarf'(b) { bearSet({ scarf: b.dataset.k }); $('#setBear').innerHTML = bearCard(); bearHop($('.bearprev')); },
     'bear-sample'(b) {
@@ -2021,7 +2223,9 @@
   });
 
   // Прячем нижнюю панель, пока открыта клавиатура
-  document.addEventListener('focusin', ev => { if (ev.target.matches('input, textarea')) document.body.classList.add('kb'); });
+  document.addEventListener('focusin', ev => { if (ev.target.matches('input:not([type=checkbox]):not([type=radio]):not([type=file]), textarea')) document.body.classList.add('kb'); if (ev.target.id === 'food') bearLook(true); });
+  document.addEventListener('change', ev => { const sw = ev.target.closest && ev.target.closest('input[data-sw]'); if (sw) swChange(sw.dataset.sw, sw.checked); });
+  document.addEventListener('focusout', ev => { if (ev.target.id === 'food') bearLook(false); });
   document.addEventListener('focusout', () => { setTimeout(() => { if (!document.activeElement || !document.activeElement.matches('input, textarea')) document.body.classList.remove('kb'); }, 60); });
 
   // После полуночи «Сегодня» переключается на новый день
@@ -2039,9 +2243,11 @@
 
   // ---------- Запуск ----------
   bearApply();
+  if (S.settings.sky === false) document.documentElement.classList.add('dz-nosky');
   render();
   skyInit();
   wxInit();
+  if (DZ()) bearWhenFree(() => whatsNew(false), 1400);
   if (S.settings.onboarded) bearWhenFree(() => bearMaybe(true), 900);
   if (!S.settings.onboarded) howtoSheet(true);
   try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) { /* нет поддержки */ }

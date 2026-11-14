@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ru" data-porcia class="nd">
+<html lang="ru" data-porcia class="nd dz">
 <head>
 <meta charset="utf-8">
 <title>Порция</title>
@@ -516,6 +516,112 @@ html.nd .actmini { background: color-mix(in srgb, var(--accent) 6%, var(--surfac
   70% { opacity: .3; } 85% { opacity: 1; } 100% { transform: translate(calc(var(--sx, 20px) * -.4), -100vh) scale(.7); opacity: 0; }
 }
 
+/* ===== 1.10: детали ===== */
+/* Небо по времени суток — тонкий градиент за шапкой */
+.skytint { position: fixed; left: 0; right: 0; top: 0; height: 300px; pointer-events: none; z-index: -1; opacity: 0; transition: opacity 1.2s ease, background 1.2s ease; }
+html.dz .skytint { opacity: 1; }
+html.dz.dz-nosky .skytint { opacity: 0; }
+html.dz-nosky .skytint i { display: none; }
+.skytint::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 40%, var(--bg)); }
+.skytint i { position: absolute; width: 2px; height: 2px; border-radius: 50%; background: #fff; opacity: 0; animation: tw 4s ease-in-out infinite; }
+html[data-sky="night"] .skytint i { opacity: .8; }
+@keyframes tw { 0%, 100% { opacity: .25; transform: scale(.8); } 50% { opacity: .95; transform: scale(1.15); } }
+html[data-sky="morning"] .skytint { background: linear-gradient(180deg, #FFDCCB, #FDE6EE 55%, transparent); }
+html[data-sky="day"] .skytint { background: linear-gradient(180deg, #DCD9FB, #E9E4FB 55%, transparent); }
+html[data-sky="sunset"] .skytint { background: linear-gradient(180deg, #F8C4D6, #FBD9C9 55%, transparent); }
+html[data-sky="night"] .skytint { background: linear-gradient(180deg, #4B4A8C, #7D6FB3 50%, transparent); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"])[data-sky="morning"] .skytint { background: linear-gradient(180deg, #4A2F3D, #33232F 55%, transparent); }
+  :root:not([data-theme="light"])[data-sky="day"] .skytint { background: linear-gradient(180deg, #2E2A55, #241F3D 55%, transparent); }
+  :root:not([data-theme="light"])[data-sky="sunset"] .skytint { background: linear-gradient(180deg, #4E2742, #3A2131 55%, transparent); }
+  :root:not([data-theme="light"])[data-sky="night"] .skytint { background: linear-gradient(180deg, #1C2350, #18183A 55%, transparent); }
+}
+:root[data-theme="dark"][data-sky="morning"] .skytint { background: linear-gradient(180deg, #4A2F3D, #33232F 55%, transparent); }
+:root[data-theme="dark"][data-sky="day"] .skytint { background: linear-gradient(180deg, #2E2A55, #241F3D 55%, transparent); }
+:root[data-theme="dark"][data-sky="sunset"] .skytint { background: linear-gradient(180deg, #4E2742, #3A2131 55%, transparent); }
+:root[data-theme="dark"][data-sky="night"] .skytint { background: linear-gradient(180deg, #1C2350, #18183A 55%, transparent); }
+html.dz:not(.dz-nosky)[data-sky="night"] #v-today .vhead h1, html.dz:not(.dz-nosky)[data-sky="night"] #v-today .vhead .iconbtn { color: #fff; }
+html.dz:not(.dz-nosky)[data-sky="night"] #v-today .vhead .iconbtn { background: rgba(255, 255, 255, .16); }
+html.dz:not(.dz-nosky)[data-sky="night"] .wsd .wd { color: rgba(255, 255, 255, .75); }
+html.dz:not(.dz-nosky)[data-sky="night"] .wsd b { color: #fff; }
+html.dz:not(.dz-nosky)[data-sky="night"] .wsd.sel b, html.dz:not(.dz-nosky)[data-sky="night"] .wsd.sel .wd { color: var(--ink); }
+html.dz:not(.dz-nosky)[data-sky="night"] .wsd.sel .wd { color: var(--accent); }
+html.dz:not(.dz-nosky)[data-sky="night"] .wsd .trk { stroke: rgba(255, 255, 255, .22); }
+
+/* Счётчик-одометр */
+.odo { display: inline-flex; white-space: nowrap; }
+.odo { --lh: 1.16em; margin-block: -.08em; }
+.odo .dg { display: inline-block; height: var(--lh); overflow: hidden; line-height: var(--lh); -webkit-mask-image: linear-gradient(transparent, #000 18%, #000 82%, transparent); mask-image: linear-gradient(transparent, #000 18%, #000 82%, transparent); }
+.odo .col { display: flex; flex-direction: column; transition: transform .75s cubic-bezier(.25, .9, .3, 1); transition-delay: var(--od, 0ms); }
+.odo .col > span { height: var(--lh); line-height: var(--lh); text-align: center; }
+.odo .sp { display: inline-block; width: .28em; }
+html.dz .ring .val { transition: stroke-dashoffset .8s cubic-bezier(.25, .9, .3, 1); }
+.ring .bead { transform-origin: 64px 64px; transition: transform .8s cubic-bezier(.25, .9, .3, 1); }
+
+/* Мишка: кивок, сердечко */
+.peek.nod .bear { animation: bear-nod .9s ease-in-out; }
+@keyframes bear-nod { 0%, 100% { transform: none; } 20% { transform: rotate(-4deg) translateY(2px); } 40% { transform: rotate(0) translateY(-1px); } 60% { transform: rotate(-3deg) translateY(2px); } 80% { transform: none; } }
+.peek.lean .bear { transform: rotate(-7deg) translateX(-2px); transition: transform .3s ease; }
+.peek .bear { transition: transform .3s ease; }
+.peek .bh { position: absolute; left: 50%; top: -6px; width: 16px; height: 16px; margin-left: -8px; pointer-events: none; animation: bear-heart 1.5s cubic-bezier(.2, .8, .3, 1) forwards; }
+@keyframes bear-heart { 0% { transform: translateY(8px) scale(.2); opacity: 0; } 25% { transform: translateY(-4px) scale(1.15); opacity: 1; } 45% { transform: translateY(-8px) scale(1); } 100% { transform: translateY(-26px) scale(.8); opacity: 0; } }
+
+/* Сердечки за белок */
+.mtile { position: relative; overflow: visible; }
+.hb { position: absolute; width: var(--s, 14px); height: var(--s, 14px); pointer-events: none; color: var(--protein); animation: hb 1.1s cubic-bezier(.2, .7, .3, 1) forwards; z-index: 3; }
+@keyframes hb { 0% { transform: translate(0, 0) scale(.3); opacity: 1; } 70% { opacity: 1; } 100% { transform: translate(var(--dx), var(--dy)) scale(1) rotate(var(--r, 15deg)); opacity: 0; } }
+
+/* Иконки вкладок оживают */
+html.dz .tab.pop[data-tab="today"] .ti-arc { animation: ti-arc .7s cubic-bezier(.3, .9, .3, 1); }
+@keyframes ti-arc { from { stroke-dasharray: 1; stroke-dashoffset: 1; transform: rotate(-120deg); } to { stroke-dasharray: 1; stroke-dashoffset: 0; transform: none; } }
+.ti-arc { transform-origin: 12px 12px; }
+html.dz .tab.pop[data-tab="act"] .ti-pulse { animation: ti-draw .7s ease-out; }
+@keyframes ti-draw { from { stroke-dasharray: 1; stroke-dashoffset: 1; } to { stroke-dasharray: 1; stroke-dashoffset: 0; } }
+html.dz .tab.pop[data-tab="diary"] .ti-page { animation: ti-page .6s ease-in-out; }
+.ti-page { transform-origin: 12px 15.5px; }
+@keyframes ti-page { 0% { transform: none; } 45% { transform: scaleY(0); opacity: .3; } 100% { transform: none; } }
+html.dz .tab.pop[data-tab="sudoku"] .ti-cell { animation: ti-cell .8s ease-out; }
+@keyframes ti-cell { 0% { opacity: 0; } 30% { opacity: .55; } 100% { opacity: 0; } }
+html.dz .tab.pop[data-tab="more"] .ti-k1 { animation: ti-k1 .7s cubic-bezier(.3, 1.4, .5, 1); }
+html.dz .tab.pop[data-tab="more"] .ti-k2 { animation: ti-k2 .7s cubic-bezier(.3, 1.4, .5, 1); }
+@keyframes ti-k1 { 0% { transform: none; } 45% { transform: translateX(-7px); } 100% { transform: none; } }
+@keyframes ti-k2 { 0% { transform: none; } 45% { transform: translateX(7px); } 100% { transform: none; } }
+
+/* Мягкие нажатия */
+html.dz :is(.btn, .seg, .entry, .actmini, .mtile, .wsd, .madd, .wbtn, .qchip, .ftbtn, .iconbtn, .glass, .chip, .wday, .tchip, .swatch, .li .btn):active { transform: scale(.96); }
+html.dz :is(.btn, .seg, .entry, .actmini, .mtile, .wsd, .madd, .wbtn, .qchip, .ftbtn, .iconbtn, .chip, .wday, .tchip, .swatch) { transition: transform .14s ease, background .2s; }
+html.dz .entry:active { transform: scale(.985); }
+
+/* Шторку можно смахнуть вниз */
+.sheet.drag { transition: none !important; animation: none !important; }
+.sheet.snap { transition: transform .28s cubic-bezier(.2, .85, .25, 1); }
+html.dz .sheet .grab { margin-bottom: 14px; box-shadow: 0 0 0 10px transparent; cursor: grab; }
+
+/* Переключатели как в iPhone */
+.swrow { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 10px 0; border-top: 1px solid var(--line); }
+.swrow:first-of-type { border-top: 0; }
+.swrow > span { font-size: 15.5px; line-height: 1.3; }
+.swrow small { display: block; color: var(--muted); font-size: 13px; margin-top: 2px; }
+.swrow input[switch] { flex: none; accent-color: var(--accent); }
+html.sw-fb .swrow input[switch] { appearance: none; -webkit-appearance: none; flex: none; width: 51px; height: 31px; border-radius: 99px; margin: 0; background: var(--track); position: relative; cursor: pointer; transition: background .25s ease; }
+html.sw-fb .swrow input[switch]::before { content: ""; position: absolute; left: 2px; top: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(0, 0, 0, .2), 0 0 0 .5px rgba(0, 0, 0, .04); transition: transform .28s cubic-bezier(.3, 1.3, .5, 1); }
+html.sw-fb .swrow input[switch]:checked { background: var(--accent); }
+html.sw-fb .swrow input[switch]:checked::before { transform: translateX(20px); }
+html.sw-fb .swrow input[switch]:active::before { width: 33px; }
+html.sw-fb .swrow input[switch]:checked:active::before { transform: translateX(14px); }
+
+/* «Что нового» от мишки */
+.wn { display: grid; justify-items: center; text-align: center; gap: 4px; }
+.wn .bear { width: 92px; height: 92px; animation: bear-hop .7s cubic-bezier(.3, .7, .3, 1) .2s both; }
+.wn .ver { display: inline-block; font: 700 12px/1 var(--font-display); color: var(--accent); background: var(--accent-soft); border-radius: 99px; padding: 5px 10px; margin-top: 2px; }
+.wn h2 { font: 700 22px/1.2 var(--font-display); margin: 8px 0 2px; text-transform: none; letter-spacing: 0; color: var(--ink); }
+.wn ul { list-style: none; margin: 12px 0 4px; padding: 0; display: grid; gap: 10px; text-align: left; width: 100%; }
+.wn li { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 10px; align-items: start; background: var(--surface-2); border-radius: 18px; padding: 11px 13px; font-size: 15px; line-height: 1.35; opacity: 0; animation: wn-li .45s cubic-bezier(.2, .85, .25, 1) forwards; animation-delay: calc(.35s + var(--i) * .09s); }
+.wn li b { display: block; }
+.wn li .e { font-size: 20px; line-height: 1.2; text-align: center; }
+@keyframes wn-li { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.wn .sign { font-size: 14px; color: var(--muted); margin-top: 6px; }
+
 /* Нижняя панель */
 .tabbar {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
@@ -693,6 +799,8 @@ html.pg-hold .app, html.pg-hold .tabbar { opacity: 0; }
   .sheet { animation: none; }
   .backdrop, .toast, .view, .view > *, .glass svg, .bubble, .peek .bear, .zz i, .bearprev .bear { animation: none !important; }
   .sky, .wsp, .wx { display: none; }
+  .odo .col, .ring .bead, html.dz .ring .val, .skytint i, .hb, .peek .bh, .wn li, .wn .bear { transition: none !important; animation: none !important; }
+  .wn li { opacity: 1; }
   .glass .wt, .tab svg { transition: none; }
 }
 </style>
@@ -779,7 +887,7 @@ html.pg-hold .app, html.pg-hold .tabbar { opacity: 0; }
     <ellipse cx="60" cy="64" rx="15" ry="11" style="fill:var(--plush-2)"/>
     <ellipse cx="40" cy="61" rx="5.5" ry="3.4" style="fill:var(--blush)" opacity=".75"/>
     <ellipse cx="80" cy="61" rx="5.5" ry="3.4" style="fill:var(--blush)" opacity=".75"/>
-    <g style="opacity:calc(1 - var(--b-sleep,0))">
+    <g style="opacity:calc(1 - var(--b-sleep,0));transform-origin:60px 50px;transform:translate(var(--b-look-x,0px),var(--b-look-y,0px)) scaleY(calc(1 - var(--b-blink,0) * .88));transition:transform .28s ease">
     <circle cx="46" cy="50" r="3.8" style="fill:var(--plush-ink)"/>
     <circle cx="74" cy="50" r="3.8" style="fill:var(--plush-ink)"/>
     <circle cx="47.4" cy="48.6" r="1.3" fill="#fff"/>
@@ -901,6 +1009,7 @@ html.pg-hold .app, html.pg-hold .tabbar { opacity: 0; }
     <div class="card" id="setWater"></div>
     <div class="card" id="setAct"></div>
     <div class="card" id="setLook"></div>
+    <div class="card" id="setDetail" hidden></div>
     <div class="card" id="setBear"></div>
     <div class="card" id="setAi"></div>
     <div class="card" id="setFoods"></div>
@@ -913,7 +1022,7 @@ html.pg-hold .app, html.pg-hold .tabbar { opacity: 0; }
     <div class="foot">
       <span>Калорийность продуктов примерная, по средним таблицам. Для упакованных продуктов точнее взять цифры с этикетки и добавить в «Мои продукты».</span>
       <span>Все записи хранятся только на этом телефоне.</span>
-      <span>Порция · версия 1.9.0</span>
+      <span>Порция · версия 1.10.0</span>
     </div>
   </section>
 </div>
@@ -921,23 +1030,24 @@ html.pg-hold .app, html.pg-hold .tabbar { opacity: 0; }
 <nav class="tabbar" aria-label="Разделы">
   <div class="in">
     <button class="tab" data-tab="today" aria-current="page">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5a8.5 8.5 0 0 1 8.5 8.5" stroke-width="3.2"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path class="ti-arc" pathLength="1" d="M12 3.5a8.5 8.5 0 0 1 8.5 8.5" stroke-width="3.2"/></svg>
       Сегодня</button>
     <button class="tab" data-tab="act">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2.5-6 4 12 2.5-6H21"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path class="ti-pulse" pathLength="1" d="M3 12h4l2.5-6 4 12 2.5-6H21"/></svg>
       Активность</button>
     <button class="tab" data-tab="diary">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16M8 14h3M8 17h6"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16"/><path class="ti-page" d="M8 14h3M8 17h6"/></svg>
       Дневник</button>
     <button class="tab" data-tab="sudoku">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="3"/><path d="M9.2 3.5v17M14.8 3.5v17M3.5 9.2h17M3.5 14.8h17"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect class="ti-cell" x="9.2" y="9.2" width="5.6" height="5.6" fill="currentColor" stroke="none" opacity="0"/><rect x="3.5" y="3.5" width="17" height="17" rx="3"/><path d="M9.2 3.5v17M14.8 3.5v17M3.5 9.2h17M3.5 14.8h17"/></svg>
       Судоку</button>
     <button class="tab" data-tab="more">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2.2"/><circle cx="8" cy="17" r="2.2"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle class="ti-k1" cx="16" cy="7" r="2.2"/><circle class="ti-k2" cx="8" cy="17" r="2.2"/></svg>
       Настройки</button>
   </div>
 </nav>
 
+<div class="skytint" id="skyTint" aria-hidden="true"></div>
 <div class="backdrop" id="backdrop" hidden><div class="sheet" id="sheet" role="dialog" aria-modal="true"></div></div>
 <div class="toast" id="toast" role="status" hidden></div>
 <input type="file" id="importFile" accept=".json,application/json" hidden>
