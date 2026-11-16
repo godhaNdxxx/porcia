@@ -1,5 +1,5 @@
 /* Порция — офлайн-кэш. При обновлении файлов на сайте поменяй VERSION. */
-const VERSION = 'porcia-v17';
+const VERSION = 'porcia-v19';
 const ASSETS = ['./', './index.html', './greet.js', './core.js', './app.js', './manifest.webmanifest',
   './apple-touch-icon.png', './icon-192.png', './icon-512.png', './icon-maskable-512.png'];
 

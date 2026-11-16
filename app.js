@@ -140,7 +140,7 @@
   // ---------- Оформление 1.8: лента недели, плитки макросов, карточки приёмов, цель по весу ----------
   const ND = () => true;
   const DZ = () => true;
-  const APP_VER = '1.11.0'; // карточка «Что нового» — та же, что в 1.11.0
+  const APP_VER = '1.12.0';
   const svgI = d => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
   const MEAL_IC = {
     b: svgI('<path d="M5 9h11v5a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5z"/><path d="M16 10h1.5a2.5 2.5 0 0 1 0 5H16"/><path d="M8.5 3.5c0 1 1 1.5 1 2.6M12.5 3.5c0 1 1 1.5 1 2.6"/>'),
@@ -204,25 +204,63 @@
     ['cream', 'Молочный', ['#F7EFE4', '#FFFFFF', '#E3D3BE', '#F4B3C2'], '#F7EFE4', '#F4B3C2'],
     ['choco', 'Шоколадный', ['#BE9175', '#EBD6C5', '#9A6D52', '#F2A0B0'], '#BE9175', '#F2A0B0'],
   ];
-  const BEAR_HATS = [['none', 'Без шапки'], ['nightcap', 'Ночной колпак'], ['beanie', 'Шапка с помпоном'], ['beret', 'Беретик'], ['sunhat', 'Шляпка'], ['crown', 'Корона']];
+  const BEAR_HATS = [['none', 'Без шапки'], ['panama', 'Панама'], ['muffs', 'Меховые наушники'], ['nightcap', 'Ночной колпак'], ['beanie', 'Шапка с помпоном'], ['beret', 'Беретик'], ['sunhat', 'Шляпка'], ['crown', 'Корона']];
+  const BEAR_COATS = [['none', 'Без одежды'], ['puffer', 'Пуховичок']];
+  const BEAR_EYES = [['none', 'Без очков'], ['round', 'Круглые'], ['heart', 'Сердечки'], ['star', 'Звёздочки'], ['classic', 'Классика'], ['cat', 'Лисички']];
+  const BEAR_NECK = [['none', 'Без украшений'], ['gold', 'Золотая цепь'], ['silver', 'Серебряная цепь'], ['rose', 'Цепь с бриллиантом'], ['pearl', 'Жемчуг']];
+  const BEAR_ITEMS = [['none', 'Ничего'], ['umbrella', 'Зонтик'], ['skis', 'Лыжи'], ['snowboard', 'Сноуборд'], ['suitcase', 'Чемодан'], ['balloon', 'Шарик']];
+  // Расцветки вещей: [ключ, название, [цвет1, цвет2, цвет3], узор]
+  const WARD_COL = {"coat": [["pink", "Розовый", ["#F7B8D2", "#EFA0C1", "#DD86AD"], ""], ["lilac", "Сиреневый", ["#CDB8F6", "#B9A0EF", "#9E80E2"], ""], ["mint", "Мятный", ["#AEE0CE", "#95D3BE", "#73BCA3"], ""], ["milk", "Молочный", ["#F8F1E8", "#ECE1D3", "#D6C5B0"], ""], ["black", "Чёрный", ["#433A50", "#352D41", "#5E5370"], ""]], "panama": [["white", "Белая", ["#FBF8F3", "#EFE8DD", "#F4A9C8"], ""], ["pink", "Розовая", ["#F8C2D8", "#F0ABC8", "#FFFFFF"], ""], ["denim", "Джинсовая", ["#9DB9E4", "#86A6D8", "#F6CC62"], ""], ["lemon", "Лимонная", ["#FBE59A", "#F3D774", "#9BD7C2"], ""]], "muffs": [["pink", "Розовые", ["#F9C6DC", "#E996BB", ""], ""], ["white", "Белые", ["#FFFFFF", "#C9B7EC", ""], ""], ["lilac", "Сиреневые", ["#D7C6F7", "#9E80E2", ""], ""]], "umbrella": [["red", "Красный в горошек", ["#F26D7D", "#F26D7D", "#B9475A"], "dots"], ["yellow", "Жёлтый", ["#F8CE5E", "#F8CE5E", "#C9952A"], ""], ["lilac", "Сиреневый в полоску", ["#C6AEF8", "#A88AEF", "#7C5BCB"], "stripes"], ["clear", "Прозрачный с сердечками", ["rgba(230,240,255,.78)", "#fff", "#9AA6C2"], "hearts"]], "skis": [["pink", "Розовые", ["#F48DB8", "#FFFFFF", "#5C536D"], ""], ["mint", "Мятные", ["#7FD1B6", "#FFFFFF", "#5C536D"], ""], ["lilac", "Сиреневые", ["#A88AEF", "#F6CC62", "#3E3650"], ""]], "snowboard": [["stars", "Сиреневый со звёздами", ["#A88AEF", "#8E6FE0", "#3E3650"], "stars"], ["hearts", "Розовый с сердечками", ["#F48DB8", "#E2709F", "#3E3650"], "hearts"], ["wave", "Мятный с волнами", ["#7FD1B6", "#5DBB9C", "#3E3650"], "wave"]], "suitcase": [["pink", "Розовый", ["#F7B0CC", "#E58EB2", ""], ""], ["mint", "Мятный", ["#9ED9C4", "#7CC4AB", ""], ""], ["lilac", "Сиреневый", ["#C3ACF4", "#A48AE8", ""], ""], ["lemon", "Лимонный", ["#F8DC82", "#E8C35A", ""], ""]], "balloon": [["pink", "Розовый", ["#F7A1C4", "#E2709F", ""], ""], ["red", "Красный", ["#F2647A", "#C9465B", ""], ""], ["lilac", "Сиреневый", ["#B89BF4", "#9070E2", ""], ""]]};
+  const wardPal = (key, ck) => { const L = WARD_COL[key] || []; return L.find(p => p[0] === ck) || L[0] || null; };
+  const LOOKS = [
+    { k: 'base', n: 'Как обычно', set: { hat: 'none', scarf: 'none', coat: 'none', eyes: 'none', neck: 'none', item: 'none' } },
+    { k: 'autumn', n: 'Осенний', s: 'autumn', set: { hat: 'beret', scarf: 'plaid', coat: 'none', eyes: 'none', neck: 'none', item: 'umbrella' }, col: { umbrella: 'red' } },
+    { k: 'winter', n: 'Зимний', s: 'winter', set: { hat: 'muffs', scarf: 'long', coat: 'puffer', eyes: 'none', neck: 'none', item: 'skis' }, col: { muffs: 'white', coat: 'pink', skis: 'pink' } },
+    { k: 'board', n: 'Сноубордист', s: 'winter', set: { hat: 'beanie', scarf: 'knit', coat: 'puffer', eyes: 'classic', neck: 'none', item: 'snowboard' }, col: { coat: 'lilac', snowboard: 'stars' } },
+    { k: 'spring', n: 'Весенний', s: 'spring', set: { hat: 'none', scarf: 'bandana', coat: 'none', eyes: 'cat', neck: 'pearl', item: 'balloon' }, col: { balloon: 'pink' } },
+    { k: 'summer', n: 'Летний', s: 'summer', set: { hat: 'panama', scarf: 'none', coat: 'none', eyes: 'heart', neck: 'none', item: 'balloon' }, col: { panama: 'lemon', balloon: 'red' } },
+    { k: 'travel', n: 'В путешествие', set: { hat: 'panama', scarf: 'none', coat: 'none', eyes: 'star', neck: 'none', item: 'suitcase' }, col: { panama: 'white', suitcase: 'pink' } },
+    { k: 'rap', n: 'Звезда рэпа', set: { hat: 'beanie', scarf: 'none', coat: 'puffer', eyes: 'classic', neck: 'gold', item: 'none' }, col: { coat: 'black' } },
+  ];
   const BEAR_SCARVES = [['none', 'Без шарфа'], ['mint', 'Мятный в полоску'], ['polka', 'Розовый в горошек'], ['plaid', 'Сиреневый клетчатый'], ['knit', 'Голубой вязаный'], ['long', 'Длинный полосатый'], ['snood', 'Тёплый снуд'], ['bandana', 'Бандана']];
-  const BEAR_ACC = [['bow', 'Бантик'], ['heart', 'Сердечко'], ['flower', 'Цветочек'], ['glasses', 'Очки']];
-  const BEAR_DEF = { c: 'lilac', hat: 'none', scarf: 'none', a: { bow: 1, heart: 1 }, talk: true, stars: true, season: true };
+  const BEAR_ACC = [['bow', 'Бантик'], ['heart', 'Сердечко'], ['flower', 'Цветочек']];
+  const BEAR_DEF = { c: 'lilac', hat: 'none', scarf: 'none', coat: 'none', eyes: 'none', neck: 'none', item: 'none', a: { bow: 1, heart: 1 }, talk: true, stars: true, season: true };
   function bearCfg() {
     const b = S.settings.bear && typeof S.settings.bear === 'object' ? S.settings.bear : {};
     const ok = (list, v) => list.some(x => x[0] === v) ? v : 'none';
-    return { c: b.c || BEAR_DEF.c, hat: ok(BEAR_HATS, b.hat), scarf: ok(BEAR_SCARVES, b.scarf), a: Object.assign({}, BEAR_DEF.a, b.a || {}), talk: b.talk !== false, stars: b.stars !== false, season: b.season !== false };
+    const col = Object.assign({}, b.col && typeof b.col === 'object' ? b.col : {});
+    // старые «Очки» из «Ещё» превращаются в круглые очки
+    const eyes = b.eyes ? ok(BEAR_EYES, b.eyes) : (b.a && b.a.glasses ? 'round' : 'none');
+    return { c: b.c || BEAR_DEF.c, hat: ok(BEAR_HATS, b.hat), scarf: ok(BEAR_SCARVES, b.scarf), coat: ok(BEAR_COATS, b.coat), eyes, neck: ok(BEAR_NECK, b.neck), item: ok(BEAR_ITEMS, b.item), col,
+      a: Object.assign({}, BEAR_DEF.a, b.a || {}), talk: b.talk !== false, stars: b.stars !== false, season: b.season !== false };
   }
   function bearSet(patch) { S.settings.bear = Object.assign(bearCfg(), patch); save(); bearApply(); }
   function bearApply() {
     const B = bearCfg(), r = document.documentElement.style;
     const pal = (BEAR_PAL.find(p => p[0] === B.c) || BEAR_PAL[0])[2];
     ['--plush', '--plush-2', '--plush-3', '--blush'].forEach((k, i) => { if (pal) r.setProperty(k, pal[i]); else r.removeProperty(k); });
-    BEAR_ACC.forEach(([k]) => r.setProperty('--b-' + k, B.a[k] ? '1' : '0'));
-    BEAR_HATS.forEach(([k]) => { if (k !== 'none') r.setProperty('--b-hat-' + k, B.hat === k ? '1' : '0'); });
-    BEAR_SCARVES.forEach(([k]) => { if (k !== 'none') r.setProperty('--b-scarf-' + k, B.scarf === k ? '1' : '0'); });
-    r.setProperty('--b-hatany', B.hat !== 'none' ? '1' : '0');
+    Object.entries(bearVars(B)).forEach(([k, v]) => r.setProperty(k, v));
   }
+  // Все переменные наряда: какие вещи видны и каких они цветов
+  function bearVars(B) {
+    const v = {};
+    BEAR_ACC.forEach(([k]) => { v['--b-' + k] = B.a[k] ? '1' : '0'; });
+    BEAR_HATS.forEach(([k]) => { if (k !== 'none') v['--b-hat-' + k] = B.hat === k ? '1' : '0'; });
+    BEAR_SCARVES.forEach(([k]) => { if (k !== 'none') v['--b-scarf-' + k] = B.scarf === k ? '1' : '0'; });
+    v['--b-hatany'] = B.hat !== 'none' ? '1' : '0';
+    v['--b-coat'] = B.coat !== 'none' ? '1' : '0';
+    v['--b-glasses'] = B.eyes === 'round' ? '1' : '0';
+    BEAR_EYES.forEach(([k]) => { if (k !== 'none' && k !== 'round') v['--b-eyes-' + k] = B.eyes === k ? '1' : '0'; });
+    BEAR_NECK.forEach(([k]) => { if (k !== 'none') v['--b-neck-' + k] = B.neck === k ? '1' : '0'; });
+    BEAR_ITEMS.forEach(([k]) => { if (k !== 'none') v['--b-item-' + k] = B.item === k ? '1' : '0'; });
+    const put = (pref, key) => { const pal = wardPal(key, B.col[key]); if (pal) pal[2].forEach((c, i) => { if (c) v[`--${pref}${i + 1}`] = c; }); return pal; };
+    if (WARD_COL[B.hat]) put('bh', B.hat);
+    if (B.coat !== 'none') put('bc', 'coat');
+    ['dots', 'stripes', 'hearts', 'stars', 'wave'].forEach(k => { v['--bi-pat-' + k] = '0'; });
+    if (B.item !== 'none') { const pal = put('bi', B.item); if (pal && pal[3]) v['--bi-pat-' + pal[3]] = '1'; }
+    return v;
+  }
+  const varsStyle = B => Object.entries(bearVars(B)).map(([k, v]) => `${k}:${v}`).join(';');
   // Мишка спит с часу ночи до шести; «перед сном» — с 21:00 до часу
   const isNight = () => { const hr = new Date().getHours(); return hr >= 1 && hr < 6; };
   const partOf = hr => hr >= 6 && hr < 11 ? 'morning' : hr >= 11 && hr < 17 ? 'day' : hr >= 17 && hr < 21 ? 'evening' : hr >= 21 || hr < 1 ? 'bed' : null;
@@ -350,12 +388,47 @@
       <div class="bearset"><button class="bearprev" data-act="bear-prev" aria-label="Мишка — нажми" style="--b-sleep:${night ? 1 : 0}"><svg class="bear" viewBox="0 0 120 120" aria-hidden="true"><use href="#bear"/></svg></button>
         <div class="field"><span>Посмотреть</span><div class="chips"><button class="seg" data-act="bear-night" data-n="0" aria-pressed="${!night}">Днём</button><button class="seg" data-act="bear-night" data-n="1" aria-pressed="${!!night}">Ночью</button></div></div></div>
       <div class="field"><span>Цвет</span><div class="swatches" role="group" aria-label="Цвет мишки">${BEAR_PAL.map(([k, n, , sw, swb]) => `<button class="swatch" data-act="bear-color" data-c="${k}" style="--sw:${sw};--swb:${swb}" aria-pressed="${B.c === k}" aria-label="${n}" title="${n}"><i></i></button>`).join('')}</div></div>
-      <div class="field" style="margin-top:14px"><span>Шапка</span><div class="chips" role="group" aria-label="Шапка">${BEAR_HATS.map(([k, n]) => `<button class="seg" data-act="bear-hat" data-k="${k}" aria-pressed="${B.hat === k}">${n}</button>`).join('')}</div></div>
-      <div class="field" style="margin-top:14px"><span>Шарф</span><div class="chips" role="group" aria-label="Шарф">${BEAR_SCARVES.map(([k, n]) => `<button class="seg" data-act="bear-scarf" data-k="${k}" aria-pressed="${B.scarf === k}">${n}</button>`).join('')}</div></div>
-      <div class="field" style="margin-top:14px"><span>Ещё${B.hat !== 'none' ? ' · в шапке бантик и цветочек прячутся' : ''}${B.scarf === 'bandana' ? ' · под банданой сердечко прячется' : ''}</span><div class="chips" role="group" aria-label="Аксессуары">${BEAR_ACC.map(([k, n]) => `<button class="seg" data-act="bear-acc" data-a="${k}" aria-pressed="${!!B.a[k]}">${n}</button>`).join('')}</div></div>
+      ${wardrobeHTML(B)}
       <div class="field" style="margin-top:14px"><span>Послушать, что он говорит</span><div class="chips">${[['morning', 'Утром'], ['day', 'Днём'], ['evening', 'Вечером'], ['bed', 'Перед сном']].map(([k, n]) => `<button class="seg" data-act="bear-sample" data-p="${k}">${n}</button>`).join('')}</div>${ui.bearSample ? `<div class="saybox">${esc(ui.bearSample)}</div>` : ''}</div>
       ${DZ() ? `<div style="margin-top:8px">${swRow('talk', 'Облачко со словами', B.talk, 'Мишка говорит на экране «Сегодня»')}</div>` : `<div class="field" style="margin-top:14px"><span>Облачко со словами на «Сегодня»</span><div class="chips"><button class="seg" data-act="bear-talk" data-on="1" aria-pressed="${B.talk}">Показывать</button><button class="seg" data-act="bear-talk" data-on="0" aria-pressed="${!B.talk}">Выключить</button></div></div>`}
       <p class="hint">Сам мишка говорит утром при первом заходе, один раз днём, вечером и перед сном, а иногда и просто между делом. Между фразами — не меньше полутора часов, всего не больше пяти в день. Если нажать на него на «Сегодня», скажет в любой момент. С часу ночи до шести утра он спит.</p>`;
+  }
+
+  // ---------- Гардероб ----------
+  const WARD_TABS = [['looks', 'Образы'], ['hat', 'Шапка'], ['coat', 'Одежда'], ['scarf', 'Шарф'], ['eyes', 'Очки'], ['neck', 'Украшения'], ['item', 'В лапках'], ['more', 'Ещё']];
+  const chipsOf = (list, cur, act) => `<div class="chips">${list.map(([k, n]) => `<button class="seg" data-act="${act}" data-k="${k}" aria-pressed="${cur === k}">${n}</button>`).join('')}</div>`;
+  function swatchesOf(key, B) {
+    const L = WARD_COL[key]; if (!L) return '';
+    const cur = wardPal(key, B.col[key]);
+    return `<div><div class="lbl">Расцветка · <b>${cur[1]}</b></div><div class="swatches" role="group" aria-label="Расцветка">${L.map(([k, n, c]) => `<button class="swatch" data-act="bear-col" data-k="${key}" data-v="${k}" style="--sw:${c[0]};--swb:${c[1] && c[1] !== c[0] ? c[1] : 'transparent'}" aria-pressed="${cur[0] === k}" aria-label="${n}" title="${n}"><i></i></button>`).join('')}</div></div>`;
+  }
+  function wardrobeHTML(B) {
+    const t = ui.wardTab || 'looks', sn = seasonNow();
+    let body = '';
+    if (t === 'looks') {
+      body = `<div class="looks">${LOOKS.map(L => {
+        const cfg = Object.assign({}, B, L.set, { col: Object.assign({}, B.col, L.col || {}) });
+        return `<button class="look" data-act="bear-look" data-k="${L.k}">${L.s === sn ? '<span class="nowtag">сейчас</span>' : ''}<svg viewBox="0 0 120 120" style="${varsStyle(cfg)}" aria-hidden="true"><use href="#bear"/></svg>${L.n}</button>`;
+      }).join('')}</div><p class="hint" style="margin:0">Образ надевает сразу шапку, шарф, одежду, очки и вещь в лапках. Потом любую вещь можно поменять в разделах.</p>`;
+    } else if (t === 'hat') body = chipsOf(BEAR_HATS, B.hat, 'bear-hat') + swatchesOf(B.hat, B);
+    else if (t === 'coat') body = chipsOf(BEAR_COATS, B.coat, 'bear-coat') + (B.coat !== 'none' ? swatchesOf('coat', B) : '');
+    else if (t === 'scarf') body = chipsOf(BEAR_SCARVES, B.scarf, 'bear-scarf');
+    else if (t === 'eyes') body = chipsOf(BEAR_EYES, B.eyes, 'bear-eyes');
+    else if (t === 'neck') body = chipsOf(BEAR_NECK, B.neck, 'bear-neck');
+    else if (t === 'item') body = chipsOf(BEAR_ITEMS, B.item, 'bear-item') + (B.item !== 'none' ? swatchesOf(B.item, B) : '');
+    else {
+      const notes = [B.hat !== 'none' ? 'в шапке бантик и цветочек прячутся' : '', B.scarf === 'bandana' ? 'под банданой сердечко прячется' : '', B.coat !== 'none' ? 'на пуховичке сердечко становится маленькой нашивкой' : ''].filter(Boolean);
+      body = `<div class="chips" role="group" aria-label="Аксессуары">${BEAR_ACC.map(([k, n]) => `<button class="seg" data-act="bear-acc" data-a="${k}" aria-pressed="${!!B.a[k]}">${n}</button>`).join('')}</div>${notes.length ? `<p class="hint" style="margin:0">${notes.join('; ')}.</p>` : ''}`;
+    }
+    return `<div class="field" style="margin-top:14px"><span>Гардероб</span><div class="wtabs" role="tablist" aria-label="Гардероб">${WARD_TABS.map(([k, n]) => `<button class="seg" role="tab" data-act="ward-tab" data-t="${k}" aria-pressed="${t === k}" aria-selected="${t === k}">${n}</button>`).join('')}</div></div>
+      <div class="wpanel">${body}</div>`;
+  }
+  // перерисовать карточку мишки, не сбрасывая прокрутку вкладок гардероба
+  function bearRerender() {
+    const el = $('#setBear'); if (!el) return;
+    const tabs = el.querySelector('.wtabs'), sl = tabs ? tabs.scrollLeft : 0;
+    el.innerHTML = bearCard();
+    const t2 = el.querySelector('.wtabs'); if (t2) t2.scrollLeft = sl;
   }
 
   // ---------- 1.10: детали ----------
@@ -505,9 +578,9 @@
   // «Что нового» — один раз после обновления
   const WN_KEY = 'porcia.whatsnew';
   const WHATS_NEW = [
-    ['🌅', 'Небо до самого верха', 'полоска с часами теперь того же цвета, что небо, — без белой полосы'],
-    ['🎯', 'Цели по жирам и углеводам', 'как у белка — и с подсказкой, сколько поставить'],
-    ['🥛', 'Свой объём стакана', '200, 250 или любой другой — меняется прямо в карточке воды'],
+    ['🧥', 'Гардероб мишки', 'пуховичок, панама, меховые наушники, солнечные очки и цепочки'],
+    ['☂️', 'Вещи в лапках', 'зонтик, лыжи, сноуборд, чемодан и воздушный шарик — у каждой несколько расцветок'],
+    ['✨', 'Готовые образы', 'осенний, зимний, летний, «звезда рэпа» и другие — одним нажатием'],
   ];
   function whatsNew(force) {
     let seen = null; try { seen = localStorage.getItem(WN_KEY); } catch (e) { /* нет памяти */ }
@@ -1093,7 +1166,7 @@
       <p class="hint">${sug ? `В среднем за последнюю неделю — ${nf(sug.avg)} шагов. ` : ''}Шаги удобнее прибавлять по 500 в неделю, а не сразу до 10 000.</p>
       <p class="hint">Веб-приложение на iPhone не может само читать шаги из «Здоровья», поэтому число вписывается вручную на экране «Активность».</p>`;
     $('#setLook').innerHTML = lookCard();
-    $('#setBear').innerHTML = bearCard();
+    bearRerender();
     const sd = $('#setDetail'); if (sd) { sd.hidden = !DZ(); sd.innerHTML = DZ() ? detailCard() : ''; }
     $('#setAi').innerHTML = aiCard();
     $('#setFoods').innerHTML = `<h2>Мои продукты</h2>
@@ -2189,20 +2262,33 @@
   Object.assign(actions, {
     'bear-tap'() { if (ui.view === 'today') { const b = $('#bearBubble'); if (b && !b.hidden && !b.classList.contains('out')) bearHush(); else bearSay(); } },
     'bear-prev'(b) { bearHop(b); },
-    'bear-night'(b) { ui.bearNight = b.dataset.n === '1'; $('#setBear').innerHTML = bearCard(); },
-    'bear-color'(b) { bearSet({ c: b.dataset.c }); $('#setBear').innerHTML = bearCard(); bearHop($('.bearprev')); },
-    'bear-acc'(b) { const B = bearCfg(); B.a[b.dataset.a] = B.a[b.dataset.a] ? 0 : 1; bearSet({ a: B.a }); $('#setBear').innerHTML = bearCard(); bearHop($('.bearprev')); },
+    'bear-night'(b) { ui.bearNight = b.dataset.n === '1'; bearRerender(); },
+    'bear-color'(b) { bearSet({ c: b.dataset.c }); bearRerender(); bearHop($('.bearprev')); },
+    'bear-acc'(b) { const B = bearCfg(); B.a[b.dataset.a] = B.a[b.dataset.a] ? 0 : 1; bearSet({ a: B.a }); bearRerender(); bearHop($('.bearprev')); },
     whatsnew() { closeSheet(); setTimeout(() => whatsNew(true), 230); },
-    'bear-hat'(b) { bearSet({ hat: b.dataset.k }); $('#setBear').innerHTML = bearCard(); bearHop($('.bearprev')); },
-    'bear-scarf'(b) { bearSet({ scarf: b.dataset.k }); $('#setBear').innerHTML = bearCard(); bearHop($('.bearprev')); },
+    'ward-tab'(b) { ui.wardTab = b.dataset.t; bearRerender(); },
+    'bear-coat'(b) { bearSet({ coat: b.dataset.k }); bearRerender(); bearHop($('.bearprev')); },
+    'bear-eyes'(b) { bearSet({ eyes: b.dataset.k }); bearRerender(); bearHop($('.bearprev')); },
+    'bear-neck'(b) { bearSet({ neck: b.dataset.k }); bearRerender(); bearHop($('.bearprev')); },
+    'bear-item'(b) { bearSet({ item: b.dataset.k }); bearRerender(); bearHop($('.bearprev')); },
+    'bear-col'(b) { const B = bearCfg(); bearSet({ col: Object.assign({}, B.col, { [b.dataset.k]: b.dataset.v }) }); bearRerender(); bearHop($('.bearprev')); },
+    'bear-look'(b) {
+      const L = LOOKS.find(x => x.k === b.dataset.k); if (!L) return;
+      const B = bearCfg();
+      bearSet(Object.assign({}, L.set, { col: Object.assign({}, B.col, L.col || {}) }));
+      bearRerender(); bearHop($('.bearprev'));
+      toast(L.k === 'base' ? 'Мишка переоделся в обычное' : `Образ «${L.n}»`);
+    },
+    'bear-hat'(b) { bearSet({ hat: b.dataset.k }); bearRerender(); bearHop($('.bearprev')); },
+    'bear-scarf'(b) { bearSet({ scarf: b.dataset.k }); bearRerender(); bearHop($('.bearprev')); },
     'bear-sample'(b) {
       const all = BEAR_SAY[b.dataset.p], prev = ui.bearSample;
       let txt = all[Math.floor(Math.random() * all.length)];
       if (txt === prev && all.length > 1) txt = all[(all.indexOf(txt) + 1) % all.length];
       ui.bearSample = txt;
-      $('#setBear').innerHTML = bearCard(); bearHop($('.bearprev'));
+      bearRerender(); bearHop($('.bearprev'));
     },
-    'bear-talk'(b) { bearSet({ talk: b.dataset.on === '1' }); $('#setBear').innerHTML = bearCard(); },
+    'bear-talk'(b) { bearSet({ talk: b.dataset.on === '1' }); bearRerender(); },
     stars(b) { bearSet({ stars: b.dataset.on === '1' }); $('#setLook').innerHTML = lookCard(); },
     season(b) { bearSet({ season: b.dataset.on === '1' }); $('#setLook').innerHTML = lookCard(); if (b.dataset.on !== '1') { const w = document.querySelector('body > .wx'); if (w) w.remove(); } },
     'season-try'(b) { wxPlay(b.dataset.s, { dur: 14e3 }); toast({ autumn: 'Осенняя погода — смотри по краям и между карточками', winter: 'Пошёл снег — смотри по краям', spring: 'Летят лепестки — смотри по краям', summer: 'Солнечные искорки — смотри по краям' }[b.dataset.s]); },
