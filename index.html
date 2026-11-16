@@ -523,6 +523,9 @@ html.nd .actmini { background: color-mix(in srgb, var(--accent) 6%, var(--surfac
 /* Небо по времени суток — тонкий градиент за шапкой */
 .skytint { position: fixed; left: 0; right: 0; top: 0; height: 300px; pointer-events: none; z-index: -1; opacity: 0; transition: opacity 1.2s ease, background 1.2s ease; }
 html.dz .skytint { opacity: 1; }
+/* iOS 26 красит полосу с часами по цвету элемента у верхнего края экрана (theme-color больше не учитывается).
+   Полоска невидима (маска), но iPhone берёт её цвет. */
+.toptint { position: fixed; top: 0; left: 0; width: 100%; height: 12px; z-index: 35; pointer-events: none; background-color: var(--top-tint, var(--bg)); -webkit-mask-image: linear-gradient(transparent, transparent); mask-image: linear-gradient(transparent, transparent); }
 html.dz.dz-nosky .skytint { opacity: 0; }
 html.dz-nosky .skytint i { display: none; }
 .skytint::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 40%, var(--bg)); }
@@ -1021,7 +1024,7 @@ html.pg-hold .app, html.pg-hold .tabbar { opacity: 0; }
     <div class="foot">
       <span>Калорийность продуктов примерная, по средним таблицам. Для упакованных продуктов точнее взять цифры с этикетки и добавить в «Мои продукты».</span>
       <span>Все записи хранятся только на этом телефоне.</span>
-      <span>Порция · версия 1.11.0</span>
+      <span>Порция · версия 1.11.1</span>
     </div>
   </section>
 </div>
@@ -1047,6 +1050,7 @@ html.pg-hold .app, html.pg-hold .tabbar { opacity: 0; }
 </nav>
 
 <div class="skytint" id="skyTint" aria-hidden="true"></div>
+<div class="toptint" id="topTint" aria-hidden="true"></div>
 <div class="backdrop" id="backdrop" hidden><div class="sheet" id="sheet" role="dialog" aria-modal="true"></div></div>
 <div class="toast" id="toast" role="status" hidden></div>
 <input type="file" id="importFile" accept=".json,application/json" hidden>

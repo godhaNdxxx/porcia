@@ -140,7 +140,7 @@
   // ---------- Оформление 1.8: лента недели, плитки макросов, карточки приёмов, цель по весу ----------
   const ND = () => true;
   const DZ = () => true;
-  const APP_VER = '1.11.0';
+  const APP_VER = '1.11.0'; // карточка «Что нового» — та же, что в 1.11.0
   const svgI = d => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
   const MEAL_IC = {
     b: svgI('<path d="M5 9h11v5a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5z"/><path d="M16 10h1.5a2.5 2.5 0 0 1 0 5H16"/><path d="M8.5 3.5c0 1 1 1.5 1 2.6M12.5 3.5c0 1 1 1.5 1 2.6"/>'),
@@ -435,7 +435,20 @@
       const c = sky ? SKY_TOP[dark ? 'dark' : 'light'][sky] : BG_TOP[dark ? 'dark' : 'light'];
       if (m.getAttribute('content') !== c) m.setAttribute('content', c);
     });
+    // iOS 26: цвет берётся у краёв страницы — невидимая полоска сверху и фон страницы начинаются цветом неба
+    const darkNow = th === 'dark' || (!th && !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches));
+    const top = sky ? SKY_TOP[darkNow ? 'dark' : 'light'][sky] : '';
+    if (top) {
+      r.style.setProperty('--top-tint', top);
+      r.style.backgroundColor = top;
+      r.style.backgroundImage = `linear-gradient(${top}, var(--bg) 320px)`;
+    } else {
+      r.style.removeProperty('--top-tint');
+      r.style.backgroundColor = '';
+      r.style.backgroundImage = '';
+    }
   }
+  if (window.matchMedia) { const mq = window.matchMedia('(prefers-color-scheme: dark)'); (mq.addEventListener ? mq.addEventListener('change', statusTint) : mq.addListener && mq.addListener(statusTint)); }
   // иконка вкладки оживает при переходе
   function tabPop(tab) {
     if (!DZ() || calm() || !tab) return;
