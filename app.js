@@ -90,19 +90,24 @@
     return { from: prev, to: last, limit: L.k, next: r10(L.k * 0.9) };
   }
   // ---------- Вода ----------
-  // Цель делится на 4–10 стаканов примерно по 250 мл. В S.water хранятся выпитые мл по дням.
-  function waterPlan(goal) {
+  // Объём стакана можно задать самой (S.settings.glass), иначе цель делится на 4–10 стаканов примерно по 250 мл.
+  // В S.water хранятся выпитые мл по дням — поэтому смена объёма стакана не меняет уже выпитое.
+  const GLASS_MIN = 50, GLASS_MAX = 1000, GLASS_PRESETS = [150, 200, 250, 300, 330, 500];
+  function waterPlan(goal, glass) {
     const g = goal === undefined ? S.settings.water : goal;
     if (!g) return null;
+    const gs = glass === undefined ? S.settings.glass : glass;
+    if (gs) return { goal: g, n: Math.min(25, Math.max(1, Math.ceil(g / gs - 0.001))), size: gs, custom: true };
     const n = Math.min(10, Math.max(4, Math.round(g / 250)));
     return { goal: g, n, size: g / n };
   }
   function waterStore() { if (!S.water || typeof S.water !== 'object' || Array.isArray(S.water)) S.water = {}; return S.water; }
-  function waterCount(day, plan) { return Math.max(0, Math.min(plan.n, Math.round((waterStore()[day] || 0) / plan.size))); }
-  function setWaterCount(day, plan, c) {
+  function waterMl(day) { return Math.max(0, +waterStore()[day] || 0); }
+  function waterCount(day, plan) { return Math.max(0, Math.min(plan.n, Math.floor(waterMl(day) / plan.size + 0.02))); }
+  function setWaterMl(day, ml) {
     const W = waterStore();
-    c = Math.max(0, Math.min(plan.n, c));
-    if (c) W[day] = Math.round(c * plan.size); else delete W[day];
+    ml = Math.max(0, Math.min(20000, Math.round(ml)));
+    if (ml) W[day] = ml; else delete W[day];
     save();
   }
   function waterPlanText(plan) {
@@ -135,7 +140,7 @@
   // ---------- Оформление 1.8: лента недели, плитки макросов, карточки приёмов, цель по весу ----------
   const ND = () => true;
   const DZ = () => true;
-  const APP_VER = '1.10.0';
+  const APP_VER = '1.11.0';
   const svgI = d => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
   const MEAL_IC = {
     b: svgI('<path d="M5 9h11v5a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5z"/><path d="M16 10h1.5a2.5 2.5 0 0 1 0 5H16"/><path d="M8.5 3.5c0 1 1 1.5 1 2.6M12.5 3.5c0 1 1 1.5 1 2.6"/>'),
@@ -156,7 +161,7 @@
     }).join('');
   }
   function macroTiles(t) {
-    const P = S.settings.protein, F = S.settings.fat, K = t.kcal || 0;
+    const P = S.settings.protein, F = S.settings.fat, Cg = S.settings.carb, K = t.kcal || 0;
     const R = 17, CI = 2 * Math.PI * R;
     const tile = (name, v, goal, kpg, c, act) => {
       const pct = goal ? v / goal * 100 : (K ? v * kpg / K * 100 : 0);
@@ -164,7 +169,7 @@
       const inner = `<span class="mr"><svg viewBox="0 0 40 40" aria-hidden="true"><circle class="trk" cx="20" cy="20" r="${R}"/><circle class="val" cx="20" cy="20" r="${R}" stroke-dasharray="${CI.toFixed(1)}" stroke-dashoffset="${(CI * (1 - frac)).toFixed(1)}" ${frac > 0 ? '' : 'opacity="0"'}/></svg><span>${Math.round(pct)}%</span></span><span class="nm">${name}</span><span class="v num">${g1(v)} г</span><span class="s">${goal ? 'цель ' + nf(goal) + ' г' : act ? 'задать цель' : 'доля ккал'}</span>`;
       return act && !goal ? `<button class="mtile" style="--c:var(--${c})" data-act="${act}">${inner}</button>` : `<div class="mtile" style="--c:var(--${c})">${inner}</div>`;
     };
-    return `<div class="mtiles">${tile('Белок', t.p, P, 4, 'protein', 'goto-protein')}${tile('Жиры', t.f, F, 9, 'fat')}${tile('Углеводы', t.c, null, 4, 'carb')}</div>`;
+    return `<div class="mtiles">${tile('Белок', t.p, P, 4, 'protein', 'goto-protein')}${tile('Жиры', t.f, F, 9, 'fat', 'goto-macros')}${tile('Углеводы', t.c, Cg, 4, 'carb', 'goto-macros')}</div>`;
   }
   const entryBtn = e => `<button class="entry" data-act="entry" data-id="${e.id}"><div style="min-width:0"><div class="nm">${esc(e.n)}</div><div class="sub">${esc(e.l || (e.g ? e.g + ' г' : ''))}</div></div><div class="kc">${nf(e.k)}<small>${g1(e.p)} г белка</small></div></button>`;
   function renderMealCards(items, el) {
@@ -415,8 +420,22 @@
       el.innerHTML = Array.from({ length: 14 }, (_, i) => `<i style="left:${(5 + Math.random() * 90).toFixed(1)}%;top:${(8 + Math.random() * 46).toFixed(1)}%;animation-delay:${(-Math.random() * 4).toFixed(1)}s;animation-duration:${(3 + Math.random() * 3).toFixed(1)}s"></i>`).join('');
     }
     el.hidden = ui.view !== 'today';
+    statusTint();
   }
   setInterval(() => { if (!skyLock) skyApply(); }, 5 * 60e3);
+  // Верх экрана с часами iPhone красит сам, в цвет theme-color. Подкрашиваем его в цвет неба,
+  // а градиент неба начинается ровно с этого цвета — шва нет.
+  const SKY_TOP = { light: { morning: '#FFDCCB', day: '#DCD9FB', sunset: '#F8C4D6', night: '#CFC8F2' }, dark: { morning: '#4A2F3D', day: '#2E2A55', sunset: '#4E2742', night: '#1C2350' } };
+  const BG_TOP = { light: '#F5F3F8', dark: '#100E14' };
+  function statusTint() {
+    const r = document.documentElement, th = r.getAttribute('data-theme');
+    const sky = DZ() && !r.classList.contains('dz-nosky') && ui.view === 'today' && r.dataset.sky;
+    document.querySelectorAll('meta[name="theme-color"]').forEach(m => {
+      const dark = th === 'dark' || (!th && (m.getAttribute('media') || '').includes('dark'));
+      const c = sky ? SKY_TOP[dark ? 'dark' : 'light'][sky] : BG_TOP[dark ? 'dark' : 'light'];
+      if (m.getAttribute('content') !== c) m.setAttribute('content', c);
+    });
+  }
   // иконка вкладки оживает при переходе
   function tabPop(tab) {
     if (!DZ() || calm() || !tab) return;
@@ -468,16 +487,14 @@
     else if (key === 'season') { bearSet({ season: on }); if (!on) { const w = document.querySelector('body > .wx'); if (w) w.remove(); } }
     else if (key === 'talk') { bearSet({ talk: on }); if (!on) bearHush(); }
     else if (key === 'greet') { const g = G(); if (g) { const p = g.prefs(); p.on = on; g.setPrefs(p); } }
-    else if (key === 'sky') { S.settings.sky = on; save(); document.documentElement.classList.toggle('dz-nosky', !on); }
+    else if (key === 'sky') { S.settings.sky = on; save(); document.documentElement.classList.toggle('dz-nosky', !on); statusTint(); }
   }
   // «Что нового» — один раз после обновления
   const WN_KEY = 'porcia.whatsnew';
   const WHATS_NEW = [
-    ['🌅', 'Небо по времени суток', 'утром персиковое, днём сиреневое, на закате розовое, ночью — со звёздочками'],
-    ['🔢', 'Цифры перекатываются', 'когда записываешь еду, «осталось» прокручивается, как счётчик'],
-    ['🧸', 'Мишка ещё живее', 'моргает, смотрит, как ты пишешь, и кивает после записи'],
-    ['💗', 'Сердечки за белок', 'когда набрана цель по белку'],
-    ['✨', 'Мелочи под пальцем', 'кнопки мягко проминаются, шторку можно смахнуть вниз, а в настройках — переключатели как в iPhone'],
+    ['🌅', 'Небо до самого верха', 'полоска с часами теперь того же цвета, что небо, — без белой полосы'],
+    ['🎯', 'Цели по жирам и углеводам', 'как у белка — и с подсказкой, сколько поставить'],
+    ['🥛', 'Свой объём стакана', '200, 250 или любой другой — меняется прямо в карточке воды'],
   ];
   function whatsNew(force) {
     let seen = null; try { seen = localStorage.getItem(WN_KEY); } catch (e) { /* нет памяти */ }
@@ -656,8 +673,8 @@
     return `<div><div class="mrow"><span>Белок</span><span class="k num">${g1(t.p)} г</span></div><button class="linkbtn tiny" data-act="goto-protein" style="padding:0">Задать цель по белку</button></div>`;
   }
   function macrosLine(t) {
-    const F = S.settings.fat;
-    return `<div class="macros"><span><i class="dot" style="background:var(--fat)"></i>Жиры <span class="num">${g1(t.f)}${F ? ' / ' + nf(F) : ''}</span> г</span><span><i class="dot" style="background:var(--carb)"></i>Углеводы <span class="num">${g1(t.c)}</span> г</span></div>`;
+    const F = S.settings.fat, Cg = S.settings.carb;
+    return `<div class="macros"><span><i class="dot" style="background:var(--fat)"></i>Жиры <span class="num">${g1(t.f)}${F ? ' / ' + nf(F) : ''}</span> г</span><span><i class="dot" style="background:var(--carb)"></i>Углеводы <span class="num">${g1(t.c)}${Cg ? ' / ' + nf(Cg) : ''}</span> г</span></div>`;
   }
 
   // Одометр: каждая цифра — колонка 0–9, которая прокручивается к новому значению
@@ -755,8 +772,8 @@
     const plan = waterPlan();
     if (!plan) { el.hidden = true; el.innerHTML = ''; el.dataset.sig = ''; return; }
     el.hidden = false;
-    const c = waterCount(ui.day, plan);
-    const sig = ui.day + '|' + plan.n;
+    const ml = waterMl(ui.day), c = waterCount(ui.day, plan);
+    const sig = ui.day + '|' + plan.n + '|' + plan.size;
     if (el.dataset.sig !== sig) {
       el.dataset.sig = sig;
       popFrom = null;
@@ -764,13 +781,16 @@
       for (let i = 0; i < plan.n; i++) {
         cups += `<button class="glass${i < c ? ' on' : ''}" data-act="water-glass" data-i="${i}"><svg viewBox="0 0 28 36" aria-hidden="true"><clipPath id="glassClip${i}"><path d="${GLASS}"/></clipPath><path class="gl" d="${GLASS}"/><g clip-path="url(#glassClip${i})"><rect class="wt" x="0" y="0" width="28" height="36"/></g></svg></button>`;
       }
-      el.innerHTML = `<div class="whead"><h2>Вода</h2><div class="wctl"><button class="wbtn" data-act="water-minus" aria-label="Убрать стакан воды">${IC.minus}</button><button class="wbtn" data-act="water-plus" aria-label="Добавить стакан воды">${IC.plus}</button></div></div>
+      const many = plan.n > 10, cols = many ? Math.ceil(plan.n / Math.ceil(plan.n / 10)) : plan.n;
+      el.innerHTML = `<div class="whead"><h2>Вода</h2><div class="wctl"><button class="wsize" data-act="water-size" aria-label="Объём стакана: ${nf(plan.size)} мл. Изменить">стакан <span class="num">${nf(plan.size)} мл</span></button><button class="wbtn" data-act="water-minus" aria-label="Убрать стакан воды">${IC.minus}</button><button class="wbtn" data-act="water-plus" aria-label="Добавить стакан воды">${IC.plus}</button></div></div>
         <div class="wstat"><span><b class="num" id="wMl"></b> <span class="muted">из ${nf(plan.goal)} мл</span></span><span class="small" id="wLeft"></span></div>
-        <div class="glasses" role="group" aria-label="Стаканы воды">${cups}</div>`;
+        <div class="glasses${many ? ' many' : ''}" style="--cols:${cols}" role="group" aria-label="Стаканы воды">${cups}</div>`;
     }
     el.querySelectorAll('.glass').forEach((g, i) => {
-      const on = i < c;
-      const pop = popFrom != null && on && i >= popFrom;
+      const f = Math.max(0, Math.min(1, (ml - i * plan.size) / plan.size));
+      const on = f > 0.98;
+      g.style.setProperty('--f', f > 0.98 ? 1 : f.toFixed(3));
+      const pop = popFrom != null && f > 0 && i >= popFrom;
       g.classList.remove('pop');
       g.style.setProperty('--gd', pop ? (i - popFrom) * 70 + 'ms' : '0ms');
       g.classList.toggle('on', on);
@@ -778,22 +798,40 @@
       g.setAttribute('aria-label', `Стакан ${i + 1} из ${plan.n}`);
       if (pop && !calm()) { void g.offsetWidth; g.classList.add('pop'); }
     });
-    $('#wMl').textContent = nf(Math.min(plan.goal, c * plan.size));
-    const left = plan.n - c;
+    $('#wMl').textContent = nf(ml);
+    const done = ml >= plan.goal - 0.5;
     const wl = $('#wLeft');
-    wl.textContent = left ? `${c} из ${plan.n} стаканов` : 'Цель выполнена';
-    wl.classList.toggle('done', !left);
-    el.querySelector('[data-act="water-minus"]').disabled = c <= 0;
-    el.querySelector('[data-act="water-plus"]').disabled = c >= plan.n;
+    wl.textContent = done ? (ml - plan.goal >= 1 ? `Цель выполнена · +${nf(ml - plan.goal)} мл` : 'Цель выполнена') : `${c} из ${plan.n} ${plural(plan.n, 'стакана', 'стаканов', 'стаканов')}`;
+    wl.classList.toggle('done', done);
+    el.querySelector('[data-act="water-minus"]').disabled = ml <= 0;
+    el.querySelector('[data-act="water-plus"]').disabled = ml >= 20000;
   }
-  function waterSet(next) {
+  function waterSetMl(next) {
     const plan = waterPlan(); if (!plan) return;
-    const c = waterCount(ui.day, plan);
-    next = Math.max(0, Math.min(plan.n, next));
-    if (next === c) return;
-    setWaterCount(ui.day, plan, next);
-    renderWater(next > c ? c : null);
-    if (next === plan.n && c < plan.n) { setTimeout(waterBurst, 260); if (bearCfg().talk && ui.day === today() && !isNight()) setTimeout(() => bearSay('Вся вода на сегодня выпита — умница!'), 500); }
+    const prev = waterMl(ui.day), prevC = waterCount(ui.day, plan);
+    next = Math.max(0, Math.min(20000, Math.round(next)));
+    if (next === prev) return;
+    setWaterMl(ui.day, next);
+    renderWater(next > prev ? prevC : null);
+    if (prev < plan.goal && next >= plan.goal) { setTimeout(waterBurst, 260); if (bearCfg().talk && ui.day === today() && !isNight()) setTimeout(() => bearSay('Вся вода на сегодня выпита — умница!'), 500); }
+  }
+  function glassChips(cur, src) {
+    return `<div class="gchips" role="group" aria-label="Объём стакана"><button class="seg" data-act="glass-pick" data-v="auto" data-src="${src}" aria-pressed="${!cur}">Авто</button>${GLASS_PRESETS.map(v => `<button class="seg" data-act="glass-pick" data-v="${v}" data-src="${src}" aria-pressed="${cur === v}">${v} мл</button>`).join('')}</div>`;
+  }
+  function glassSheet() {
+    const cur = S.settings.glass || null, plan = waterPlan();
+    openSheet(`<h2>Объём стакана</h2>
+      <p class="muted small" style="margin:0">Сколько мл добавляет один стакан. Уже выпитое за день не меняется — пересчитаются только стаканы.</p>
+      <div style="margin-top:12px">${glassChips(cur, 'sheet')}</div>
+      <div class="setrow" style="margin-top:14px"><label class="field"><span>Свой объём, мл</span><input id="gsIn" type="text" inputmode="numeric" value="${cur && !GLASS_PRESETS.includes(cur) ? cur : ''}" placeholder="например, 180"></label><button class="btn" data-act="glass-save" data-src="sheet">Сохранить</button></div>
+      ${plan ? `<p class="hint">Сейчас: ${waterPlanText(plan)}.</p>` : ''}`);
+  }
+  function glassApply(v, src) {
+    S.settings.glass = v; save();
+    if (src === 'sheet') closeSheet();
+    render();
+    const plan = waterPlan();
+    toast(v ? `Стакан: ${nf(v)} мл${plan ? ' — ' + waterPlanText(plan) : ''}` : `Объём стакана — авто${plan ? ': ' + waterPlanText(plan) : ''}`);
   }
 
   function renderTips() {
@@ -1007,7 +1045,7 @@
 
     const P = S.settings.protein, F = S.settings.fat;
     const lastW = weights().slice(-1)[0];
-    $('#setProtein').innerHTML = `<h2>Белок и жиры</h2>
+    $('#setProtein').innerHTML = `<h2>Белок, жиры и углеводы</h2>
       <div class="setrow"><label class="field"><span>Белок, г в день</span><input id="sProtein" type="text" inputmode="numeric" value="${P || ''}" placeholder="не задан"></label><button class="btn" data-act="save-protein">Сохранить</button></div>
       <div class="helper">
         <div class="small">Формула: 2 г белка на 1 кг сухой массы тела — это вес без жира.</div>
@@ -1018,14 +1056,22 @@
         <div class="res" id="hRes"></div>
         <div class="tiny muted">Если процент жира неизвестен, у девушек он обычно 25–32%. Белок лучше подтягивать постепенно, не за один день.</div>
       </div>
-      <div class="setrow" style="margin-top:14px"><label class="field"><span>Жиры, г в день (можно не задавать)</span><input id="sFat" type="text" inputmode="numeric" value="${F || ''}" placeholder="не задано"></label><button class="btn" data-act="save-fat">Сохранить</button></div>`;
+      <div class="setrow" style="margin-top:16px"><label class="field"><span>Жиры, г в день</span><input id="sFat" type="text" inputmode="numeric" value="${F || ''}" placeholder="не задано"></label><button class="btn" data-act="save-fat">Сохранить</button></div>
+      <div class="hint" id="sFatHint"></div>
+      <div class="setrow" style="margin-top:16px"><label class="field"><span>Углеводы, г в день</span><input id="sCarb" type="text" inputmode="numeric" value="${S.settings.carb || ''}" placeholder="не задано"></label><button class="btn" data-act="save-carb">Сохранить</button></div>
+      <div class="hint" id="sCarbHint"></div>
+      <p class="hint" style="margin-top:10px">Все три цели можно не задавать — тогда в плитках на «Сегодня» показывается доля от калорий.</p>`;
     updateProteinHelper();
+    updateMacroHints();
 
     const WG = S.settings.water;
     $('#setWater').innerHTML = `<h2>Вода</h2>
       <div class="setrow"><label class="field"><span>Цель, мл в день</span><input id="sWater" type="text" inputmode="numeric" value="${WG || ''}" placeholder="не задана"></label><button class="btn" data-act="save-water">Сохранить</button></div>
       <p class="hint" id="sWaterHint"></p>
-      ${WG ? `<button class="linkbtn small" data-act="clear-water" style="margin-top:6px">Убрать цель</button>` : ''}`;
+      ${WG ? `<button class="linkbtn small" data-act="clear-water" style="margin-top:6px">Убрать цель</button>` : ''}
+      <div class="field" style="margin-top:16px"><span>Объём стакана</span>${glassChips(S.settings.glass || null, 'set')}</div>
+      <div class="setrow" style="margin-top:12px"><label class="field"><span>Свой объём, мл</span><input id="sGlass" type="text" inputmode="numeric" value="${S.settings.glass && !GLASS_PRESETS.includes(S.settings.glass) ? S.settings.glass : ''}" placeholder="например, 180"></label><button class="btn" data-act="glass-save" data-src="set">Сохранить</button></div>
+      <p class="hint">«Авто» делит цель на 4–10 стаканов примерно по 250 мл. Объём можно быстро поменять и прямо в карточке воды на «Сегодня».</p>`;
     updateWaterHint();
 
     const sug = stepSuggest();
@@ -1062,6 +1108,7 @@
       const sysDark = (m.getAttribute('media') || '').includes('dark');
       m.setAttribute('content', t === 'auto' ? (sysDark ? '#100E14' : '#F5F3F8') : t === 'dark' ? '#100E14' : '#F5F3F8');
     });
+    statusTint();
   }
   const G = () => window.PorciaGreet;
   function lookCard() {
@@ -1084,9 +1131,32 @@
     const el = $('#sWaterHint'); if (!el) return;
     const raw = $('#sWater').value.trim();
     const v = num(raw);
-    if (!raw) { el.textContent = 'От 200 до 5000 мл. Цель сама делится на 4–10 стаканов примерно по 250 мл: например, 2000 мл — это 8 стаканов.'; return; }
+    if (!raw) { el.textContent = S.settings.glass ? `От 200 до 5000 мл. Стакан — ${nf(S.settings.glass)} мл.` : 'От 200 до 5000 мл. Цель сама делится на 4–10 стаканов примерно по 250 мл: например, 2000 мл — это 8 стаканов.'; return; }
     if (!v || v < 200 || v > 5000) { el.textContent = 'Введи число от 200 до 5000 мл.'; return; }
     el.textContent = `Это ${waterPlanText(waterPlan(Math.round(v)))}. Отмечай их на экране «Сегодня».`;
+  }
+  // Подсказки: жиры — около 30% калорий (или ~0,9 г на кг веса), углеводы — то, что остаётся от лимита после белка и жиров
+  const round5 = v => Math.round(v / 5) * 5;
+  function fatSuggest() {
+    const L = limitFor(today()), w = (weights().slice(-1)[0] || {}).w;
+    if (L) return { g: round5(L * 0.3 / 9), why: `обычно это около 30% калорий: при лимите ${nf(L)} ккал` };
+    if (w) return { g: round5(w * 0.9), why: `обычно около 0,9 г на кг веса: при ${g1(w)} кг` };
+    return null;
+  }
+  function carbSuggest() {
+    const L = limitFor(today()); if (!L) return null;
+    const P = S.settings.protein, F = S.settings.fat || (fatSuggest() || {}).g;
+    if (!P || !F) return { need: true };
+    const g = round5((L - P * 4 - F * 9) / 4);
+    return g > 0 ? { g, why: `что остаётся от ${nf(L)} ккал после белка ${nf(P)} г и жиров ${nf(F)} г` } : null;
+  }
+  function updateMacroHints() {
+    const fh = $('#sFatHint'), ch = $('#sCarbHint'); if (!fh || !ch) return;
+    const fs = fatSuggest(), cs = carbSuggest();
+    fh.innerHTML = fs ? `<span class="small muted">Подсказка: ≈ <b class="num">${fs.g} г</b> — ${fs.why}.</span>${S.settings.fat === fs.g ? '' : ` <button class="linkbtn small" data-act="use-fat" data-g="${fs.g}">Поставить ${fs.g} г</button>`}` : '';
+    ch.innerHTML = !cs ? (limitFor(today()) ? '' : '<span class="small muted">Подсказка появится, когда задан лимит калорий.</span>')
+      : cs.need ? '<span class="small muted">Задай цель по белку — и подскажу, сколько остаётся на углеводы.</span>'
+      : `<span class="small muted">Подсказка: ≈ <b class="num">${cs.g} г</b> — ${cs.why}.</span>${S.settings.carb === cs.g ? '' : ` <button class="linkbtn small" data-act="use-carb" data-g="${cs.g}">Поставить ${cs.g} г</button>`}`;
   }
   function updateProteinHelper() {
     const w = num($('#hW') && $('#hW').value), bf = num($('#hBf') && $('#hBf').value);
@@ -1842,11 +1912,20 @@
     'use-protein'(b) { S.settings.protein = +b.dataset.g; save(); toast(`Цель по белку: ${b.dataset.g} г`); render(); },
     'water-glass'(b) {
       const plan = waterPlan(); if (!plan) return;
-      const i = +b.dataset.i, c = waterCount(ui.day, plan);
-      waterSet(i + 1 === c ? i : i + 1);
+      const i = +b.dataset.i, ml = waterMl(ui.day), target = (i + 1) * plan.size;
+      // тап по последнему полному стакану — убрать его; по пустому или неполному — налить до него
+      waterSetMl(Math.abs(ml - target) < 1 ? i * plan.size : target);
     },
-    'water-plus'() { const plan = waterPlan(); if (plan) waterSet(waterCount(ui.day, plan) + 1); },
-    'water-minus'() { const plan = waterPlan(); if (plan) waterSet(waterCount(ui.day, plan) - 1); },
+    'water-plus'() { const plan = waterPlan(); if (plan) waterSetMl(waterMl(ui.day) + plan.size); },
+    'water-minus'() { const plan = waterPlan(); if (plan) waterSetMl(waterMl(ui.day) - plan.size); },
+    'water-size'() { glassSheet(); },
+    'glass-pick'(b) { glassApply(b.dataset.v === 'auto' ? null : +b.dataset.v, b.dataset.src); },
+    'glass-save'(b) {
+      const inp = b.dataset.src === 'sheet' ? $('#gsIn') : $('#sGlass');
+      const v = num(inp && inp.value);
+      if (!v || v < GLASS_MIN || v > GLASS_MAX) { toast(`Объём стакана — от ${GLASS_MIN} до ${GLASS_MAX} мл`); return; }
+      glassApply(Math.round(v), b.dataset.src);
+    },
     'save-water'() {
       const raw = $('#sWater').value.trim();
       if (!raw) {
@@ -1860,6 +1939,10 @@
       toast(`Вода: ${nf(v)} мл в день`); render();
     },
     'clear-water'() { S.settings.water = null; save(); toast('Цель по воде убрана'); render(); },
+    'save-carb'() { const v = num($('#sCarb').value); S.settings.carb = v ? Math.round(v) : null; save(); toast(v ? `Цель по углеводам: ${Math.round(v)} г` : 'Цель по углеводам убрана'); render(); },
+    'use-fat'(b) { S.settings.fat = +b.dataset.g; save(); toast(`Цель по жирам: ${b.dataset.g} г`); render(); },
+    'use-carb'(b) { S.settings.carb = +b.dataset.g; save(); toast(`Цель по углеводам: ${b.dataset.g} г`); render(); },
+    'goto-macros'() { ui.view = 'more'; render(); setTimeout(() => { const i = $('#sFat'); i && i.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 50); },
     'save-fat'() { const v = num($('#sFat').value); S.settings.fat = v ? Math.round(v) : null; save(); toast(v ? `Цель по жирам: ${Math.round(v)} г` : 'Цель по жирам убрана'); render(); },
     'add-food'(b) { foodSheet(b.dataset.name || ''); },
     'my-foods'() { if (S.custom.length) myFoodsSheet(); else foodSheet(''); },

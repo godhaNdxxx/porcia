@@ -330,7 +330,7 @@ textarea:focus, .field input:focus, .field select:focus { border-color: var(--ac
 /* Вода */
 .whead { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .whead h2 { margin: 0; }
-.wctl { display: flex; gap: 8px; }
+.wctl { display: flex; gap: 8px; align-items: center; }
 .wbtn { width: 34px; height: 34px; border-radius: 50%; border: 0; background: var(--surface-2); color: var(--ink); display: grid; place-items: center; }
 .wbtn svg { width: 16px; height: 16px; }
 .wbtn:disabled { opacity: .35; }
@@ -339,11 +339,14 @@ textarea:focus, .field input:focus, .field select:focus { border-color: var(--ac
 .wstat #wLeft { color: var(--muted); }
 .wstat #wLeft.done { color: var(--carb); font-weight: 600; }
 .glasses { display: flex; gap: 6px; }
+.glasses.many { display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 44px)); gap: 8px 6px; }
+.wsize { border: 0; border-radius: 99px; padding: 7px 11px; background: color-mix(in srgb, var(--carb) 14%, var(--surface)); color: var(--ink); font: 600 13px/1 var(--font-body); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.wsize span { color: var(--carb); }
+.gchips { display: flex; flex-wrap: wrap; gap: 8px; }
 .glass { flex: 1 1 0; min-width: 0; max-width: 44px; border: 0; background: none; padding: 4px 0 0; --gd: 0ms; }
 .glass svg { display: block; width: 100%; height: auto; overflow: visible; }
 .glass .gl { fill: var(--track); }
-.glass .wt { fill: var(--carb); transform: translateY(36px); transition: transform .4s cubic-bezier(.3, .9, .3, 1) var(--gd); }
-.glass.on .wt { transform: translateY(7px); }
+.glass .wt { fill: var(--carb); transform: translateY(calc(36px - 29px * var(--f, 0))); transition: transform .4s cubic-bezier(.3, .9, .3, 1) var(--gd); }
 .glass.pop svg { animation: pz-glass .52s cubic-bezier(.3, .7, .3, 1) var(--gd) both; }
 @keyframes pz-glass {
   0% { transform: none; }
@@ -523,13 +526,16 @@ html.dz .skytint { opacity: 1; }
 html.dz.dz-nosky .skytint { opacity: 0; }
 html.dz-nosky .skytint i { display: none; }
 .skytint::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 40%, var(--bg)); }
-.skytint i { position: absolute; width: 2px; height: 2px; border-radius: 50%; background: #fff; opacity: 0; animation: tw 4s ease-in-out infinite; }
+:root { --sky-star: #9A86E2; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --sky-star: #fff; } }
+:root[data-theme="dark"] { --sky-star: #fff; }
+.skytint i { position: absolute; width: 2.5px; height: 2.5px; border-radius: 50%; background: var(--sky-star); opacity: 0; animation: tw 4s ease-in-out infinite; }
 html[data-sky="night"] .skytint i { opacity: .8; }
 @keyframes tw { 0%, 100% { opacity: .25; transform: scale(.8); } 50% { opacity: .95; transform: scale(1.15); } }
 html[data-sky="morning"] .skytint { background: linear-gradient(180deg, #FFDCCB, #FDE6EE 55%, transparent); }
 html[data-sky="day"] .skytint { background: linear-gradient(180deg, #DCD9FB, #E9E4FB 55%, transparent); }
 html[data-sky="sunset"] .skytint { background: linear-gradient(180deg, #F8C4D6, #FBD9C9 55%, transparent); }
-html[data-sky="night"] .skytint { background: linear-gradient(180deg, #4B4A8C, #7D6FB3 50%, transparent); }
+html[data-sky="night"] .skytint { background: linear-gradient(180deg, #CFC8F2, #E2DCF8 55%, transparent); }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"])[data-sky="morning"] .skytint { background: linear-gradient(180deg, #4A2F3D, #33232F 55%, transparent); }
   :root:not([data-theme="light"])[data-sky="day"] .skytint { background: linear-gradient(180deg, #2E2A55, #241F3D 55%, transparent); }
@@ -540,13 +546,6 @@ html[data-sky="night"] .skytint { background: linear-gradient(180deg, #4B4A8C, #
 :root[data-theme="dark"][data-sky="day"] .skytint { background: linear-gradient(180deg, #2E2A55, #241F3D 55%, transparent); }
 :root[data-theme="dark"][data-sky="sunset"] .skytint { background: linear-gradient(180deg, #4E2742, #3A2131 55%, transparent); }
 :root[data-theme="dark"][data-sky="night"] .skytint { background: linear-gradient(180deg, #1C2350, #18183A 55%, transparent); }
-html.dz:not(.dz-nosky)[data-sky="night"] #v-today .vhead h1, html.dz:not(.dz-nosky)[data-sky="night"] #v-today .vhead .iconbtn { color: #fff; }
-html.dz:not(.dz-nosky)[data-sky="night"] #v-today .vhead .iconbtn { background: rgba(255, 255, 255, .16); }
-html.dz:not(.dz-nosky)[data-sky="night"] .wsd .wd { color: rgba(255, 255, 255, .75); }
-html.dz:not(.dz-nosky)[data-sky="night"] .wsd b { color: #fff; }
-html.dz:not(.dz-nosky)[data-sky="night"] .wsd.sel b, html.dz:not(.dz-nosky)[data-sky="night"] .wsd.sel .wd { color: var(--ink); }
-html.dz:not(.dz-nosky)[data-sky="night"] .wsd.sel .wd { color: var(--accent); }
-html.dz:not(.dz-nosky)[data-sky="night"] .wsd .trk { stroke: rgba(255, 255, 255, .22); }
 
 /* Счётчик-одометр */
 .odo { display: inline-flex; white-space: nowrap; }
@@ -1022,7 +1021,7 @@ html.pg-hold .app, html.pg-hold .tabbar { opacity: 0; }
     <div class="foot">
       <span>Калорийность продуктов примерная, по средним таблицам. Для упакованных продуктов точнее взять цифры с этикетки и добавить в «Мои продукты».</span>
       <span>Все записи хранятся только на этом телефоне.</span>
-      <span>Порция · версия 1.10.0</span>
+      <span>Порция · версия 1.11.0</span>
     </div>
   </section>
 </div>
