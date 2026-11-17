@@ -498,11 +498,13 @@
   setInterval(() => { if (!skyLock) skyApply(); }, 5 * 60e3);
   // Верх экрана с часами iPhone красит сам, в цвет theme-color. Подкрашиваем его в цвет неба,
   // а градиент неба начинается ровно с этого цвета — шва нет.
-  const SKY_TOP = { light: { morning: '#FFDCCB', day: '#DCD9FB', sunset: '#F8C4D6', night: '#CFC8F2' }, dark: { morning: '#4A2F3D', day: '#2E2A55', sunset: '#4E2742', night: '#1C2350' } };
+  const SKY_TOP = { light: { morning: '#FFDCCB', day: '#CBE2FA', sunset: '#F8C4D6', night: '#CFC8F2' }, dark: { morning: '#4A2F3D', day: '#2A5182', sunset: '#4E2742', night: '#1C2350' } };
   const BG_TOP = { light: '#F5F3F8', dark: '#100E14' };
   function statusTint() {
     const r = document.documentElement, th = r.getAttribute('data-theme');
     const sky = DZ() && !r.classList.contains('dz-nosky') && ui.view === 'today' && r.dataset.sky;
+    // Пока на экране заставка-приветствие, полосу с часами красит она (greet.js)
+    if (r.style.getPropertyValue('--pg-bar')) return;
     document.querySelectorAll('meta[name="theme-color"]').forEach(m => {
       const dark = th === 'dark' || (!th && (m.getAttribute('media') || '').includes('dark'));
       const c = sky ? SKY_TOP[dark ? 'dark' : 'light'][sky] : BG_TOP[dark ? 'dark' : 'light'];
@@ -522,6 +524,12 @@
     }
   }
   if (window.matchMedia) { const mq = window.matchMedia('(prefers-color-scheme: dark)'); (mq.addEventListener ? mq.addEventListener('change', statusTint) : mq.addListener && mq.addListener(statusTint)); }
+  window.addEventListener('porcia:greet-done', statusTint);
+  // iPhone держит приложение в памяти и замораживает таймеры: открыла днём после ночи — небо сразу переключается
+  const skyWake = () => { if (document.visibilityState === 'visible' && !skyLock) skyApply(); };
+  document.addEventListener('visibilitychange', skyWake);
+  window.addEventListener('pageshow', skyWake);
+  window.addEventListener('focus', skyWake);
   // иконка вкладки оживает при переходе
   function tabPop(tab) {
     if (!DZ() || calm() || !tab) return;

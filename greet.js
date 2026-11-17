@@ -165,7 +165,25 @@
   const dk = (sel, body) => `@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) ${sel}{${body}}}\n:root[data-theme="dark"] ${sel}{${body}}`;
   const CSS = `
 .pg{position:absolute;inset:0;z-index:30;overflow:hidden;font-family:var(--font-body,-apple-system,system-ui,sans-serif);-webkit-user-select:none;user-select:none;cursor:pointer;-webkit-tap-highlight-color:transparent}
-.pg.pg-fixed{position:fixed;z-index:1000}
+.pg.pg-fixed{position:fixed;z-index:1000;background-color:var(--pg-top)!important}
+/* Цвет верхнего края каждой заставки — им же красится полоса с часами, чтобы фон был единым */
+.pg-v-moon{--pg-top:#1E1338}
+.pg-v-waves{--pg-top:#1A1226}
+.pg-v-stars{--pg-top:#141A3D}
+.pg-v-bear{--pg-top:#FFE6F1}
+.pg-v-uni{--pg-top:#D9EBFF}
+.pg-v-box{--pg-top:#D9C4F5}
+.pg-v-bunny{--pg-top:#E4FBF1}
+.pg-v-bubbles{--pg-top:#E3F1FF}
+.pg-v-bloom{--pg-top:#FFF1F4}
+.pg-v-crown{--pg-top:#E0CCF8}
+${dk('.pg-v-bear', '--pg-top:#2E1C40')}
+${dk('.pg-v-uni', '--pg-top:#1F2350')}
+${dk('.pg-v-box', '--pg-top:#17111F')}
+${dk('.pg-v-bunny', '--pg-top:#1C2B33')}
+${dk('.pg-v-bubbles', '--pg-top:#14213D')}
+${dk('.pg-v-bloom', '--pg-top:#2E1A2E')}
+${dk('.pg-v-crown', '--pg-top:#1A1226')}
 .pg svg{display:block;overflow:visible}
 .pg-a{position:absolute}
 .pg-out{animation:pgOut .7s cubic-bezier(.6,0,.4,1) forwards}
@@ -387,6 +405,21 @@ ${dk('.pg-rays', 'background:repeating-conic-gradient(from 0deg,rgba(255,220,245
   }
 
   // ---------- Показ ----------
+  // Полоса с часами iPhone: старые iOS берут цвет из theme-color, iOS 26 — у элемента у верхнего края (.toptint в index.html).
+  // На время заставки красим её в цвет верха заставки, потом приложение возвращает свой цвет (событие porcia:greet-done).
+  function barTint(c) {
+    if (!c) return () => {};
+    const r = document.documentElement, metas = [...document.querySelectorAll('meta[name="theme-color"]')];
+    const prev = metas.map(m => m.getAttribute('content'));
+    r.style.setProperty('--pg-bar', c);
+    metas.forEach(m => m.setAttribute('content', c));
+    return () => {
+      if (r.style.getPropertyValue('--pg-bar') !== c) return;
+      r.style.removeProperty('--pg-bar');
+      metas.forEach((m, i) => m.setAttribute('content', prev[i]));
+      window.dispatchEvent(new Event('porcia:greet-done'));
+    };
+  }
   let current = null;
   function play(id, o = {}) {
     ensure();
@@ -400,8 +433,9 @@ ${dk('.pg-rays', 'background:repeating-conic-gradient(from 0deg,rgba(255,220,245
     host.appendChild(el);
     const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (reduce) el.classList.add('pg-still');
+    const untint = o.container ? () => {} : barTint(getComputedStyle(el).getPropertyValue('--pg-top').trim());
     let done = false, t2 = null;
-    const kill = () => { clearTimeout(t1); clearTimeout(t2); el.remove(); if (current && current.el === el) current = null; };
+    const kill = () => { clearTimeout(t1); clearTimeout(t2); el.remove(); untint(); if (current && current.el === el) current = null; };
     const finish = () => {
       if (done) return; done = true; clearTimeout(t1);
       el.classList.add('pg-out');
