@@ -134,13 +134,14 @@
     star: '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.9.9-4.2 4.1 1 5.8L12 16.9l-5.3 2.7 1-5.8-4.2-4.1 5.9-.9z"/></svg>',
     plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5.5v13M5.5 12h13"/></svg>',
     minus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M5.5 12h13"/></svg>',
+    pen: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>',
   };
   const GLASS = 'M3.5 2.5h21a1.5 1.5 0 0 1 1.5 1.7l-2.5 26a3.6 3.6 0 0 1-3.6 3.3H8.1a3.6 3.6 0 0 1-3.6-3.3L2 4.2a1.5 1.5 0 0 1 1.5-1.7z';
 
   // ---------- Оформление 1.8: лента недели, плитки макросов, карточки приёмов, цель по весу ----------
   const ND = () => true;
   const DZ = () => true;
-  const APP_VER = '1.12.0';
+  const APP_VER = '1.13.0';
   const svgI = d => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
   const MEAL_IC = {
     b: svgI('<path d="M5 9h11v5a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5z"/><path d="M16 10h1.5a2.5 2.5 0 0 1 0 5H16"/><path d="M8.5 3.5c0 1 1 1.5 1 2.6M12.5 3.5c0 1 1 1.5 1 2.6"/>'),
@@ -586,10 +587,13 @@
   // «Что нового» — один раз после обновления
   const WN_KEY = 'porcia.whatsnew';
   const WHATS_NEW = [
-    ['🧥', 'Гардероб мишки', 'пуховичок, панама, меховые наушники, солнечные очки и цепочки'],
-    ['☂️', 'Вещи в лапках', 'зонтик, лыжи, сноуборд, чемодан и воздушный шарик — у каждой несколько расцветок'],
-    ['✨', 'Готовые образы', 'осенний, зимний, летний, «звезда рэпа» и другие — одним нажатием'],
+    ['🌤', 'Небо как за окном', 'днём голубое с солнышком, утром и на закате тёплое, а звёзды — только ночью'],
+    ['🥤', 'Свой стакан', 'нажми «стакан» в карточке воды: дома по 300 мл, на работе по 500 — как удобно. А бутылку можно добавить разово'],
+    ['☂️', 'Зонтик спереди', 'теперь держу его прямо в лапке, а не прячу за ушком'],
+    ['🍂', 'Без дождика', 'осенью теперь летят только листья'],
+    ['✨', 'Заставка без полоски', 'при входе экран одного цвета — до самых часов'],
   ];
+  const WN_NOTE = 'Стараюсь, чтобы тебе было уютно. Не забывай пить водичку — я проверю 💜';
   function whatsNew(force) {
     let seen = null; try { seen = localStorage.getItem(WN_KEY); } catch (e) { /* нет памяти */ }
     if (!force && (seen === APP_VER || !S.settings.onboarded)) { try { localStorage.setItem(WN_KEY, APP_VER); } catch (e) { /* */ } return; }
@@ -598,6 +602,7 @@
     openSheet(`<div class="wn"><svg class="bear" viewBox="0 0 120 120" aria-hidden="true"><use href="#bear"/></svg><span class="ver">версия ${APP_VER}</span>
       <h2>${name ? esc(name) + ', смотри' : 'Смотри'}, что нового!</h2>
       <ul>${WHATS_NEW.map(([e, t, d], i) => `<li style="--i:${i}"><span class="e" aria-hidden="true">${e}</span><span><b>${t}</b><span class="small muted">${d}</span></span></li>`).join('')}</ul>
+      ${WN_NOTE ? `<p class="note">${WN_NOTE}</p>` : ''}
       <div class="sign">Твой мишка 🧸</div>
       <button class="btn block" style="margin-top:12px" data-act="sheet-close">Ура, спасибо!</button></div>`);
   }
@@ -643,7 +648,7 @@
     if (calm()) return null;
     const host = opt.host || document.body;
     const prev = host.querySelector(':scope > .wx'); if (prev) prev.remove();
-    const kind = season === 'winter' ? 's' : season === 'spring' ? 'p' : season === 'summer' ? 'g' : (opt.kind || (Math.random() < 0.65 ? 'r' : 'l'));
+    const kind = season === 'winter' ? 's' : season === 'spring' ? 'p' : season === 'summer' ? 'g' : 'l'; // осенью только листья — дождик убран по просьбе
     const k = opt.host ? 0.6 : 1;
     const n = Math.round(({ r: 70, s: 46, p: 18, l: 14, g: 22 })[kind] * k);
     const lay = document.createElement('div'); lay.className = 'wx' + (opt.host ? ' wx-pg' : ''); lay.setAttribute('aria-hidden', 'true');
@@ -876,7 +881,7 @@
         cups += `<button class="glass${i < c ? ' on' : ''}" data-act="water-glass" data-i="${i}"><svg viewBox="0 0 28 36" aria-hidden="true"><clipPath id="glassClip${i}"><path d="${GLASS}"/></clipPath><path class="gl" d="${GLASS}"/><g clip-path="url(#glassClip${i})"><rect class="wt" x="0" y="0" width="28" height="36"/></g></svg></button>`;
       }
       const many = plan.n > 10, cols = many ? Math.ceil(plan.n / Math.ceil(plan.n / 10)) : plan.n;
-      el.innerHTML = `<div class="whead"><h2>Вода</h2><div class="wctl"><button class="wsize" data-act="water-size" aria-label="Объём стакана: ${nf(plan.size)} мл. Изменить">стакан <span class="num">${nf(plan.size)} мл</span></button><button class="wbtn" data-act="water-minus" aria-label="Убрать стакан воды">${IC.minus}</button><button class="wbtn" data-act="water-plus" aria-label="Добавить стакан воды">${IC.plus}</button></div></div>
+      el.innerHTML = `<div class="whead"><h2>Вода</h2><div class="wctl"><button class="wsize" data-act="water-size" aria-label="Объём стакана: ${nf(plan.size)} мл. Изменить">стакан <span class="num">${nf(plan.size)} мл</span>${IC.pen}</button><button class="wbtn" data-act="water-minus" aria-label="Убрать стакан воды">${IC.minus}</button><button class="wbtn" data-act="water-plus" aria-label="Добавить стакан воды">${IC.plus}</button></div></div>
         <div class="wstat"><span><b class="num" id="wMl"></b> <span class="muted">из ${nf(plan.goal)} мл</span></span><span class="small" id="wLeft"></span></div>
         <div class="glasses${many ? ' many' : ''}" style="--cols:${cols}" role="group" aria-label="Стаканы воды">${cups}</div>`;
     }
@@ -909,19 +914,28 @@
     renderWater(next > prev ? prevC : null);
     if (prev < plan.goal && next >= plan.goal) { setTimeout(waterBurst, 260); if (bearCfg().talk && ui.day === today() && !isNight()) setTimeout(() => bearSay('Вся вода на сегодня выпита — умница!'), 500); }
   }
+  // Свои объёмы (не из списка) запоминаются и потом выбираются одним нажатием
+  function glassMine() { return (Array.isArray(S.settings.glassMine) ? S.settings.glassMine : []).filter(v => v >= GLASS_MIN && v <= GLASS_MAX && !GLASS_PRESETS.includes(v)); }
+  function glassList() { return [...new Set([...GLASS_PRESETS, ...glassMine()])].sort((a, b) => a - b); }
   function glassChips(cur, src) {
-    return `<div class="gchips" role="group" aria-label="Объём стакана"><button class="seg" data-act="glass-pick" data-v="auto" data-src="${src}" aria-pressed="${!cur}">Авто</button>${GLASS_PRESETS.map(v => `<button class="seg" data-act="glass-pick" data-v="${v}" data-src="${src}" aria-pressed="${cur === v}">${v} мл</button>`).join('')}</div>`;
+    return `<div class="gchips" role="group" aria-label="Объём стакана"><button class="seg" data-act="glass-pick" data-v="auto" data-src="${src}" aria-pressed="${!cur}">Авто</button>${glassList().map(v => `<button class="seg" data-act="glass-pick" data-v="${v}" data-src="${src}" aria-pressed="${cur === v}">${v} мл</button>`).join('')}</div>`;
   }
   function glassSheet() {
     const cur = S.settings.glass || null, plan = waterPlan();
     openSheet(`<h2>Объём стакана</h2>
-      <p class="muted small" style="margin:0">Сколько мл добавляет один стакан. Уже выпитое за день не меняется — пересчитаются только стаканы.</p>
+      <p class="muted small" style="margin:0">По сколько пьёшь сейчас: например, дома по 300 мл, на работе по 500. Выпитое за день сохранится — пересчитаются только стаканы.</p>
       <div style="margin-top:12px">${glassChips(cur, 'sheet')}</div>
-      <div class="setrow" style="margin-top:14px"><label class="field"><span>Свой объём, мл</span><input id="gsIn" type="text" inputmode="numeric" value="${cur && !GLASS_PRESETS.includes(cur) ? cur : ''}" placeholder="например, 180"></label><button class="btn" data-act="glass-save" data-src="sheet">Сохранить</button></div>
-      ${plan ? `<p class="hint">Сейчас: ${waterPlanText(plan)}.</p>` : ''}`);
+      <div class="setrow" style="margin-top:14px"><label class="field"><span>Свой объём, мл</span><input id="gsIn" type="text" inputmode="numeric" value="${cur && !glassList().includes(cur) ? cur : ''}" placeholder="например, 180"></label><button class="btn" data-act="glass-save" data-src="sheet">Сохранить</button></div>
+      <div class="setrow" style="margin-top:18px"><label class="field"><span>Добавить один раз, мл</span><input id="wOnce" type="text" inputmode="numeric" placeholder="например, 750 — бутылка"></label><button class="btn" data-act="water-once">Добавить</button></div>
+      <p class="hint">Разово — объём стакана не меняется.${plan ? ` Сейчас: ${waterPlanText(plan)}.` : ''}</p>`);
   }
   function glassApply(v, src) {
-    S.settings.glass = v; save();
+    const old = S.settings.glass;
+    S.settings.glass = v;
+    // запоминаем и новый свой объём, и тот, с которого переключилась (например, 400 мл, заданные раньше)
+    const keep = [v, old].filter(x => x && !GLASS_PRESETS.includes(x));
+    if (keep.length) S.settings.glassMine = [...new Set([...keep, ...glassMine()])].slice(0, 4);
+    save();
     if (src === 'sheet') closeSheet();
     render();
     const plan = waterPlan();
@@ -1164,7 +1178,7 @@
       <p class="hint" id="sWaterHint"></p>
       ${WG ? `<button class="linkbtn small" data-act="clear-water" style="margin-top:6px">Убрать цель</button>` : ''}
       <div class="field" style="margin-top:16px"><span>Объём стакана</span>${glassChips(S.settings.glass || null, 'set')}</div>
-      <div class="setrow" style="margin-top:12px"><label class="field"><span>Свой объём, мл</span><input id="sGlass" type="text" inputmode="numeric" value="${S.settings.glass && !GLASS_PRESETS.includes(S.settings.glass) ? S.settings.glass : ''}" placeholder="например, 180"></label><button class="btn" data-act="glass-save" data-src="set">Сохранить</button></div>
+      <div class="setrow" style="margin-top:12px"><label class="field"><span>Свой объём, мл</span><input id="sGlass" type="text" inputmode="numeric" value="${S.settings.glass && !glassList().includes(S.settings.glass) ? S.settings.glass : ''}" placeholder="например, 180"></label><button class="btn" data-act="glass-save" data-src="set">Сохранить</button></div>
       <p class="hint">«Авто» делит цель на 4–10 стаканов примерно по 250 мл. Объём можно быстро поменять и прямо в карточке воды на «Сегодня».</p>`;
     updateWaterHint();
 
@@ -1213,7 +1227,7 @@
       ${DZ() ? `<div style="margin-top:12px">${swRow('stars', 'Падающие звёзды', bearCfg().stars, 'Иногда пролетают за карточками')}${swRow('season', 'Погода по сезону', bearCfg().season, 'Сейчас ' + SEASON_IN[seasonNow()])}</div>` : `<div class="field" style="margin-top:16px"><span>Падающие звёзды иногда пролетают по экрану</span><div class="chips"><button class="seg" data-act="stars" data-on="1" aria-pressed="${bearCfg().stars}">Показывать</button><button class="seg" data-act="stars" data-on="0" aria-pressed="${!bearCfg().stars}">Выключить</button></div></div>
       <div class="field" style="margin-top:16px"><span>Погода по сезону — сейчас ${SEASON_IN[seasonNow()]}</span><div class="chips"><button class="seg" data-act="season" data-on="1" aria-pressed="${bearCfg().season}">Показывать</button><button class="seg" data-act="season" data-on="0" aria-pressed="${!bearCfg().season}">Выключить</button></div></div>`}
       <div class="field" style="margin-top:12px"><span>Посмотреть, как выглядит</span><div class="chips">${SEASONS.map(([k, n]) => `<button class="seg" data-act="season-try" data-s="${k}">${n}</button>`).join('')}</div></div>
-      <p class="hint">Иногда, примерно раз в 3–6 минут, на фоне за карточками секунд двадцать идёт погода: осенью дождик или листья, зимой снег, весной лепестки, летом солнечные искорки. На заставке при входе — тоже.</p>
+      <p class="hint">Иногда, примерно раз в 3–6 минут, на фоне за карточками секунд двадцать идёт погода: осенью листья, зимой снег, весной лепестки, летом солнечные искорки. На заставке при входе — тоже.</p>
       ${g ? `${DZ() ? `<div style="margin-top:6px">${swRow('greet', 'Приветствие при открытии', on, 'Заставка, если не заходила 3 часа')}</div>` : `<div class="field" style="margin-top:16px"><span>Приветствие при открытии</span><div class="chips" role="group" aria-label="Приветствие">
         <button class="seg" data-act="greet-on" data-on="1" aria-pressed="${on}">Показывать</button><button class="seg" data-act="greet-on" data-on="0" aria-pressed="${!on}">Выключить</button></div></div>`}
       <div class="setrow" style="margin-top:12px"><label class="field"><span>Имя в приветствии</span><input id="sGName" type="text" value="${esc(gp.name || '')}" placeholder="можно не писать" autocomplete="off" maxlength="24"></label><button class="btn" data-act="save-gname">Сохранить</button></div>
@@ -2013,6 +2027,13 @@
     'water-plus'() { const plan = waterPlan(); if (plan) waterSetMl(waterMl(ui.day) + plan.size); },
     'water-minus'() { const plan = waterPlan(); if (plan) waterSetMl(waterMl(ui.day) - plan.size); },
     'water-size'() { glassSheet(); },
+    'water-once'() {
+      const v = num($('#wOnce') && $('#wOnce').value);
+      if (!v || v < 10 || v > 3000) { toast('Сколько выпила — от 10 до 3000 мл'); return; }
+      closeSheet();
+      waterSetMl(waterMl(ui.day) + Math.round(v));
+      toast(`+${nf(Math.round(v))} мл воды`);
+    },
     'glass-pick'(b) { glassApply(b.dataset.v === 'auto' ? null : +b.dataset.v, b.dataset.src); },
     'glass-save'(b) {
       const inp = b.dataset.src === 'sheet' ? $('#gsIn') : $('#sGlass');
@@ -2299,7 +2320,7 @@
     'bear-talk'(b) { bearSet({ talk: b.dataset.on === '1' }); bearRerender(); },
     stars(b) { bearSet({ stars: b.dataset.on === '1' }); $('#setLook').innerHTML = lookCard(); },
     season(b) { bearSet({ season: b.dataset.on === '1' }); $('#setLook').innerHTML = lookCard(); if (b.dataset.on !== '1') { const w = document.querySelector('body > .wx'); if (w) w.remove(); } },
-    'season-try'(b) { wxPlay(b.dataset.s, { dur: 14e3 }); toast({ autumn: 'Осенняя погода — смотри по краям и между карточками', winter: 'Пошёл снег — смотри по краям', spring: 'Летят лепестки — смотри по краям', summer: 'Солнечные искорки — смотри по краям' }[b.dataset.s]); },
+    'season-try'(b) { wxPlay(b.dataset.s, { dur: 14e3 }); toast({ autumn: 'Летят листья — смотри по краям и между карточками', winter: 'Пошёл снег — смотри по краям', spring: 'Летят лепестки — смотри по краям', summer: 'Солнечные искорки — смотри по краям' }[b.dataset.s]); },
   });
   $('#bearBubble').addEventListener('click', ev => { ev.stopPropagation(); bearHush(); });
 

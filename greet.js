@@ -166,6 +166,7 @@
   const CSS = `
 .pg{position:absolute;inset:0;z-index:30;overflow:hidden;font-family:var(--font-body,-apple-system,system-ui,sans-serif);-webkit-user-select:none;user-select:none;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .pg.pg-fixed{position:fixed;z-index:1000;background-color:var(--pg-top)!important}
+html.pg-bar .toptint{z-index:1001}
 /* Цвет верхнего края каждой заставки — им же красится полоса с часами, чтобы фон был единым */
 .pg-v-moon{--pg-top:#1E1338}
 .pg-v-waves{--pg-top:#1A1226}
@@ -411,11 +412,20 @@ ${dk('.pg-rays', 'background:repeating-conic-gradient(from 0deg,rgba(255,220,245
     if (!c) return () => {};
     const r = document.documentElement, metas = [...document.querySelectorAll('meta[name="theme-color"]')];
     const prev = metas.map(m => m.getAttribute('content'));
+    // Заставка во весь экран iPhone для окраски полосы не берёт — тогда он смотрит на фон страницы.
+    // Поэтому на время заставки красим и фон страницы, и невидимую полоску поднимаем над заставкой.
+    const bg = [r.style.backgroundColor, r.style.backgroundImage];
     r.style.setProperty('--pg-bar', c);
+    r.classList.add('pg-bar');
+    r.style.backgroundColor = c;
+    r.style.backgroundImage = 'none';
     metas.forEach(m => m.setAttribute('content', c));
     return () => {
       if (r.style.getPropertyValue('--pg-bar') !== c) return;
       r.style.removeProperty('--pg-bar');
+      r.classList.remove('pg-bar');
+      r.style.backgroundColor = bg[0];
+      r.style.backgroundImage = bg[1];
       metas.forEach((m, i) => m.setAttribute('content', prev[i]));
       window.dispatchEvent(new Event('porcia:greet-done'));
     };
