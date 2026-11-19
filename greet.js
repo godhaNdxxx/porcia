@@ -165,9 +165,7 @@
   const dk = (sel, body) => `@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) ${sel}{${body}}}\n:root[data-theme="dark"] ${sel}{${body}}`;
   const CSS = `
 .pg{position:absolute;inset:0;z-index:30;overflow:hidden;font-family:var(--font-body,-apple-system,system-ui,sans-serif);-webkit-user-select:none;user-select:none;cursor:pointer;-webkit-tap-highlight-color:transparent}
-.pg.pg-fixed{position:fixed;z-index:1000;background-color:var(--pg-top)!important}
-html.pg-bar .toptint{z-index:1001}
-/* Цвет верхнего края каждой заставки — им же красится полоса с часами, чтобы фон был единым */
+.pg.pg-fixed{position:fixed;z-index:1000;background-color:var(--pg-top)!important}/* Цвет верхнего края каждой заставки — им же красится полоса с часами, чтобы фон был единым */
 .pg-v-moon{--pg-top:#1E1338}
 .pg-v-waves{--pg-top:#1A1226}
 .pg-v-stars{--pg-top:#141A3D}

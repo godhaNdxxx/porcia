@@ -23,6 +23,19 @@
       var c = t === 'dark' ? '#100E14' : '#F5F3F8', m = document.querySelectorAll('meta[name="theme-color"]');
       for (var i = 0; i < m.length; i++) m[i].setAttribute('content', c);
     }
+    // Небо и полоса с часами — сразу, с первого кадра: иначе iPhone успевает покрасить полосу в цвет фона,
+    // и до запуска app.js сверху виден тёмный шов. Цвета те же, что SKY_TOP в app.js.
+    if ((localStorage.getItem('porcia.v1') || '').indexOf('"sky":false') < 0) {
+      var hr = new Date().getHours(), ph = hr >= 5 && hr < 10 ? 'morning' : hr >= 10 && hr < 17 ? 'day' : hr >= 17 && hr < 21 ? 'sunset' : 'night';
+      var dk = t === 'dark' || (t !== 'light' && window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
+      var top = (dk ? { morning: '#4A2F3D', day: '#2A5182', sunset: '#4E2742', night: '#1C2350' } : { morning: '#FFDCCB', day: '#CBE2FA', sunset: '#F8C4D6', night: '#CFC8F2' })[ph];
+      r.setAttribute('data-sky', ph);
+      r.style.setProperty('--top-tint', top);
+      r.style.backgroundColor = top;
+      r.style.backgroundImage = 'linear-gradient(' + top + ', var(--bg) 320px)';
+      var mm = document.querySelectorAll('meta[name="theme-color"]');
+      for (var j = 0; j < mm.length; j++) mm[j].setAttribute('content', top);
+    }
     var g = JSON.parse(localStorage.getItem('porcia.greet') || '{}') || {};
     if (g.on !== false && Date.now() - (g.last || 0) >= 3 * 3600e3) {
       r.classList.add('pg-hold');
@@ -52,6 +65,9 @@
   --carb: #2F68C0;
   --warn: #CF3446;
   --warn-soft: #FBE3E6;
+  --over: #EE9CC0;
+  --over-soft: #FBE8F1;
+  --over-ink: #A3487A;
   --track: #E8E2F0;
   --blush: #F4A9C8;
   --plush: #E9D3F3;
@@ -86,6 +102,9 @@
     --carb: #7FAEF5;
     --warn: #FF6B7A;
     --warn-soft: #3A1C22;
+  --over: #E8A2C2;
+  --over-soft: #33222E;
+  --over-ink: #F1B9D1;
     --track: #2C2736;
     --blush: #E58FB4;
     --plush: #CDB0E0;
@@ -115,6 +134,9 @@
   --carb: #7FAEF5;
   --warn: #FF6B7A;
   --warn-soft: #3A1C22;
+  --over: #E8A2C2;
+  --over-soft: #33222E;
+  --over-ink: #F1B9D1;
   --track: #2C2736;
   --blush: #E58FB4;
   --plush: #CDB0E0;
@@ -182,18 +204,18 @@ button { touch-action: manipulation; cursor: pointer; }
 .ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
 .ring .trk { stroke: var(--track); }
 .ring .val { stroke: var(--accent); transition: stroke-dashoffset .5s ease; }
-.ring.over .val { stroke: var(--warn); }
+.ring .ovr { stroke: var(--over); transition: stroke-dashoffset .5s ease; }
 .ring .mid { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; }
 .ring .big { font: 700 26px/1 var(--font-display); font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
 .ring .cap { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
-.ring.over .big, .ring.over .cap { color: var(--warn); }
+.ring.over .cap { color: var(--over-ink); }
 .stats { display: grid; gap: 10px; min-width: 0; }
 .stat-top { font-size: 15px; }
 .stat-top b { font: 700 20px/1 var(--font-display); font-variant-numeric: tabular-nums; }
 .bar { height: 8px; border-radius: 99px; background: var(--track); overflow: hidden; }
 .bar > i { display: block; height: 100%; border-radius: inherit; background: var(--protein); }
 .bar.accent > i { background: var(--accent); }
-.bar.over > i { background: var(--warn); }
+.bar.over > i { background: var(--over); }
 .mrow { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; margin-bottom: 5px; }
 .mrow .k { color: var(--protein); font-weight: 600; }
 .macros { display: flex; gap: 14px; font-size: 13.5px; color: var(--muted); flex-wrap: wrap; }
@@ -344,6 +366,17 @@ textarea:focus, .field input:focus, .field select:focus { border-color: var(--ac
 .wsize span { color: var(--carb); }
 .wsize svg { width: 11px; height: 11px; margin-left: 5px; vertical-align: -1px; opacity: .6; }
 .gchips { display: flex; flex-wrap: wrap; gap: 8px; }
+.wquick { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.wquick:empty { display: none; }
+.wq { border: 0; border-radius: 99px; padding: 8px 12px; background: color-mix(in srgb, var(--carb) 14%, var(--surface)); color: var(--carb); font: 600 13.5px/1 var(--font-body); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.wq.other { background: none; box-shadow: inset 0 0 0 1.5px var(--line); color: var(--muted); font-weight: 500; }
+.seg.wadd { color: var(--carb); font-weight: 600; font-variant-numeric: tabular-nums; }
+.wsub { font: 600 13px/1.2 var(--font-body); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 20px 0 10px; }
+.wsub:first-of-type { margin-top: 14px; }
+.wlog { display: flex; flex-wrap: wrap; gap: 8px; }
+.wlog-i { display: inline-flex; align-items: center; gap: 6px; padding: 4px 4px 4px 12px; border-radius: 99px; background: var(--surface-2); font-size: 14.5px; font-variant-numeric: tabular-nums; }
+.wlog-i .xbtn { width: 26px; height: 26px; background: var(--surface); }
+.wlog-i .xbtn svg { width: 11px; height: 11px; }
 .glass { flex: 1 1 0; min-width: 0; max-width: 44px; border: 0; background: none; padding: 4px 0 0; --gd: 0ms; }
 .glass svg { display: block; width: 100%; height: auto; overflow: visible; }
 .glass .gl { fill: var(--track); }
@@ -384,15 +417,22 @@ textarea:focus, .field input:focus, .field select:focus { border-color: var(--ac
 .wsd svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
 .wsd .trk { fill: none; stroke: var(--track); stroke-width: 3; }
 .wsd .val { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; transition: stroke-dashoffset .5s ease; }
-.wsd.over .val { stroke: var(--warn); }
+.wsd.over .val { stroke: var(--over); }
 .wsd b { font: 600 13px/1 var(--font-display); }
 .wsd.sel { background: var(--surface); box-shadow: var(--shadow), inset 0 0 0 1.5px var(--accent); }
 .wsd.sel .wd, .wsd.now .wd { color: var(--accent); }
 .wsd:disabled { opacity: .35; }
-.formula { font-size: 13.5px; color: var(--muted); }
+/* «лимит / съедено» — две ровные строки: в одну строку на узком экране минус переносился в начало второй */
+.formula { font-size: 13.5px; color: var(--muted); display: grid; gap: 3px; }
 .formula b { color: var(--ink); font-weight: 600; }
 .formula > span { white-space: nowrap; }
+.btn-col { display: grid; gap: 8px; }
+/* Приёмы пищи: четыре кнопки помещаются в строку без обрезанной последней */
+.meals .seg { flex: 1 0 auto; padding: 8px 12px; }
+/* «Другое» в типах тренировок — последней строкой во всю ширину, а не одной кнопкой слева */
+.types:not(.sm) > .tchip:last-child:nth-child(3n+1) { grid-column: 1 / -1; }
 .chip-state.warn { background: var(--warn-soft); color: var(--warn); }
+.chip-state.soft { background: var(--over-soft); color: var(--over-ink); }
 .mtiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 14px; }
 #summary > div > .mtiles { margin-top: 0; }
 .mtile { border: 0; border-radius: 18px; padding: 10px 4px 9px; display: grid; justify-items: center; gap: 1px; text-align: center; color: var(--ink); min-width: 0; background: color-mix(in srgb, var(--c) 9%, var(--surface)); }
@@ -459,8 +499,9 @@ html.nd .actmini { background: color-mix(in srgb, var(--accent) 6%, var(--surfac
 .bearprev .bear { width: 86px; height: 86px; transform-origin: 50% 90%; }
 .bearprev.hop .bear { animation: bear-hop .62s cubic-bezier(.3, .7, .3, 1); }
 .saybox { position: relative; margin-top: 12px; align-self: start; justify-self: start; max-width: 100%; background: var(--surface-2); border-radius: 6px 18px 18px 18px; padding: 10px 14px; font-size: 15px; animation: bubble-in .4s cubic-bezier(.3, 1.4, .5, 1) both; transform-origin: 0 0; }
-.swatches { display: flex; flex-wrap: wrap; gap: 10px; }
-.swatch { width: 38px; height: 38px; border-radius: 50%; border: 0; padding: 0; background: var(--sw); box-shadow: inset 0 0 0 1.5px rgba(0, 0, 0, .06); position: relative; }
+/* 7 цветов мишки помещаются в одну строку и на экране 375 px */
+.swatches { display: flex; flex-wrap: wrap; gap: 8px; }
+.swatch { width: 36px; height: 36px; border-radius: 50%; border: 0; padding: 0; background: var(--sw); box-shadow: inset 0 0 0 1.5px rgba(0, 0, 0, .06); position: relative; }
 .swatch[aria-pressed="true"] { box-shadow: 0 0 0 2.5px var(--surface), 0 0 0 4.5px var(--accent); }
 .swatch i { position: absolute; right: 7px; bottom: 7px; width: 9px; height: 9px; border-radius: 50%; background: var(--swb); }
 
@@ -526,7 +567,9 @@ html.nd .actmini { background: color-mix(in srgb, var(--accent) 6%, var(--surfac
 html.dz .skytint { opacity: 1; }
 /* iOS 26 красит полосу с часами по цвету элемента у верхнего края экрана (theme-color больше не учитывается).
    Полоска невидима (маска), но iPhone берёт её цвет. */
-.toptint { position: fixed; top: 0; left: 0; width: 100%; height: 12px; z-index: 35; pointer-events: none; background-color: var(--pg-bar, var(--top-tint, var(--bg))); -webkit-mask-image: linear-gradient(transparent, transparent); mask-image: linear-gradient(transparent, transparent); }
+/* Полоса с часами — всегда ровного цвета, поэтому у самого верхнего края страницы не должно быть ничего «неровного»
+   (свечения солнца, звёзд): иначе на границе полосы виден шов. Полоска лежит поверх всего, даже заставки и шторок. */
+.toptint { position: fixed; top: 0; left: 0; width: 100%; height: 12px; z-index: 2000; pointer-events: none; background-color: var(--pg-bar, var(--top-tint, var(--bg))); -webkit-mask-image: linear-gradient(transparent, transparent); mask-image: linear-gradient(transparent, transparent); }
 html.dz.dz-nosky .skytint { opacity: 0; }
 html.dz-nosky .skytint i { display: none; }
 .skytint::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 40%, var(--bg)); }
@@ -538,9 +581,10 @@ html.dz-nosky .skytint i { display: none; }
 html[data-sky="night"] .skytint i { opacity: .8; animation: tw 4s ease-in-out infinite; }
 @keyframes tw { 0%, 100% { opacity: .25; transform: scale(.8); } 50% { opacity: .95; transform: scale(1.15); } }
 /* Солнце: утром — низко слева, днём — высоко справа, на закате — низко справа */
-.skytint::before { content: ""; position: absolute; width: 280px; height: 280px; border-radius: 50%; opacity: 0; transition: opacity 1.2s ease; }
+/* Свечение не доходит до верхнего края (маска сверху), иначе оно обрезается о ровную полосу с часами */
+.skytint::before { content: ""; position: absolute; width: 280px; height: 280px; border-radius: 50%; opacity: 0; transition: opacity 1.2s ease; -webkit-mask-image: linear-gradient(transparent 0, #000 70px); mask-image: linear-gradient(transparent 0, #000 70px); }
 html[data-sky="morning"] .skytint::before { opacity: 1; left: -90px; top: 40px; background: radial-gradient(circle, rgba(255, 196, 150, .55), rgba(255, 196, 150, 0) 65%); }
-html[data-sky="day"] .skytint::before { opacity: 1; right: -70px; top: -90px; background: radial-gradient(circle, rgba(255, 232, 150, .6), rgba(255, 232, 150, 0) 65%); }
+html[data-sky="day"] .skytint::before { opacity: 1; right: -60px; top: 6px; background: radial-gradient(circle, rgba(255, 232, 150, .6), rgba(255, 232, 150, 0) 65%); }
 html[data-sky="sunset"] .skytint::before { opacity: 1; right: -90px; top: 50px; background: radial-gradient(circle, rgba(255, 160, 110, .5), rgba(255, 160, 110, 0) 65%); }
 html.dz-nosky .skytint::before { display: none; }
 html[data-sky="morning"] .skytint { background: linear-gradient(180deg, #FFDCCB, #FDE6EE 55%, transparent); }
@@ -1052,7 +1096,7 @@ html.pg-hold .app, html.pg-hold .tabbar { opacity: 0; }
     <div class="foot">
       <span>Калорийность продуктов примерная, по средним таблицам. Для упакованных продуктов точнее взять цифры с этикетки и добавить в «Мои продукты».</span>
       <span>Все записи хранятся только на этом телефоне.</span>
-      <span>Порция · версия 1.12.1</span>
+      <span id="appVer">Порция</span>
     </div>
   </section>
 </div>
