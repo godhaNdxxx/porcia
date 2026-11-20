@@ -167,7 +167,7 @@
   // ---------- Оформление 1.8: лента недели, плитки макросов, карточки приёмов, цель по весу ----------
   const ND = () => true;
   const DZ = () => true;
-  const APP_VER = '1.14.0';
+  const APP_VER = '1.16.0';
   const svgI = d => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
   const MEAL_IC = {
     b: svgI('<path d="M5 9h11v5a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5z"/><path d="M16 10h1.5a2.5 2.5 0 0 1 0 5H16"/><path d="M8.5 3.5c0 1 1 1.5 1 2.6M12.5 3.5c0 1 1 1.5 1 2.6"/>'),
@@ -344,6 +344,10 @@
   // reason: 'morning' | 'day' | 'evening' | 'bed' — фраза к этому времени; без reason — по нажатию или «между делом»
   function bearPick(reason) {
     if (isNight()) return 'Ззз… я сплю, но я рядом. И тебе пора отдыхать';
+    if (bdayToday()) {
+      const B = ['С днём рождения! Сегодня можно всё 🎂', 'Сегодня твой день, королева 👑', '26 — красивое число, прямо как ты', 'Я бы испёк тебе торт, но у меня лапки 🧁', 'Загадала желание? Оно сбудется ✨', 'Сегодня никаких лимитов в голове — только праздник', 'Ты самая лучшая, и сегодня особенно 💜'];
+      return B[Math.floor(Math.random() * B.length)];
+    }
     const part = reason || partOf(new Date().getHours()) || 'day';
     const ctx = part === 'morning' ? [] : bearLines(part);
     const base = part === 'morning' || part === 'bed' ? BEAR_SAY[part] : BEAR_SAY[part].concat(BEAR_SAY.any, BEAR_SEASON[seasonNow()]);
@@ -619,18 +623,62 @@
   }
   // «Что нового» — один раз после обновления
   const WN_KEY = 'porcia.whatsnew';
-  const WHATS_NEW = [
-    ['🥤', 'Вода — точно до миллилитра', 'кружка 350, стакан 400 — добавляй вперемешку, всё сложится ровно. «−» убирает именно последнее'],
-    ['⚡', 'Частые объёмы — одной кнопкой', 'под стаканами появляются те, что ты уже добавляла. А в «стакане» видно, из чего сложился день'],
-    ['🌸', 'Спокойнее про лимит', 'если съела чуть больше — никакого красного, просто мягкий розовый хвостик на кольце'],
-    ['✨', 'Небо до самых часов', 'убрал шов сверху: и днём, и при открытии, и когда открыта шторка'],
-    ['🎀', 'Всё аккуратнее', 'кнопки, цвета и отступы стали ровнее на любом экране'],
+  // Пункты по версиям: показываем всё, что вышло после той версии, которую она видела последней
+  // (если обновление пропустила — увидит пункты сразу за несколько версий). Новые версии — сверху.
+  const WHATS_NEW_BY = [
+    ['1.16.0', [
+      ['🎂', 'Праздник!', 'сегодня всё приложение празднует твой день рождения: каждый вход — новая праздничная заставка'],
+    ]],
+    ['1.15.1', [
+      ['🌈', 'Стразики переливаются', 'соседние стразики больше не бывают одного цвета — неделя всегда разноцветная'],
+    ]],
+    ['1.15.0', [
+      ['💎', '14 расцветок стразиков', 'к шести прежним добавились персик, барвинок, аква, опал, сахарная вата, шампань, орхидея и коралл'],
+    ]],
+    ['1.14.0', [
+      ['🥤', 'Вода — точно до миллилитра', 'кружка 350, стакан 400 — добавляй вперемешку, всё сложится ровно. «−» убирает именно последнее'],
+      ['⚡', 'Частые объёмы — одной кнопкой', 'под стаканами появляются те, что ты уже добавляла. А в «стакане» видно, из чего сложился день'],
+      ['🌸', 'Спокойнее про лимит', 'если съела чуть больше — никакого красного, просто мягкий розовый хвостик на кольце'],
+      ['✨', 'Небо до самых часов', 'убрал шов сверху: и днём, и при открытии, и когда открыта шторка'],
+      ['🎀', 'Всё аккуратнее', 'кнопки, цвета и отступы стали ровнее на любом экране'],
+    ]],
   ];
+  const verNum = v => String(v || '0').split('.').reduce((a, x) => a * 1000 + (parseInt(x, 10) || 0), 0);
   const WN_NOTE = 'Даже если день вышел не по плану — я всё равно тобой горжусь 💜';
+  // ---------- День рождения Сони: только 20 ноября 2026 (дата и возраст — BDAY в greet.js) ----------
+  const BDAY_SEEN = 'porcia.bdaycard';
+  const bdayToday = () => { const g = G(); return !!(g && g.bdayToday && g.bdayToday()); };
+  const bdayIsDay = d => { const g = G(); return !!(g && g.BDAY && d === g.BDAY.key); };
+  function bdayCardSeen() { try { return localStorage.getItem(BDAY_SEEN) === G().BDAY.key; } catch (e) { return true; } }
+  function bdayCard() {
+    const g = G(); if (!g || !g.BDAY) return;
+    try { localStorage.setItem(BDAY_SEEN, g.BDAY.key); } catch (e) { /* покажется ещё раз — не страшно */ }
+    const name = String(g.prefs().name || '').trim() || 'Сонечка';
+    // мишка в короне и с шариком — только на открытке, её гардероб не меняется
+    const B0 = bearCfg(), col = Object.assign({}, B0.col); delete col.balloon; delete col.crown;
+    const dress = varsStyle(Object.assign({}, B0, { hat: 'crown', item: 'balloon', col }));
+    openSheet(`<div class="wn bd">
+      <svg class="bear" viewBox="0 0 120 120" aria-hidden="true" style="${dress}"><use href="#bear"/></svg>
+      <span class="ver">20 ноября · ${g.BDAY.age} лет</span>
+      <div class="bd-age" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="#gem-candy"/></svg><span>${g.BDAY.age}</span><svg viewBox="0 0 24 24"><use href="#gem-opal"/></svg></div>
+      <h2>С днём рождения, ${esc(name)}!</h2>
+      <p>Сегодня тебе ${g.BDAY.age}, и я хочу сказать главное: ты самая нежная, заботливая и сильная. Каждый день ты бережёшь себя, а сегодня позволь побаловать тебя.</p>
+      <p>Сегодня можно торт, вкусняшки и никаких мыслей о лимитах — это праздник. Пусть этот год будет тёплым, лёгким и полным поводов улыбаться.</p>
+      <div class="sign">Твой мишка 🧸</div>
+      <div class="ps">и кое-кто, кто очень тебя любит 💜</div>
+      <button class="btn block" style="margin-top:12px" data-act="sheet-close">Спасибо, мишка! 💜</button></div>`, () => setTimeout(() => whatsNew(false), 900));
+    setTimeout(() => { if (g.confetti && !calm()) g.confetti(110, true); }, 250);
+  }
+  function bdayCardMaybe() { if (bdayToday() && !bdayCardSeen() && $('#backdrop').hidden) bdayCard(); }
   function whatsNew(force) {
+    // в день рождения сначала открытка, «Что нового» — после неё; поверх другой шторки не открываем
+    if (!force && ((bdayToday() && !bdayCardSeen()) || !$('#backdrop').hidden)) return;
     let seen = null; try { seen = localStorage.getItem(WN_KEY); } catch (e) { /* нет памяти */ }
     if (!force && (seen === APP_VER || !S.settings.onboarded)) { try { localStorage.setItem(WN_KEY, APP_VER); } catch (e) { /* */ } return; }
     try { localStorage.setItem(WN_KEY, APP_VER); } catch (e) { /* */ }
+    // из настроек — последние две версии; после обновления — всё, что новее увиденной
+    const fresh = WHATS_NEW_BY.filter(([v]) => force ? true : verNum(v) > verNum(seen)).slice(0, force ? 2 : 99);
+    const WHATS_NEW = (fresh.length ? fresh : WHATS_NEW_BY.slice(0, 1)).flatMap(([, list]) => list);
     const g = G(), name = g && String(g.prefs().name || '').trim();
     openSheet(`<div class="wn"><svg class="bear" viewBox="0 0 120 120" aria-hidden="true"><use href="#bear"/></svg><span class="ver">версия ${APP_VER}</span>
       <h2>${name ? esc(name) + ', смотри' : 'Смотри'}, что нового!</h2>
@@ -642,6 +690,7 @@
   // настройки «Детали»
   function detailCard() {
     return `<h2>Детали</h2>${swRow('sky', 'Небо по времени суток', S.settings.sky !== false, 'Цвет шапки «Сегодня» меняется утром, днём, на закате и ночью')}
+      ${bdayToday() ? '<button class="btn ghost block" style="margin-top:10px" data-act="bday-card">Открытка от мишки 🎂</button>' : ''}
       <button class="btn plain block" style="margin-top:10px" data-act="whatsnew">Что нового в версии ${APP_VER}</button>`;
   }
 
@@ -708,7 +757,7 @@
     function tick(first) { if (free() && (!first || Math.random() < 0.5)) wxPlay(seasonNow()); later(); }
     setTimeout(() => tick(true), 8e3 + Math.random() * 6e3);
     // Заставка при входе — тоже с погодой по сезону
-    const dress = el => { if (bearCfg().season && el && el.classList && el.classList.contains('pg') && !el.querySelector('.wx')) wxPlay(seasonNow(), { host: el }); };
+    const dress = el => { if (bearCfg().season && el && el.classList && el.classList.contains('pg') && !el.classList.contains('pg-bday') && !el.querySelector('.wx')) wxPlay(seasonNow(), { host: el }); };
     document.querySelectorAll('.pg').forEach(dress);
     new MutationObserver(ms => ms.forEach(m => m.addedNodes.forEach(dress))).observe(document.body, { childList: true });
   }
@@ -873,7 +922,7 @@
       // Сверх лимита — без красного: кольцо остаётся своим цветом, а лишнее показано мягким «хвостиком» второго круга
       const ofrac = over ? Math.min(1, extra / L) : 0;
       const overArc = over ? `<circle class="ovr" cx="64" cy="64" r="${R}" fill="none" stroke-width="12" stroke-linecap="round" stroke-dasharray="${CIRC.toFixed(1)}" stroke-dashoffset="${(CIRC * (1 - Math.max(ofrac, 0.015))).toFixed(1)}"/>` : '';
-      const overText = extra <= L * 0.1 ? 'чуть больше лимита' : 'больше лимита';
+      const overText = bdayIsDay(ui.day) ? 'сегодня праздник 🎂' : extra <= L * 0.1 ? 'чуть больше лимита' : 'больше лимита';
       el.innerHTML = `<div class="summary">
         <div class="ring ${over ? 'over' : ''}" role="img" aria-label="Съедено ${nf(t.kcal)} из ${nf(L)} ккал${over ? `, на ${nf(extra)} больше лимита` : ''}">
           <svg viewBox="0 0 128 128"><circle class="trk" cx="64" cy="64" r="${R}" fill="none" stroke-width="12"/>
@@ -1481,8 +1530,40 @@
   const actIcon = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ACT_IC[k] || ACT_IC.other}</svg>`;
   const GEM = '<svg class="gem" viewBox="0 0 24 24" aria-hidden="true"><use href="#gem"/></svg>';
   // Разноцветные стразики: у каждой тренировки свой цвет, он не меняется
-  const GEM_COLORS = ['', '-lilac', '-blue', '-mint', '-gold', '-ruby'];
-  function gemColor(id) { let h = 0; for (const ch of String(id || '')) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return GEM_COLORS[h % GEM_COLORS.length]; }
+  // С версии 1.15 расцветок 14 (добавились персик, барвинок, аква, опал, сахарная вата, шампань, орхидея, коралл).
+  // Тренировки, записанные раньше, остаются со своими старыми цветами: для них — прежние 6.
+  const GEM_OLD = ['', '-lilac', '-blue', '-mint', '-gold', '-ruby'];
+  const GEM_COLORS = [...GEM_OLD, '-peach', '-peri', '-aqua', '-opal', '-candy', '-champ', '-orchid', '-coral'];
+  function gemBase(id) {
+    const s = String(id || ''); let h = 0; for (const ch of s) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    const born = parseInt(s.slice(0, 8), 36), from = S.settings.gemV2;
+    const pal = from && born >= from ? GEM_COLORS : GEM_OLD;
+    return { pal, i: h % pal.length };
+  }
+  // Цвет выбирается по тренировке, но не повторяет два предыдущих стразика (по порядку тренировок):
+  // иначе случайно выпадало три золотых подряд. Цвет уже записанной тренировки не меняется,
+  // пока не добавить или не удалить тренировку раньше неё.
+  let gemMap = {}, gemSig = null;
+  function gemColors() {
+    const all = [];
+    for (const d of Object.keys(S.act || {})) for (const w of ((S.act[d] && S.act[d].w) || [])) all.push([d, +w.t || 0, w.id]);
+    all.sort((x, y) => x[0] < y[0] ? -1 : x[0] > y[0] ? 1 : x[1] - y[1]);
+    const sig = all.map(x => x[2]).join(',');
+    if (sig === gemSig) return gemMap;
+    const m = {}; let p1 = null, p2 = null;
+    for (const [, , id] of all) {
+      const { pal } = gemBase(id); let { i } = gemBase(id); let c = pal[i];
+      for (let k = 0; k < pal.length && (c === p1 || c === p2); k++) { i = (i + 1) % pal.length; c = pal[i]; }
+      m[id] = c; p2 = p1; p1 = c;
+    }
+    gemSig = sig; gemMap = m;
+    return m;
+  }
+  function gemColor(id) {
+    const m = gemColors();
+    if (Object.prototype.hasOwnProperty.call(m, id)) return m[id];
+    const { pal, i } = gemBase(id); return pal[i];
+  }
   const gemOf = (id, style) => `<svg class="gem" viewBox="0 0 24 24" aria-hidden="true"${style ? ` style="${style}"` : ''}><use href="#gem${gemColor(id)}"/></svg>`;
   const bearSvg = () => '<svg class="bear" viewBox="0 0 120 120" aria-hidden="true"><use href="#bear"/></svg>';
   const emptyBear = txt => `<div class="empty">${bearSvg()}<div>${txt}</div></div>`;
@@ -2380,6 +2461,7 @@
     'bear-color'(b) { bearSet({ c: b.dataset.c }); bearRerender(); bearHop($('.bearprev')); },
     'bear-acc'(b) { const B = bearCfg(); B.a[b.dataset.a] = B.a[b.dataset.a] ? 0 : 1; bearSet({ a: B.a }); bearRerender(); bearHop($('.bearprev')); },
     whatsnew() { closeSheet(); setTimeout(() => whatsNew(true), 230); },
+    'bday-card'() { bdayCard(); },
     'ward-tab'(b) { ui.wardTab = b.dataset.t; bearRerender(); },
     'bear-coat'(b) { bearSet({ coat: b.dataset.k }); bearRerender(); bearHop($('.bearprev')); },
     'bear-eyes'(b) { bearSet({ eyes: b.dataset.k }); bearRerender(); bearHop($('.bearprev')); },
@@ -2531,7 +2613,7 @@
     if (document.visibilityState === 'hidden') bearHiddenAt = Date.now();
     if (document.visibilityState === 'visible') {
       const away = bearHiddenAt ? Date.now() - bearHiddenAt : 0;
-      setTimeout(() => { renderPeek(); if (away >= 10 * 60e3) bearWhenFree(() => bearMaybe(true), 700); }, 0);
+      setTimeout(() => { renderPeek(); if (away >= 10 * 60e3) bearWhenFree(() => bearMaybe(true), 700); if (S.settings.onboarded) bearWhenFree(bdayCardMaybe, 300); }, 0);
       if (ui.followToday && ui.day !== today()) { ui.day = today(); ui.meal = autoMeal(); render(); }
       else if (!ui.mealTouched && !ui.draft.length) { ui.meal = autoMeal(); if (ui.view === 'today') { renderMeals(); renderPreview(); renderQuick(); } }
     }
@@ -2539,11 +2621,13 @@
 
   // ---------- Запуск ----------
   { const v = $('#appVer'); if (v) v.textContent = 'Порция · версия ' + APP_VER; }
+  if (!S.settings.gemV2) { S.settings.gemV2 = Date.now(); save(); } // с этого момента у новых стразиков 14 расцветок
   bearApply();
   if (S.settings.sky === false) document.documentElement.classList.add('dz-nosky');
   render();
   skyInit();
   wxInit();
+  if (S.settings.onboarded) bearWhenFree(bdayCardMaybe, 300);
   if (DZ()) bearWhenFree(() => whatsNew(false), 1400);
   if (S.settings.onboarded) bearWhenFree(() => bearMaybe(true), 900);
   if (!S.settings.onboarded) howtoSheet(true);

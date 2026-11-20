@@ -19,23 +19,40 @@
     { id: 'bloom', name: 'Сакура', sub: 'Ты сегодня прекрасна' },
     { id: 'crown', name: 'Диадема', sub: 'Корона уже на месте' },
   ];
-  const byId = id => V.find(v => v.id === id);
+  // ---------- День рождения Сони: только 20 ноября 2026 ----------
+  // Весь день при каждом входе (если не заходила хотя бы минуту) — праздничная заставка, они идут по кругу.
+  // Самый первый вход — большой праздник с фейерверком и конфетти, после него приложение показывает открытку от мишки.
+  const BDAY = { y: 2026, m: 11, d: 20, age: 26, key: '2026-11-20' };
+  const BDAY_GAP = 60e3;
+  const bdayToday = (d = new Date()) => d.getFullYear() === BDAY.y && d.getMonth() + 1 === BDAY.m && d.getDate() === BDAY.d;
+  const BV = [
+    { id: 'bparty', name: 'Праздник', bday: 1, dur: 5600, fw: { rockets: 9, confetti: 150, burst: 1 }, sub: 'Тебе 26 — сегодня твой день 💜' },
+    { id: 'bcake', name: 'Торт', bday: 1, sub: 'Загадай желание — мишка испёк торт 🎂' },
+    { id: 'bballoons', name: 'Шарики', bday: 1, sub: 'Все 26 шариков не влезли, но эти — тебе 🎈' },
+    { id: 'bgift', name: 'Подарок', bday: 1, fw: { rockets: 0, confetti: 60 }, sub: 'Сегодня все стразики — тебе 💎' },
+    { id: 'bstars', name: 'Салют', bday: 1, dur: 3800, fw: { rockets: 5, confetti: 0 }, sub: 'Пусть этот год будет волшебным ✨' },
+  ];
+  const BDAY_ROT = ['bcake', 'bballoons', 'bgift', 'bstars', 'bparty'];
+  const byId = id => V.find(v => v.id === id) || BV.find(v => v.id === id);
   const todOf = (d = new Date()) => { const h = d.getHours(); return h < 5 ? 'night' : h < 11 ? 'morning' : h < 17 ? 'day' : h < 23 ? 'evening' : 'night'; };
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const rnd = (a, b) => a + Math.random() * (b - a);
-  const GEMS = ['pg-gem', 'pg-gem-lilac', 'pg-gem-blue', 'pg-gem-mint', 'pg-gem-gold', 'pg-gem-ruby'];
+  // Расцветки стразиков — те же, что в приложении (index.html, gemFill-*)
+  const GEM_FILLS = {
+    '': ['#FFE3F1', '#F3A9D0', '#B7A4FF'], '-lilac': ['#F2E6FF', '#C6A6FF', '#8E7CF0'], '-blue': ['#E3F3FF', '#94C8F5', '#7F92FF'],
+    '-mint': ['#E0FFF3', '#86DDBE', '#5EAFE0'], '-gold': ['#FFF6D2', '#F6CC62', '#EE9460'], '-ruby': ['#FFE2E6', '#F38FA4', '#C9579A'],
+    '-peach': ['#FFF1E8', '#FFC4A8', '#F3958C'], '-peri': ['#EEF0FF', '#B8C1FF', '#8C97EE'], '-aqua': ['#E4FFFB', '#9EE6E0', '#6BBFDB'],
+    '-opal': ['#FFFFFF', '#E6DCFF', '#CDEFF0', '#FFCFE6'], '-candy': ['#FFE3F2', '#E8C6FF', '#A9CFFF'], '-champ': ['#FFF8EE', '#F2D7B6', '#D9A98E'],
+    '-orchid': ['#F8E9FF', '#DDB1F4', '#B07FDC'], '-coral': ['#FFE9E4', '#FFB3A7', '#EE8597'],
+  };
+  const GEMS = Object.keys(GEM_FILLS).map(c => 'pg-gem' + c);
   const ico = (id, cls, style) => `<svg class="${cls}" style="${style || ''}" viewBox="0 0 24 24" aria-hidden="true"><use href="#${id}"/></svg>`;
   const pic = (vb, cls, inner, style) => `<svg class="${cls}" style="${style || ''}" viewBox="${vb}" aria-hidden="true">${inner}</svg>`;
 
   // ---------- Картинки ----------
   const GEM_PATH = 'M12 2.5l6.7 2.8 2.8 6.7-2.8 6.7-6.7 2.8-6.7-2.8L2.5 12l2.8-6.7z';
   const SPRITE = `<svg id="pg-defs" width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
-    <linearGradient id="pg-gF" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFE3F1"/><stop offset=".5" stop-color="#F3A9D0"/><stop offset="1" stop-color="#B7A4FF"/></linearGradient>
-    <linearGradient id="pg-gF-lilac" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F2E6FF"/><stop offset=".5" stop-color="#C6A6FF"/><stop offset="1" stop-color="#8E7CF0"/></linearGradient>
-    <linearGradient id="pg-gF-blue" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#E3F3FF"/><stop offset=".5" stop-color="#94C8F5"/><stop offset="1" stop-color="#7F92FF"/></linearGradient>
-    <linearGradient id="pg-gF-mint" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#E0FFF3"/><stop offset=".5" stop-color="#86DDBE"/><stop offset="1" stop-color="#5EAFE0"/></linearGradient>
-    <linearGradient id="pg-gF-gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFF6D2"/><stop offset=".5" stop-color="#F6CC62"/><stop offset="1" stop-color="#EE9460"/></linearGradient>
-    <linearGradient id="pg-gF-ruby" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFE2E6"/><stop offset=".5" stop-color="#F38FA4"/><stop offset="1" stop-color="#C9579A"/></linearGradient>
+    ${Object.entries(GEM_FILLS).map(([c, s]) => `<linearGradient id="pg-gF${c}" x1="0" y1="0" x2="1" y2="1">${s.map((col, i) => `<stop offset="${(i / (s.length - 1)).toFixed(2)}" stop-color="${col}"/>`).join('')}</linearGradient>`).join('')}
     <radialGradient id="pg-gCore" cx=".4" cy=".35" r=".7"><stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#FFFFFF" stop-opacity=".25"/></radialGradient>
     <linearGradient id="pg-spF" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFF4FB"/><stop offset="1" stop-color="#FFC2E0"/></linearGradient>
     <linearGradient id="pg-spF2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFC2E0"/><stop offset="1" stop-color="#B49CFF"/></linearGradient>
@@ -47,9 +64,15 @@
     <linearGradient id="pg-boxF" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#C8A6F4"/><stop offset="1" stop-color="#9A72DC"/></linearGradient>
     <linearGradient id="pg-lidF" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#D9C0FA"/><stop offset="1" stop-color="#B58DEB"/></linearGradient>
     <linearGradient id="pg-pillowF" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FBD3E6"/><stop offset="1" stop-color="#E89BC2"/></linearGradient>
+    <linearGradient id="pg-hatF" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFC6E0"/><stop offset="1" stop-color="#B994F5"/></linearGradient>
+    <linearGradient id="pg-cakeF" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFC9DE"/><stop offset="1" stop-color="#F29CC2"/></linearGradient>
+    <linearGradient id="pg-cake2F" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#E9DCFF"/><stop offset="1" stop-color="#C3A6F5"/></linearGradient>
+    <radialGradient id="pg-flameF" cx=".5" cy=".7" r=".6"><stop offset="0" stop-color="#FFFBE6"/><stop offset=".5" stop-color="#FFD66B"/><stop offset="1" stop-color="#FF9C6B"/></radialGradient>
+    <linearGradient id="pg-giftF" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#D9C3FA"/><stop offset="1" stop-color="#A784EA"/></linearGradient>
+    <linearGradient id="pg-giftL" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#E9DCFF"/><stop offset="1" stop-color="#C4A8F5"/></linearGradient>
   </defs>
     <symbol id="pg-gemShape" viewBox="0 0 24 24"><path d="M12 7l3.5 1.5L17 12l-1.5 3.5L12 17l-3.5-1.5L7 12l1.5-3.5z" fill="url(#pg-gCore)" opacity=".92"/><path d="M12 2.5V7M18.7 5.3l-3.2 3.2M21.5 12H17M18.7 18.7l-3.2-3.2M12 21.5V17M5.3 18.7l3.2-3.2M2.5 12H7M5.3 5.3l3.2 3.2" stroke="#fff" stroke-opacity=".6" stroke-width=".8"/><circle cx="9.4" cy="8.7" r="1.3" fill="#fff"/></symbol>
-    ${['', '-lilac', '-blue', '-mint', '-gold', '-ruby'].map(c => `<symbol id="pg-gem${c}" viewBox="0 0 24 24"><path d="${GEM_PATH}" fill="url(#pg-gF${c})"/><use href="#pg-gemShape"/></symbol>`).join('')}
+    ${Object.keys(GEM_FILLS).map(c => `<symbol id="pg-gem${c}" viewBox="0 0 24 24"><path d="${GEM_PATH}" fill="url(#pg-gF${c})"/><use href="#pg-gemShape"/></symbol>`).join('')}
     <symbol id="pg-spark" viewBox="0 0 24 24"><path d="M12 1.5c.7 5.6 3.4 8.6 10.5 10.5-7.1 1.9-9.8 4.9-10.5 10.5-.7-5.6-3.4-8.6-10.5-10.5C8.6 10.1 11.3 7.1 12 1.5z" fill="url(#pg-spF)"/></symbol>
     <symbol id="pg-spark2" viewBox="0 0 24 24"><path d="M12 1.5c.7 5.6 3.4 8.6 10.5 10.5-7.1 1.9-9.8 4.9-10.5 10.5-.7-5.6-3.4-8.6-10.5-10.5C8.6 10.1 11.3 7.1 12 1.5z" fill="url(#pg-spF2)"/></symbol>
     <symbol id="pg-heartp" viewBox="0 0 24 22"><path d="M12 21C5 16 1 12 1 7.2 1 3.8 3.6 1.2 6.8 1.2c2.2 0 4 1.1 5.2 3 1.2-1.9 3-3 5.2-3 3.2 0 5.8 2.6 5.8 6 0 4.8-4 8.8-11 13.8z" fill="url(#pg-balF)"/><path d="M5.5 5.2c-1 .8-1.4 2-1.2 3.2" stroke="#fff" stroke-width="1.6" stroke-linecap="round" fill="none" opacity=".75"/></symbol>
@@ -161,8 +184,101 @@
   }
   const PILLOW = '<path d="M22 28Q110 2 198 28Q214 52 198 74Q110 98 22 74Q6 52 22 28z" fill="url(#pg-pillowF)"/><path d="M40 40Q110 22 180 40" stroke="#fff" stroke-width="3" fill="none" opacity=".5" stroke-linecap="round"/><circle cx="20" cy="26" r="6" fill="url(#pg-goldF)"/><circle cx="200" cy="26" r="6" fill="url(#pg-goldF)"/><circle cx="20" cy="76" r="6" fill="url(#pg-goldF)"/><circle cx="200" cy="76" r="6" fill="url(#pg-goldF)"/>';
 
+  // ---------- День рождения: картинки ----------
+  // праздничный колпачок поверх головы мишки (в координатах мишки 120×120)
+  const HAT = `<g transform="rotate(-10 60 22)"><path d="M45 25L60 -10L75 25z" fill="url(#pg-hatF)"/><path d="M49.5 15.5l17-4.6M53.6 6.2l11.2-3" stroke="#fff" stroke-width="2.6" stroke-linecap="round" opacity=".85"/><circle cx="60" cy="-11" r="5.4" fill="#FFE08A" stroke="#fff" stroke-width="1.2"/><path d="M44 25.5q16 5.5 32 0" stroke="#fff" stroke-width="3.4" fill="none" stroke-linecap="round"/></g>`;
+  const CAKE = `
+    <ellipse cx="100" cy="186" rx="88" ry="10" fill="#FFFFFF" opacity=".9"/>
+    <rect x="22" y="122" width="156" height="62" rx="14" fill="url(#pg-cakeF)"/>
+    <path d="M22 136c0-8 6-14 14-14h128c8 0 14 6 14 14v4c-6 0-8 10-14 10s-8-10-14-10-8 14-14 14-8-14-14-14-8 10-14 10-8-10-14-10-8 16-14 16-8-16-14-16-8 10-14 10-8-10-14-10-8 12-14 12-8-12-14-12z" fill="#FFF6FA"/>
+    <rect x="48" y="76" width="104" height="50" rx="12" fill="url(#pg-cake2F)"/>
+    <path d="M48 88c0-7 5-12 12-12h80c7 0 12 5 12 12v3c-5 0-7 9-12 9s-7-9-12-9-7 12-12 12-7-12-12-12-7 9-12 9-7-9-12-9-7 12-12 12-7-12-12-12z" fill="#FFF6FA"/>
+    ${[[40, 160, '#F7A8CF'], [64, 170, '#9EE6E0'], [92, 162, '#FFE08A'], [120, 172, '#C9A8FF'], [150, 160, '#9EE6E0'], [70, 114, '#FFE08A'], [100, 118, '#F7A8CF'], [130, 112, '#9EE6E0']].map(([x, y, c], i) => `<rect x="${x}" y="${y}" width="9" height="3.6" rx="1.8" fill="${c}" transform="rotate(${(i * 37) % 70 - 35} ${x + 4} ${y + 2})"/>`).join('')}
+    <g font-family="ui-rounded,'SF Pro Rounded',system-ui,sans-serif" font-weight="900" font-size="46" text-anchor="middle" fill="url(#pg-goldF)" stroke="#fff" stroke-width="2.4" paint-order="stroke"><text x="82" y="78">2</text><text x="118" y="78">6</text></g>
+    <g class="pg-flame" style="transform-origin:82px 38px"><path d="M82 18c5 7 7 11 7 15a7 7 0 0 1-14 0c0-4 2-8 7-15z" fill="url(#pg-flameF)"/></g>
+    <g class="pg-flame pg-f2" style="transform-origin:118px 38px"><path d="M118 18c5 7 7 11 7 15a7 7 0 0 1-14 0c0-4 2-8 7-15z" fill="url(#pg-flameF)"/></g>`;
+  const GIFT = `
+    <rect x="22" y="70" width="116" height="76" rx="10" fill="url(#pg-giftF)"/>
+    <rect x="72" y="70" width="16" height="76" fill="#F7A8CF"/>
+    <g class="pg-glid"><rect x="14" y="50" width="132" height="26" rx="8" fill="url(#pg-giftL)"/><rect x="72" y="50" width="16" height="26" fill="#F48DB8"/>
+    <path d="M80 50C66 30 46 30 48 42s22 10 32 8zM80 50c14-20 34-20 32-8s-22 10-32 8z" fill="#F7A8CF" stroke="#fff" stroke-width="2"/><circle cx="80" cy="49" r="6" fill="#F48DB8" stroke="#fff" stroke-width="2"/></g>`;
+  const balloonSVG = (c, style) => `<svg class="pg-a pg-bln" viewBox="0 0 60 130" aria-hidden="true" style="left:var(--x);${style}"><path d="M30 70C14 60 3 48 3 32 3 16 15 4 30 4s27 12 27 28c0 16-11 28-27 38z" fill="${c}"/><path d="M15 22c-3 4-4 9-3 14" stroke="#fff" stroke-width="3.4" stroke-linecap="round" fill="none" opacity=".65"/><path d="M26 70l4 6 4-6z" fill="${c}"/><path d="M30 76c-5 10 5 18 0 28s-6 12-10 22" stroke="#C9B8E8" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>`;
+
+  // Фейерверк и конфетти на холсте (внутри заставки или поверх всего экрана)
+  const FW_COLS = ['#FFB3D9', '#C9A8FF', '#9EE6E0', '#FFE08A', '#FFC4A8', '#B8C1FF', '#FFFFFF', '#F7A8CF'];
+  function fireworks(host, o, fixed) {
+    if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return () => {};
+    const cv = document.createElement('canvas');
+    cv.className = 'pg-fw';
+    if (fixed) cv.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;z-index:1500;pointer-events:none';
+    host.insertBefore(cv, host.firstChild);
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    let W = 0, H = 0;
+    const size = () => { W = (fixed ? window.innerWidth : host.clientWidth) || 360; H = (fixed ? window.innerHeight : host.clientHeight) || 640; cv.width = W * dpr; cv.height = H * dpr; };
+    size();
+    const ctx = cv.getContext('2d'); ctx.scale(dpr, dpr);
+    const parts = [], rockets = [], conf = [];
+    const col = () => FW_COLS[Math.floor(Math.random() * FW_COLS.length)];
+    const nR = o.rockets || 0, dur = (o.dur || 4.6) * 1000;
+    for (let i = 0; i < nR; i++) rockets.push({ at: 150 + i * (Math.min(3000, dur - 1400) / Math.max(1, nR)) + rnd(-120, 120), x: rnd(.15, .85) * W, y: H + 10, ty: rnd(.12, .42) * H, c: col(), live: false, done: false });
+    const addConf = (n, burst) => {
+      for (let i = 0; i < n; i++) {
+        const b = burst ? { x: W / 2 + rnd(-20, 20), y: H * .55, vx: rnd(-420, 420), vy: rnd(-760, -260) } : { x: rnd(0, W), y: rnd(-H * .6, -10), vx: rnd(-30, 30), vy: rnd(60, 170) };
+        conf.push(Object.assign(b, { w: rnd(5, 9), h: rnd(8, 13), r: rnd(0, 6.28), vr: rnd(-8, 8), sw: rnd(0, 6.28), c: col(), round: Math.random() < .25 }));
+      }
+    };
+    if (o.burst) addConf(70, true);
+    addConf(o.confetti || 0, false);
+    let t0 = performance.now(), last = t0, raf = 0, alive = true;
+    function boom(r) {
+      const n = Math.round(rnd(46, 70)), sp = rnd(170, 260), c2 = col();
+      for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2 + rnd(-.05, .05), v = sp * rnd(.55, 1); parts.push({ x: r.x, y: r.ty, px: r.x, py: r.ty, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 1, decay: rnd(.55, .85), c: Math.random() < .7 ? r.c : c2 }); }
+    }
+    function frame(now) {
+      if (!alive) return;
+      const dt = Math.min(.04, (now - last) / 1000), el = now - t0; last = now;
+      ctx.clearRect(0, 0, W, H);
+      ctx.globalCompositeOperation = 'lighter';
+      for (const r of rockets) {
+        if (r.done) continue;
+        if (!r.live && el >= r.at) r.live = true;
+        if (!r.live) continue;
+        const py = r.y; r.y -= (r.y - r.ty) * 4.2 * dt + 140 * dt;
+        ctx.strokeStyle = r.c; ctx.lineWidth = 2.2; ctx.globalAlpha = .9;
+        ctx.beginPath(); ctx.moveTo(r.x, py + 10); ctx.lineTo(r.x, r.y); ctx.stroke();
+        if (r.y <= r.ty + 4) { r.done = true; boom(r); }
+      }
+      for (let i = parts.length - 1; i >= 0; i--) {
+        const p = parts[i];
+        p.px = p.x; p.py = p.y; p.vx *= 1 - 1.6 * dt; p.vy = p.vy * (1 - 1.6 * dt) + 120 * dt;
+        p.x += p.vx * dt; p.y += p.vy * dt; p.life -= p.decay * dt;
+        if (p.life <= 0) { parts.splice(i, 1); continue; }
+        ctx.globalAlpha = Math.max(0, p.life); ctx.strokeStyle = p.c; ctx.lineWidth = 2.4;
+        ctx.beginPath(); ctx.moveTo(p.px - p.vx * .03, p.py - p.vy * .03); ctx.lineTo(p.x, p.y); ctx.stroke();
+      }
+      ctx.globalCompositeOperation = 'source-over';
+      for (let i = conf.length - 1; i >= 0; i--) {
+        const c = conf[i];
+        c.vy = Math.min(c.vy + 520 * dt, 190); c.vx *= 1 - 1.2 * dt; c.sw += 3 * dt; c.r += c.vr * dt;
+        c.x += (c.vx + Math.sin(c.sw) * 30) * dt; c.y += c.vy * dt;
+        if (c.y > H + 20) { conf.splice(i, 1); continue; }
+        ctx.save(); ctx.translate(c.x, c.y); ctx.rotate(c.r); ctx.scale(1, Math.abs(Math.cos(c.sw * 1.7)) * .7 + .3);
+        ctx.globalAlpha = el > dur - 600 ? Math.max(0, (dur - el) / 600) : 1; ctx.fillStyle = c.c;
+        if (c.round) { ctx.beginPath(); ctx.arc(0, 0, c.w / 2, 0, 6.29); ctx.fill(); } else ctx.fillRect(-c.w / 2, -c.h / 2, c.w, c.h);
+        ctx.restore();
+      }
+      ctx.globalAlpha = 1;
+      if (el < dur || parts.length) raf = requestAnimationFrame(frame); else stop();
+    }
+    function stop() { alive = false; cancelAnimationFrame(raf); cv.remove(); }
+    raf = requestAnimationFrame(frame);
+    return stop;
+  }
+  // Конфетти поверх всего экрана (для открытки)
+  const confetti = (n, burst, host) => fireworks(host || document.body, { confetti: n || 90, burst: burst !== false, dur: 3.6 }, !host);
+
   // ---------- Стили ----------
-  const dk = (sel, body) => `@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) ${sel}{${body}}}\n:root[data-theme="dark"] ${sel}{${body}}`;
+  const dk =(sel, body) => `@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) ${sel}{${body}}}\n:root[data-theme="dark"] ${sel}{${body}}`;
   const CSS = `
 .pg{position:absolute;inset:0;z-index:30;overflow:hidden;font-family:var(--font-body,-apple-system,system-ui,sans-serif);-webkit-user-select:none;user-select:none;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .pg.pg-fixed{position:fixed;z-index:1000;background-color:var(--pg-top)!important}/* Цвет верхнего края каждой заставки — им же красится полоса с часами, чтобы фон был единым */
@@ -318,6 +434,36 @@ ${dk('.pg-v-bloom .pg-twig', 'stroke:#C99AA8')}
 ${dk('.pg-v-crown', 'background:radial-gradient(80% 55% at 50% 50%,#4D3570 0%,#2A1D40 55%,#160F20 100%);color:#fff')}
 ${dk('.pg-rays', 'background:repeating-conic-gradient(from 0deg,rgba(255,220,245,.28) 0 8deg,rgba(255,220,245,0) 8deg 24deg)')}
 
+/* ===== День рождения ===== */
+.pg-fw{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:4}
+.pg-bday .pg-hello{z-index:6}
+.pg-bday .pg-h{font-size:32px}
+.pg-v-bparty{--pg-top:#1B1233;background:linear-gradient(180deg,#1B1233 0%,#33205A 55%,#6B3D8E 100%);color:#fff}
+.pg-v-bstars{--pg-top:#0F1433;background:linear-gradient(180deg,#0F1433 0%,#24205A 60%,#4D2D78 100%);color:#fff}
+.pg-v-bcake{--pg-top:#FFE9F2;background:linear-gradient(170deg,#FFE9F2 0%,#FBE3F6 50%,#ECDDFF 100%);color:#5A2A63}
+.pg-v-bballoons{--pg-top:#DDEBFF;background:linear-gradient(180deg,#DDEBFF 0%,#F1E5FF 55%,#FFE4F0 100%);color:#45307A}
+.pg-v-bgift{--pg-top:#F1E6FF;background:radial-gradient(90% 60% at 50% 72%,#FFFFFF 0%,#F4E9FF 45%,#E0CCF8 100%);color:#4A2A73}
+${dk('.pg-v-bcake', '--pg-top:#2A1A38;background:linear-gradient(170deg,#2A1A38 0%,#3A2150 55%,#2A1E48 100%);color:#FFEFF7')}
+${dk('.pg-v-bballoons', '--pg-top:#1D2350;background:linear-gradient(180deg,#1D2350 0%,#33266A 55%,#4E2A60 100%);color:#fff')}
+${dk('.pg-v-bgift', '--pg-top:#261A3A;background:radial-gradient(90% 60% at 50% 72%,#4A2F70 0%,#2E1F48 55%,#1B1428 100%);color:#F3E8FF')}
+.pg-v-bparty .pg-bear,.pg-v-bballoons .pg-bear{width:190px;left:50%;bottom:22px;margin-left:-95px;animation:pgUp 1s .2s cubic-bezier(.2,.9,.3,1.35) both}
+.pg-v-bparty .pg-big26,.pg-v-bstars .pg-big26{left:0;right:0;top:40%;text-align:center;font:900 120px/1 var(--font-display,ui-rounded,system-ui,sans-serif);background:linear-gradient(135deg,#FFD6EC 0%,#F7A8CF 30%,#C9A8FF 65%,#9EE6E0 100%);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 6px 18px rgba(247,168,207,.45));animation:pgNum 1s .5s cubic-bezier(.2,.9,.3,1.4) both}
+.pg-v-bstars .pg-big26{top:46%;font-size:140px}
+@keyframes pgNum{from{transform:scale(.3) rotate(-12deg);opacity:0}to{transform:none;opacity:1}}
+.pg-v-bcake .pg-cake{width:250px;left:50%;margin-left:-125px;bottom:70px;animation:pgBoxIn .8s .15s cubic-bezier(.2,.9,.3,1.3) both}
+.pg-flame{animation:pgFlick .5s ease-in-out infinite alternate}
+.pg-f2{animation-delay:.25s}
+@keyframes pgFlick{from{transform:scale(.9,1.08) rotate(-3deg)}to{transform:scale(1.06,.92) rotate(3deg)}}
+.pg-out .pg-flame{animation:pgBlow .4s ease-in forwards}
+@keyframes pgBlow{to{transform:scale(0) translateY(-6px);opacity:0}}
+.pg-bln{bottom:-150px;width:var(--w,70px);animation:pgRiseB var(--d,3s) var(--dl,0s) cubic-bezier(.3,.6,.4,1) both}
+@keyframes pgRiseB{from{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-55vh) rotate(4deg)}to{transform:translateY(-120vh) rotate(-3deg)}}
+.pg-v-bballoons .pg-bear{bottom:-6px}
+.pg-v-bgift .pg-gift{width:190px;left:50%;margin-left:-95px;bottom:96px;animation:pgBoxIn .7s .1s cubic-bezier(.2,.9,.3,1.3) both}
+.pg-glid{transform-box:fill-box;transform-origin:50% 100%;animation:pgGLid .6s .8s cubic-bezier(.2,.9,.3,1.5) both}
+@keyframes pgGLid{to{transform:translateY(-34px) rotate(-14deg)}}
+.pg-v-bgift .pg-fly{bottom:210px}
+
 .pg-still,.pg-still *{animation-duration:.01s!important;animation-delay:0s!important;animation-iteration-count:1!important}
 `;
 
@@ -393,6 +539,34 @@ ${dk('.pg-rays', 'background:repeating-conic-gradient(from 0deg,rgba(255,220,245
         for (let i = 0; i < 10; i++) h += ico(i % 2 ? 'pg-spark2' : 'pg-spark', 'pg-sp', `left:${rnd(6, 90)}%;top:${rnd(30, 75)}%;--s:${rnd(10, 18)}px;--d:${rnd(1.2, 2)}s;--dl:${rnd(.8, 1.8)}s`);
         for (let i = 0; i < 6; i++) h += ico(g(i), 'pg-gm pg-sp', `left:${rnd(6, 88)}%;top:${rnd(64, 86)}%;--s:${rnd(14, 20)}px;--d:${rnd(1.6, 2.4)}s;--dl:${rnd(1, 1.8)}s`);
         return h;
+      // --- день рождения ---
+      case 'bparty':
+        h += '<div class="pg-a pg-big26" aria-hidden="true">26</div>';
+        for (let i = 0; i < 16; i++) { const a = (i / 16) * Math.PI * 2 + rnd(-.2, .2), r = rnd(120, 175); h += ico(g(i), 'pg-gm pg-burst', `--s:${rnd(16, 24)}px;--dx:${Math.cos(a) * r}px;--dy:${Math.sin(a) * r}px;--dl:${rnd(1.1, 1.4)}s;--r:${rnd(120, 360)}deg`); }
+        for (let i = 0; i < 8; i++) h += ico('pg-spark', 'pg-sp', `left:${rnd(6, 90)}%;top:${rnd(30, 62)}%;--s:${rnd(10, 18)}px;--d:${rnd(1.2, 2)}s;--dl:${rnd(.4, 1.6)}s`);
+        h += pic('0 0 120 120', 'pg-a pg-bear', BEAR + HAT);
+        return h;
+      case 'bstars':
+        for (let i = 0; i < 40; i++) h += `<i class="pg-a pg-dot" style="left:${rnd(0, 100)}%;top:${rnd(22, 92)}%;--s:${rnd(1.5, 3.2)}px;--d:${rnd(1.4, 2.6)}s;--dl:${rnd(0, 1.5)}s;animation:pgTw var(--d) var(--dl) ease-in-out infinite both"></i>`;
+        h += '<div class="pg-a pg-big26" aria-hidden="true">26</div>';
+        for (let i = 0; i < 7; i++) h += ico(i % 2 ? 'pg-spark2' : 'pg-spark', 'pg-sp', `left:${rnd(10, 85)}%;top:${rnd(40, 70)}%;--s:${rnd(12, 20)}px;--d:${rnd(1.2, 2)}s;--dl:${rnd(.6, 1.6)}s`);
+        return h;
+      case 'bcake':
+        for (let i = 0; i < 10; i++) h += ico(i % 2 ? 'pg-spark2' : 'pg-spark', 'pg-sp', `left:${rnd(6, 90)}%;top:${rnd(30, 58)}%;--s:${rnd(10, 18)}px;--d:${rnd(1.2, 2)}s;--dl:${rnd(.6, 1.6)}s`);
+        for (let i = 0; i < 6; i++) h += ico(g(i + 6), 'pg-gm pg-sp', `left:${rnd(6, 88)}%;top:${rnd(32, 56)}%;--s:${rnd(14, 20)}px;--d:${rnd(1.4, 2.2)}s;--dl:${rnd(.4, 1.2)}s`);
+        h += pic('0 0 200 200', 'pg-a pg-cake', CAKE);
+        return h;
+      case 'bballoons': {
+        const cols = ['#F7A8CF', '#C9A8FF', '#9EE6E0', '#FFE08A', '#FFC4A8', '#B8C1FF', '#FFB3D9'];
+        for (let i = 0; i < 16; i++) h += balloonSVG(cols[i % cols.length], `--x:${rnd(-6, 88).toFixed(1)}%;--w:${rnd(52, 84).toFixed(0)}px;--d:${rnd(2.8, 3.8).toFixed(2)}s;--dl:${rnd(0, 1.1).toFixed(2)}s`);
+        h += pic('0 0 120 120', 'pg-a pg-bear', BEAR + HAT);
+        return h;
+      }
+      case 'bgift':
+        for (let i = 0; i < 16; i++) { const a = Math.PI * (1.05 + (i / 15) * .9), r = rnd(110, 170); h += ico(g(i), 'pg-gm pg-fly', `--s:${rnd(18, 26)}px;--dx:${-Math.cos(a) * r}px;--dy:${Math.sin(a) * r * 1.2}px;--dl:${(1 + i * .05).toFixed(2)}s`); }
+        for (let i = 0; i < 8; i++) h += ico('pg-spark2', 'pg-sp', `left:${rnd(10, 85)}%;top:${rnd(35, 62)}%;--s:${rnd(10, 16)}px;--d:${rnd(1.2, 2)}s;--dl:${rnd(1, 2)}s`);
+        h += pic('0 0 160 150', 'pg-a pg-gift', GIFT);
+        return h;
     }
     return h;
   }
@@ -400,6 +574,7 @@ ${dk('.pg-rays', 'background:repeating-conic-gradient(from 0deg,rgba(255,220,245
   function hello(v, o) {
     const t = o.tod || todOf(), n = String(o.name || '').trim();
     const sub = typeof v.sub === 'string' ? v.sub : (v.sub[t] || Object.values(v.sub)[0]);
+    if (v.bday) return `<div class="pg-hello"><div class="pg-h">С днём рождения${n ? `,<br>${esc(n)}` : ''}!</div><div class="pg-s">${esc(sub)}</div></div>`;
     return `<div class="pg-hello"><div class="pg-h">${n ? `${GREET[t]},<br>${esc(n)}` : GREET[t] + '!'}</div><div class="pg-s">${esc(sub)}</div></div>`;
   }
 
@@ -435,21 +610,23 @@ ${dk('.pg-rays', 'background:repeating-conic-gradient(from 0deg,rgba(255,220,245
     if (current) current.kill();
     const host = o.container || document.body;
     const el = document.createElement('div');
-    el.className = 'pg pg-v-' + v.id + (o.container ? '' : ' pg-fixed');
+    el.className = 'pg pg-v-' + v.id + (v.bday ? ' pg-bday' : '') + (o.container ? '' : ' pg-fixed');
     el.setAttribute('aria-hidden', 'true');
     el.innerHTML = scene(v.id) + hello(v, o);
     host.appendChild(el);
     const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (reduce) el.classList.add('pg-still');
     const untint = o.container ? () => {} : barTint(getComputedStyle(el).getPropertyValue('--pg-top').trim());
+    const dur = reduce ? 1400 : (o.duration || v.dur || DUR);
+    const fwStop = v.fw ? fireworks(el, Object.assign({ dur: dur / 1000 + .4 }, v.fw)) : () => {};
     let done = false, t2 = null;
-    const kill = () => { clearTimeout(t1); clearTimeout(t2); el.remove(); untint(); if (current && current.el === el) current = null; };
+    const kill = () => { clearTimeout(t1); clearTimeout(t2); fwStop(); el.remove(); untint(); if (current && current.el === el) current = null; };
     const finish = () => {
       if (done) return; done = true; clearTimeout(t1);
       el.classList.add('pg-out');
       t2 = setTimeout(() => { kill(); o.onDone && o.onDone(); }, reduce ? 50 : OUT);
     };
-    const t1 = setTimeout(finish, reduce ? 1400 : (o.duration || DUR));
+    const t1 = setTimeout(finish, dur);
     el.addEventListener('click', finish);
     current = { el, finish, kill, id: v.id };
     return current;
@@ -476,6 +653,18 @@ ${dk('.pg-rays', 'background:repeating-conic-gradient(from 0deg,rgba(255,220,245
   }
   function maybe() {
     const p = prefs();
+    if (bdayToday()) {
+      // день рождения: заставка при каждом входе (не чаще раза в минуту), даже если приветствие выключено
+      const first = p.bdayFirst !== BDAY.key;
+      if (!first && Date.now() - (p.last || 0) < BDAY_GAP) return false;
+      let id;
+      if (first) { id = 'bparty'; p.bdayFirst = BDAY.key; p.bdayI = 0; }
+      else { id = BDAY_ROT[(p.bdayI || 0) % BDAY_ROT.length]; p.bdayI = (p.bdayI || 0) + 1; }
+      p.last = Date.now();
+      if (!setPrefs(p)) return false;
+      play(id, { name: p.name, duration: first ? 5600 : 3600 });
+      return true;
+    }
     if (!due(p)) return false;
     const t = todOf(), id = pick(p, t);
     p.last = Date.now();
@@ -486,7 +675,7 @@ ${dk('.pg-rays', 'background:repeating-conic-gradient(from 0deg,rgba(255,220,245
   let preview = 0;
   function showNext() { const p = prefs(); const v = V[preview++ % V.length]; play(v.id, { name: p.name }); return v; }
 
-  window.PorciaGreet = { V, play, prefs, setPrefs, maybe, showNext, todOf, GAP, EVERY };
+  window.PorciaGreet = { V, BV, BDAY, bdayToday, confetti, play, prefs, setPrefs, maybe, showNext, todOf, GAP, EVERY };
 
   // Автозапуск только внутри приложения (на демо-странице его нет)
   if (document.documentElement.hasAttribute('data-porcia')) {
@@ -495,7 +684,7 @@ ${dk('.pg-rays', 'background:repeating-conic-gradient(from 0deg,rgba(255,220,245
     let hiddenAt = 0;
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) { hiddenAt = Date.now(); return; }
-      if (hiddenAt && Date.now() - hiddenAt >= GAP) { try { maybe(); } catch (e) { /* ничего */ } }
+      if (hiddenAt && Date.now() - hiddenAt >= (bdayToday() ? BDAY_GAP : GAP)) { try { maybe(); } catch (e) { /* ничего */ } }
     });
   }
 })();
