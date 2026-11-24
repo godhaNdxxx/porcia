@@ -167,7 +167,7 @@
   // ---------- Оформление 1.8: лента недели, плитки макросов, карточки приёмов, цель по весу ----------
   const ND = () => true;
   const DZ = () => true;
-  const APP_VER = '1.16.0';
+  const APP_VER = '1.17.0';
   const svgI = d => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
   const MEAL_IC = {
     b: svgI('<path d="M5 9h11v5a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5z"/><path d="M16 10h1.5a2.5 2.5 0 0 1 0 5H16"/><path d="M8.5 3.5c0 1 1 1.5 1 2.6M12.5 3.5c0 1 1 1.5 1 2.6"/>'),
@@ -626,6 +626,12 @@
   // Пункты по версиям: показываем всё, что вышло после той версии, которую она видела последней
   // (если обновление пропустила — увидит пункты сразу за несколько версий). Новые версии — сверху.
   const WHATS_NEW_BY = [
+    ['1.17.0', [
+      ['✅', 'Новая вкладка «Привычки»', 'добавляй свои: витамины, растяжку, книгу — и отмечай каждый день. Каждая отметка — стразик в шкатулку'],
+      ['🎛', 'Как тебе удобно', 'каждый день, по дням недели, N раз в неделю или раз в N дней. Галочкой, счётчиком, таймером или «держалась»'],
+      ['📊', 'Неделя и год', 'отчёт за неделю, год в квадратиках и карточка каждой привычки с сериями и календарём'],
+      ['🌙', 'Пауза без вины', 'заболела или в отпуске — поставь паузу, серия не сгорит'],
+    ]],
     ['1.16.0', [
       ['🎂', 'Праздник!', 'сегодня всё приложение празднует твой день рождения: каждый вход — новая праздничная заставка'],
     ]],
@@ -779,7 +785,7 @@
   }
 
   // ---------- Анимация переходов ----------
-  const TAB_ORDER = ['today', 'act', 'body', 'diary', 'sudoku', 'more'];
+  const TAB_ORDER = ['today', 'act', 'body', 'habits', 'diary', 'sudoku', 'more'];
   // «Вес и замеры» открывается из «Активности», поэтому подсвечивается её вкладка
   const TAB_OF = { body: 'act' };
   const ANIM = ['from-r', 'from-l', 'day-r', 'day-l'];
@@ -808,6 +814,7 @@
     else if (ui.view === 'act') renderAct();
     else if (ui.view === 'sudoku') renderSudoku();
     else if (ui.view === 'body') renderBody();
+    else if (ui.view === 'habits') renderHabits();
     else renderMore();
     if (viewChanged) playEnter($('#v-' + ui.view), TAB_ORDER.indexOf(ui.view) > TAB_ORDER.indexOf(prevScreen.view) ? 'from-r' : 'from-l');
     else if (dayChanged) playEnter($('#v-' + ui.view), ui.day > prevScreen.day ? 'day-r' : 'day-l');
@@ -826,6 +833,7 @@
     $('#foodLbl').textContent = ui.day === t ? 'Что съела?' : ui.day === addDays(t, -1) ? 'Что съела вчера?' : 'Что съела ' + fmtLong(ui.day) + '?';
     renderSummary();
     renderWater();
+    renderHabMini();
     renderActMini();
     renderTips();
     renderMeals();
@@ -995,6 +1003,7 @@
     wl.classList.toggle('done', done);
     el.querySelector('[data-act="water-minus"]').disabled = ml <= 0;
     el.querySelector('[data-act="water-plus"]').disabled = ml >= 20000;
+    renderHabMini(); // привычка «Вода» отмечается сама — сводка привычек обновляется вместе с водой
   }
   function waterCommit(base, adds) {
     const plan = waterPlan(); if (!plan) return;
@@ -1896,20 +1905,375 @@
 
 
   // ---------- Шкатулка со стразиками ----------
-  function gemsTotal() { return Object.values(S.act).reduce((s, a) => s + ((a && a.w) || []).length, 0); }
-  function gemsWeek(d) { const ws = weekStart(d); let n = 0; for (let i = 0; i < 7; i++) n += actDay(addDays(ws, i)).w.length; return n; }
+  // в шкатулке — стразики за тренировки и за привычки
+  function gemsTotal() { return Object.values(S.act).reduce((s, a) => s + ((a && a.w) || []).length, 0) + habitGems(); }
+  function gemsWeek(d) { const ws = weekStart(d); let n = 0; for (let i = 0; i < 7; i++) n += actDay(addDays(ws, i)).w.length; return n + habitGems(ws, addDays(ws, 6)); }
   const gemWord = n => plural(n, 'стразик', 'стразика', 'стразиков');
   function renderGems() {
     const total = gemsTotal(); const wk = gemsWeek(today());
-    const shown = Math.min(wk, 14);
-    const weekIds = []; const ws0 = weekStart(today());
-    for (let i = 0; i < 7; i++) actDay(addDays(ws0, i)).w.forEach(w => weekIds.push(w.id));
+    const ws0 = weekStart(today()), gemsHtml = [];
+    for (let i = 0; i < 7; i++) actDay(addDays(ws0, i)).w.forEach(w => gemsHtml.push(gemOf(w.id)));
+    habitGemColors(ws0, addDays(ws0, 6)).forEach(c => gemsHtml.push(gemC(c)));
+    const shown = Math.min(gemsHtml.length, 14);
     $('#actGems').innerHTML = `<div class="gembox"><svg class="gem gembig" viewBox="0 0 24 24" aria-hidden="true"><use href="#gem"/></svg>
       <div><div><span class="baseline-big">${total}</span> <span class="muted">${gemWord(total)} в шкатулке</span></div>
-      <div class="small muted">${wk ? `На этой неделе: +${wk}` : 'За каждую тренировку — стразик'}</div></div></div>
-      ${shown ? `<div class="gemrow" aria-hidden="true">${weekIds.slice(0, shown).map(id => gemOf(id)).join('')}${wk > shown ? `<span class="small muted">+${wk - shown}</span>` : ''}</div>` : ''}`;
+      <div class="small muted">${wk ? `На этой неделе: +${wk}` : 'За тренировки и привычки — стразики'}</div></div></div>
+      ${shown ? `<div class="gemrow" aria-hidden="true">${gemsHtml.slice(0, shown).join('')}${gemsHtml.length > shown ? `<span class="small muted">+${gemsHtml.length - shown}</span>` : ''}</div>` : ''}`;
   }
   function gemToast(id) { const n = gemsTotal(); toast(`+1 стразик · всего ${n}`, null, id || true); }
+
+  // ---------- Привычки ----------
+  // S.habits — список привычек; S.hlog[id][день] — отметка (true или число: раза / минуты); S.htime[id][день] — час отметки.
+  // Вода и шаги не хранятся отдельно: привычка «отмечается сама», когда выполнена цель в карточке воды или шагов.
+  // Удалённая привычка только прячется (archived), чтобы её стразики остались в шкатулке.
+  const HB_TOD = [['morning', 'Утро'], ['day', 'День'], ['evening', 'Вечер'], ['any', 'В любое время']];
+  const HB_COL = { '': '#F3A9D0', '-lilac': '#C6A6FF', '-blue': '#94C8F5', '-mint': '#86DDBE', '-gold': '#F6CC62', '-ruby': '#F38FA4', '-peach': '#FFC4A8', '-peri': '#B8C1FF', '-aqua': '#9EE6E0', '-opal': '#E6DCFF', '-candy': '#E8C6FF', '-champ': '#F2D7B6', '-orchid': '#DDB1F4', '-coral': '#FFB3A7' };
+  const HB_WD = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'], HB_WDs = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'];
+  const HB_WDL = ['понедельник', 'вторник', 'среду', 'четверг', 'пятницу', 'субботу', 'воскресенье'];
+  const HB_MON = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
+  const HB_MONL = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'];
+  const gemC = (c, style) => `<svg class="gem" viewBox="0 0 24 24" aria-hidden="true"${style ? ` style="${style}"` : ''}><use href="#gem${c || ''}"/></svg>`;
+  const hbChev = d => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="${d}"/></svg>`;
+  function hbStore() { if (!Array.isArray(S.habits)) S.habits = []; if (!S.hlog || typeof S.hlog !== 'object') S.hlog = {}; if (!S.htime || typeof S.htime !== 'object') S.htime = {}; }
+  function hbList() { hbStore(); return S.habits.filter(h => !h.archived); }
+  function hbFind(id) { hbStore(); return S.habits.find(h => h.id === id); }
+  function hbLog(h) { hbStore(); return S.hlog[h.id] || (S.hlog[h.id] = {}); }
+  const hbWd = d => (toDate(d).getDay() + 6) % 7;
+  function hbFull(h) { return h.type === 'count' || h.type === 'timer' ? h.target : true; }
+  function hbAutoGoal(h) { if (h.src === 'steps') return S.settings.stepGoal || 0; const p = waterPlan(); return p ? p.goal : 0; }
+  function hbVal(h, d) { if (h.type === 'auto') return h.src === 'steps' ? (actDay(d).steps || 0) : waterMl(d); return (S.hlog[h.id] || {})[d]; }
+  function hbDone(h, d) { const v = hbVal(h, d); if (h.type === 'auto') { const g = hbAutoGoal(h); return !!g && v >= g; } if (h.type === 'count' || h.type === 'timer') return (+v || 0) >= h.target; return !!v; }
+  function hbFrac(h, d) { const v = +hbVal(h, d) || 0; if (h.type === 'auto') { const g = hbAutoGoal(h); return g ? Math.min(1, v / g) : 0; } if (h.type === 'count' || h.type === 'timer') return Math.min(1, v / h.target); return hbVal(h, d) ? 1 : 0; }
+  function hbWeekCount(h, d) { const ws = weekStart(d); let n = 0; for (let i = 0; i < 7; i++) { const x = addDays(ws, i); if (x <= d && hbDone(h, x)) n++; } return n; }
+  function hbPaused(h, d) { return !!(h.paused && h.paused <= d); }
+  function hbDue(h, d, past) {
+    if (d < h.start || hbPaused(h, d)) return false;
+    const s = h.sched;
+    if (s.k === 'days') return (s.days || []).includes(hbWd(d));
+    if (s.k === 'every') { const n = daysBetween(s.from || h.start, d); return n >= 0 && n % s.n === 0; }
+    if (s.k === 'weekly') return past ? true : hbWeekCount(h, addDays(d, -1)) < s.n || hbDone(h, d);
+    return true;
+  }
+  // что показывать в выбранный день: для «N раз в неделю» сегодня прячем, если план недели уже выполнен
+  function hbDueOn(d) { const t = today(); return hbList().filter(h => hbDue(h, d, d !== t) && !(d === t && h.sched.k === 'weekly' && hbWeekCount(h, addDays(t, -1)) >= h.sched.n && !hbDone(h, d))); }
+  function hbSchedText(h) {
+    const s = h.sched;
+    if (s.k === 'days') return s.days.length === 7 ? 'каждый день' : s.days.map(i => HB_WDs[i]).join(', ');
+    if (s.k === 'weekly') return `${s.n} ${plural(s.n, 'раз', 'раза', 'раз')} в неделю`;
+    if (s.k === 'every') return s.n === 2 ? 'через день' : `раз в ${s.n} ${plural(s.n, 'день', 'дня', 'дней')}`;
+    return 'каждый день';
+  }
+  function hbTypeText(h) {
+    if (h.type === 'count') return `${h.target} ${h.unit || ''}`.trim();
+    if (h.type === 'timer') return `${h.target} мин`;
+    if (h.type === 'quit') return 'держаться';
+    if (h.type === 'auto') return 'отмечается сама';
+    return '';
+  }
+  // «Сила привычки», как в Loop: каждый плановый день немного сдвигает её к 100 % или к 0 — один пропуск не обнуляет
+  function hbStrength(h) {
+    const t = today();
+    if (h.sched.k === 'weekly') { let s = 0; const ws = weekStart(t); for (let w = 12; w >= 1; w--) { const end = addDays(ws, -7 * w + 6); if (end < h.start) continue; s = s * .75 + .25 * Math.min(1, hbWeekCount(h, end) / h.sched.n); } s = s * .85 + .15 * Math.min(1, hbWeekCount(h, t) / h.sched.n); return Math.round(s * 100); }
+    let s = 0;
+    for (let i = 90; i >= 0; i--) { const d = addDays(t, -i); if (i === 0 && !hbDone(h, d)) continue; if (!hbDue(h, d, true)) continue; s = s * .9 + .1 * hbFrac(h, d); }
+    return Math.round(s * 100);
+  }
+  function hbWeeks(h, best) {
+    const t = today(), ws = weekStart(t); let run = hbWeekCount(h, t) >= h.sched.n ? 1 : 0, top = run;
+    for (let w = 1; w < 60; w++) { const end = addDays(ws, -7 * w + 6); if (end < h.start) break; if (hbWeekCount(h, end) >= h.sched.n) { run++; top = Math.max(top, run); } else { if (!best) return run; run = 0; } }
+    return best ? top : run;
+  }
+  function hbStreak(h) {
+    if (h.sched.k === 'weekly') return hbWeeks(h, false);
+    const t = today(); let n = 0;
+    for (let i = 0; i < 400; i++) { const d = addDays(t, -i); if (d < h.start) break; if (!hbDue(h, d, true)) continue; if (hbDone(h, d)) n++; else if (i === 0) continue; else break; }
+    return n;
+  }
+  function hbBest(h) {
+    if (h.sched.k === 'weekly') return hbWeeks(h, true);
+    const t = today(), n0 = Math.min(400, Math.max(0, daysBetween(h.start, t))); let run = 0, top = 0;
+    for (let i = n0; i >= 0; i--) { const d = addDays(t, -i); if (!hbDue(h, d, true)) continue; if (hbDone(h, d)) { run++; top = Math.max(top, run); } else if (i > 0) run = 0; }
+    return top;
+  }
+  const hbUnit = h => h.sched.k === 'weekly' ? 'нед.' : 'дн.';
+  function hbDoneDays(h) {
+    if (h.type === 'auto') return Object.keys(h.src === 'steps' ? (S.act || {}) : (S.water || {})).filter(d => d >= h.start && hbDone(h, d));
+    return Object.keys(S.hlog[h.id] || {}).filter(d => hbDone(h, d));
+  }
+  // стразики за привычки: по одному за каждое выполнение и бонус за выполненный план недели
+  function habitGems(from, to) {
+    hbStore(); let n = 0;
+    S.habits.forEach(h => {
+      const days = hbDoneDays(h).filter(d => (!from || d >= from) && (!to || d <= to)); n += days.length;
+      if (h.sched.k === 'weekly') { const wk = {}; days.forEach(d => { const w = weekStart(d); wk[w] = (wk[w] || 0) + 1; }); n += Object.values(wk).filter(c => c >= h.sched.n).length; }
+    });
+    return n;
+  }
+  function habitGemColors(from, to) { const out = []; hbStore(); S.habits.forEach(h => hbDoneDays(h).forEach(d => { if (d >= from && d <= to) out.push(h.c); })); return out; }
+
+  function hbFly(from, c) {
+    const target = $('#habBox');
+    if (!from || !from.isConnected || !target || calm()) return;
+    const a = from.getBoundingClientRect(), b = target.getBoundingClientRect();
+    const el = document.createElement('div'); el.className = 'hab-fly'; el.innerHTML = gemC(c, 'width:22px;height:22px');
+    el.style.left = (a.left + a.width / 2 - 11) + 'px'; el.style.top = (a.top + a.height / 2 - 11) + 'px';
+    document.body.appendChild(el);
+    requestAnimationFrame(() => requestAnimationFrame(() => { el.style.transform = `translate(${b.left + b.width / 2 - a.left - a.width / 2}px, ${b.top + b.height / 2 - a.top - a.height / 2}px) scale(.8)`; el.style.opacity = '.4'; }));
+    setTimeout(() => { el.remove(); target.classList.remove('pop'); void target.offsetWidth; target.classList.add('pop'); }, 700);
+  }
+  // отметка за день: стразик за выполнение, бонус за недельный план
+  function hbSet(h, d, v, from) {
+    const was = hbDone(h, d), we = addDays(weekStart(d), 6), wasWeek = h.sched.k === 'weekly' && hbWeekCount(h, we) >= h.sched.n;
+    const L = hbLog(h);
+    if (v === 0 || v === false || v == null) { delete L[d]; if (S.htime[h.id]) delete S.htime[h.id][d]; }
+    else { L[d] = v; if (!S.htime[h.id]) S.htime[h.id] = {}; if (S.htime[h.id][d] == null) S.htime[h.id][d] = d === today() ? new Date().getHours() : ({ morning: 9, day: 14, evening: 20, any: 13 })[h.tod] || 13; }
+    save();
+    const now = hbDone(h, d);
+    if (!was && now) { hbFly(from, h.c); toast(`+1 стразик · ${h.name}`, null, { c: h.c }); }
+    if (h.sched.k === 'weekly' && !wasWeek && hbWeekCount(h, we) >= h.sched.n) setTimeout(() => toast(`Бонус за план недели · ${h.name}`, null, { c: '-gold' }), 1100);
+    render();
+  }
+
+  // ---------- Вкладка «Привычки» ----------
+  function hbRingSvg(f, size, r, w, color) { const C = 2 * Math.PI * r; return `<svg viewBox="0 0 ${size} ${size}"><circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="var(--track)" stroke-width="${w}"/>${f > 0 ? `<circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="${color || 'var(--accent)'}" stroke-width="${w}" stroke-linecap="round" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${(C * (1 - Math.min(1, f))).toFixed(1)}"/>` : ''}</svg>`; }
+  function hbDayFrac(d) { const due = hbDueOn(d); return due.length ? due.reduce((s, h) => s + hbFrac(h, d), 0) / due.length : 0; }
+  function renderHabits() {
+    hbStore();
+    const t = today();
+    if (ui.hbFollow !== false || !ui.hbDay || ui.hbDay > t) ui.hbDay = t;
+    if (!ui.hbMode) ui.hbMode = 'day';
+    const list = hbList();
+    // в начале недели отчёт открывается на прошлой (полной) — если привычки тогда уже были
+    if (ui.hbRep == null) ui.hbRep = hbWd(t) <= 2 && list.some(h => h.start < weekStart(t)) ? -1 : 0;
+    $('#habBox').innerHTML = `${gemC('')}<span>${gemsTotal()}</span>`;
+    const has = list.length > 0;
+    $('#habTabs').hidden = !has;
+    $('#habTabs').innerHTML = [['day', 'День'], ['week', 'Неделя'], ['year', 'Год']].map(([k, n]) => `<button data-act="hb-mode" data-m="${k}" aria-pressed="${ui.hbMode === k}">${n}</button>`).join('');
+    const wk = $('#habWeek'); wk.hidden = !has || ui.hbMode !== 'day';
+    if (!wk.hidden) {
+      const ws = weekStart(ui.hbDay);
+      wk.innerHTML = [0, 1, 2, 3, 4, 5, 6].map(i => { const d = addDays(ws, i), f = d > t ? 0 : hbDayFrac(d);
+        return `<button class="wsd${d === ui.hbDay ? ' sel' : ''}${d === t ? ' now' : ''}" data-act="hb-day" data-day="${d}" ${d > t ? 'disabled' : ''} aria-label="${fmtDay(d)}"><span class="wd">${HB_WD[i]}</span><span class="wr">${hbRingSvg(f, 32, 13, 3)}<b class="num">${toDate(d).getDate()}</b></span></button>`; }).join('');
+    }
+    const body = $('#habBody');
+    if (!has) { body.innerHTML = hbEmpty(); return; }
+    body.innerHTML = ui.hbMode === 'week' ? hbWeekHTML() : ui.hbMode === 'year' ? hbYearHTML() : hbDayHTML();
+  }
+  function hbTplList() {
+    const L = HB_TPL.slice();
+    if (waterPlan()) L.unshift({ name: 'Вода', emo: '💧', c: '-blue', type: 'auto', src: 'water', sched: { k: 'daily' }, tod: 'any' });
+    if (S.settings.stepGoal) L.splice(1, 0, { name: 'Шаги', emo: '👟', c: '-aqua', type: 'auto', src: 'steps', sched: { k: 'daily' }, tod: 'any' });
+    return L;
+  }
+  function hbEmpty() {
+    return `<div class="card hab-empty">${bearSvg()}<h2>Здесь будут твои привычки</h2>
+      <p class="small muted" style="margin:0">Отмечай их каждый день — за каждую отметку стразик в шкатулку, а за неделю по плану ещё бонусный.</p>
+      <div class="hab-tpls">${hbTplList().slice(0, 7).map((p, i) => `<button class="hab-tpl" data-act="hb-quick" data-v="${i}">${p.emo} ${esc(p.name)}</button>`).join('')}</div>
+      <button class="btn block" style="margin-top:8px" data-act="hb-new">Своя привычка</button></div>`;
+  }
+  function hbRow(h, d) {
+    const f = hbFrac(h, d), done = hbDone(h, d), v = +hbVal(h, d) || 0, t = today();
+    let right = '';
+    if (h.type === 'check' || h.type === 'quit') right = `<span class="chk">${done ? hbChev('M5 12.5l4.5 4.5L19 7.5') : ''}</span>`;
+    else if (h.type === 'count') right = `<span class="v num">${v}/${h.target}</span>`;
+    else if (h.type === 'timer') right = `<span class="v num">${done ? '✓ ' + h.target : v ? v + '/' + h.target : '▶ ' + h.target} мин</span>`;
+    else if (h.type === 'auto') right = `<span class="v num">${done ? '✓' : h.src === 'steps' ? nf(v) : nf(v) + ' мл'}</span>`;
+    const parts = [];
+    if (h.type === 'quit') parts.push(done ? 'держалась' : 'держалась сегодня?');
+    else if (h.type === 'auto') { const g = hbAutoGoal(h); parts.push(done ? 'цель выполнена' : g ? `из ${nf(g)} ${h.src === 'steps' ? 'шагов' : 'мл'} · отметится сама` : 'задай цель в настройках'); }
+    else if (hbTypeText(h)) parts.push(hbTypeText(h));
+    parts.push(h.sched.k === 'weekly' ? `${hbWeekCount(h, d)} из ${h.sched.n} на неделе` : hbSchedText(h));
+    if (d === t) { const st = hbStreak(h); if (st >= 2) parts.push(`${st} ${hbUnit(h)} подряд`); }
+    return `<div class="hab-row${done ? ' done' : ''}" style="--hc:${HB_COL[h.c] || HB_COL['']};--f:${f.toFixed(3)}" data-act="hb-tap" data-id="${h.id}" role="button" tabindex="0" aria-label="${esc(h.name)}: ${done ? 'сделано' : 'отметить'}"><span class="ico">${h.emo}</span><span><div class="nm">${esc(h.name)}</div><div class="sub">${parts.join(' · ')}</div></span>${right}<button class="more" data-act="hb-detail" data-id="${h.id}" aria-label="Статистика: ${esc(h.name)}">${hbChev('M9 5l7 7-7 7')}</button></div>`;
+  }
+  function hbDayHTML() {
+    const d = ui.hbDay, t = today(), due = hbDueOn(d), done = due.filter(h => hbDone(h, d)).length;
+    let html = `<div class="card hab-sum"><div class="hab-ring">${hbRingSvg(due.length ? done / due.length : 0, 48, 20, 5)}<b>${done}/${due.length}</b></div><div><div class="t">${due.length && done === due.length ? 'Всё сделано! 🎉' : d === t ? `Осталось ${due.length - done}` : fmtDay(d)}</div><div class="s">${d === t ? 'нажми на привычку — отметка и стразик' : 'можно отметить задним числом'}</div></div></div>`;
+    HB_TOD.forEach(([k, n]) => { const L = due.filter(h => (h.tod || 'any') === k); if (L.length) html += `<div class="hab-grp"><span>${n}</span>${L.map(h => hbRow(h, d)).join('')}</div>`; });
+    const not = hbList().filter(h => !due.includes(h));
+    if (not.length) html += `<div class="hab-not">Не в этот день: ${not.map(h => `${h.emo} ${esc(h.name)}${hbPaused(h, d) ? ' — пауза' : h.sched.k === 'weekly' && d === t ? ' — план недели готов' : ''}`).join(', ')}</div>`;
+    return html;
+  }
+  function hbWeekHTML() {
+    const t = today(), ws = addDays(weekStart(t), 7 * ui.hbRep), we = addDays(ws, 6), fresh = ui.hbRep === 0, list = hbList();
+    let cells = `<span></span>${HB_WD.map(n => `<span class="h">${n}</span>`).join('')}`, due = 0, dn = 0; const per = [0, 0, 0, 0, 0, 0, 0];
+    list.forEach(h => {
+      cells += `<span class="n">${h.emo}<span>${esc(h.name)}</span></span>`;
+      for (let i = 0; i < 7; i++) {
+        const d = addDays(ws, i), fut = d > t, isD = hbDue(h, d, true), ok = hbDone(h, d);
+        if (!fut && isD && h.sched.k !== 'weekly' && (d < t || ok)) { due++; if (ok) dn++; }
+        if (ok) per[i]++;
+        const cls = fut ? 'fut' : ok ? 'on' : hbFrac(h, d) > 0 ? 'part' : isD && h.sched.k !== 'weekly' && d < t ? 'miss' : isD ? '' : 'no';
+        cells += `<i class="${cls}${d === t ? ' today' : ''}" style="--hc:${HB_COL[h.c] || HB_COL['']}"></i>`;
+      }
+    });
+    list.filter(h => h.sched.k === 'weekly').forEach(h => { const c = Math.min(h.sched.n, hbWeekCount(h, we)); due += fresh ? c : h.sched.n; dn += c; });
+    const pct = due ? Math.round(dn / due * 100) : 0, total = per.reduce((a, b) => a + b, 0), best = per.indexOf(Math.max(...per));
+    const daily = list.filter(h => h.sched.k !== 'weekly'), bs = daily.length ? Math.max(...daily.map(hbBest)) : 0, bsH = daily.find(h => hbBest(h) === bs);
+    const gw = habitGems(ws, we);
+    const note = fresh && hbWd(t) <= 3 ? `Неделя только началась — уже ${total} ${plural(total, 'отметка', 'отметки', 'отметок')}. Всё впереди, я рядом 💜`
+      : !total ? 'На этой неделе отметок нет — ничего страшного. Начнём с одной маленькой привычки 💜'
+      : pct >= 80 ? `Неделя на ${pct}% — ты огонь! Лучше всего получилось в ${HB_WDL[best]}.` : pct >= 50 ? `Больше половины плана — это уже победа. В ${HB_WDL[best]} у тебя лучше всего получается 💜` : 'Неделя была непростой — ничего страшного. Начнём заново, я рядом 💜';
+    const title = fresh ? 'Эта неделя' : ui.hbRep === -1 ? 'Прошлая неделя' : `${fmtShort(ws)} — ${fmtShort(we)}`;
+    return `<div class="card"><div class="hab-nav"><button data-act="hb-wk" data-d="-1" ${ui.hbRep <= -52 ? 'disabled' : ''} aria-label="Прошлая неделя">${hbChev('M15 5l-7 7 7 7')}</button><b>${title}</b><button data-act="hb-wk" data-d="1" ${fresh ? 'disabled' : ''} aria-label="Следующая неделя">${hbChev('M9 5l7 7-7 7')}</button></div><div class="hab-rep">${cells}</div></div>
+      <div class="hab-kpi">
+        <div><span class="em">🎯</span><b class="num">${pct}<small>%</small></b><span>выполнено по плану</span></div>
+        <div><span class="em">💎</span><b class="num">${gw}</b><span>${plural(gw, 'стразик', 'стразика', 'стразиков')} за неделю</span></div>
+        <div><span class="em">🌟</span><b>${total ? HB_WD[best] : '—'}</b><span>лучший день недели</span></div>
+        <div><span class="em">🔥</span><b class="num">${bs}<small> дн.</small></b><span>лучшая серия${bsH ? ': ' + esc(bsH.name).toLowerCase() : ''}</span></div>
+      </div>
+      <div class="card hab-note">${bearSvg()}<span>${note}</span></div>`;
+  }
+  function hbHeat(h, weeks) {
+    const t = today(), start = addDays(weekStart(t), -7 * (weeks - 1)), col = HB_COL[h.c] || HB_COL[''];
+    let cells = '', labs = '', lastM = -1;
+    for (let w = 0; w < weeks; w++) {
+      const d0 = addDays(start, w * 7), dd = toDate(d0);
+      labs += `<span>${dd.getDate() <= 7 && dd.getMonth() !== lastM ? HB_MON[dd.getMonth()] : ''}</span>`; if (dd.getDate() <= 7) lastM = dd.getMonth();
+      for (let i = 0; i < 7; i++) { const d = addDays(d0, i); if (d > t) { cells += '<i class="e"></i>'; continue; } const f = d < h.start ? 0 : hbFrac(h, d); cells += `<i${f ? ` style="background:color-mix(in srgb, ${col} ${Math.round(35 + f * 65)}%, var(--surface-2))"` : ''}></i>`; }
+    }
+    return `<div class="hab-ml" style="grid-template-columns:repeat(${weeks},minmax(0,1fr))">${labs}</div><div class="hab-hm" style="grid-template-columns:repeat(${weeks},minmax(0,1fr))">${cells}</div>`;
+  }
+  function hbYearHTML() {
+    const t = today(), y0 = t.slice(0, 4) + '-01-01', list = hbList();
+    const total = list.reduce((s, h) => s + hbDoneDays(h).filter(d => d >= y0).length, 0);
+    return `<div class="card"><div class="hab-yhead"><b class="num">${t.slice(0, 4)}</b><span>в квадратиках</span></div><div class="small muted" style="margin-top:4px">${nf(total)} ${plural(total, 'отметка', 'отметки', 'отметок')} за год — каждая клеточка твоя 💜</div></div>
+      ${list.map(h => `<button class="card hab-yh" data-act="hb-detail" data-id="${h.id}"><span class="t">${h.emo} ${esc(h.name)}<small>${hbDoneDays(h).filter(d => d >= y0).length} за год · сила ${hbStrength(h)}%</small></span>${hbHeat(h, 48)}</button>`).join('')}`;
+  }
+  function renderHabMini() {
+    const el = $('#habMini'); if (!el) return;
+    const list = hbList();
+    if (!list.length || ui.day !== today()) { el.innerHTML = ''; return; }
+    const due = hbDueOn(today()), done = due.filter(h => hbDone(h, today())).length;
+    el.innerHTML = `<button class="actmini" data-act="hb-open"><span class="wic" style="font-size:17px">${due.slice(0, 1).map(h => h.emo).join('') || '✨'}</span><span>${due.length ? `Привычки: <b>${done} из ${due.length}</b>${done === due.length ? ' · всё сделано 🎉' : ''}` : 'Привычки: сегодня отдыхаем'}</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>`;
+  }
+
+  // ---------- Карточка привычки ----------
+  function hbDetail(id, keep) {
+    const h = hbFind(id); if (!h) return;
+    const t = today(), col = HB_COL[h.c] || HB_COL[''];
+    if (!keep || !ui.hbCal) ui.hbCal = t.slice(0, 8) + '01';
+    const m0 = ui.hbCal, md = toDate(m0), y = md.getFullYear(), m = md.getMonth(), days = new Date(y, m + 1, 0).getDate();
+    let cal = HB_WD.map(n => `<span class="h">${n}</span>`).join('') + '<span class="x"></span>'.repeat(hbWd(m0)); let mDone = 0;
+    for (let i = 1; i <= days; i++) {
+      const d = m0.slice(0, 8) + z(i), fut = d > t, pre = d < h.start, ok = hbDone(h, d); if (ok) mDone++;
+      const cls = fut || pre ? '' : hbPaused(h, d) ? 'pause' : ok ? 'on' : hbFrac(h, d) > 0 ? 'part' : hbDue(h, d, true) && d < t && h.sched.k !== 'weekly' ? 'miss' : '';
+      cal += `<button class="${cls}${d === t ? ' today' : ''}" data-act="hb-cal" data-id="${h.id}" data-day="${d}" ${fut || pre || h.type === 'auto' ? 'disabled' : ''} aria-label="${i} ${HB_MONL[m]}${ok ? ', сделано' : ''}">${i}</button>`;
+    }
+    const months = []; for (let i = 11; i >= 0; i--) { const x = new Date(toDate(t).getFullYear(), toDate(t).getMonth() - i, 1, 12); months.push(iso(x).slice(0, 7)); }
+    const doneDays = hbDoneDays(h), mc = months.map(mm => doneDays.filter(d => d.startsWith(mm)).length), mx = Math.max(1, ...mc);
+    const tb = [0, 0, 0, 0]; Object.entries(S.htime[h.id] || {}).forEach(([d, hr]) => { if (hbDone(h, d)) tb[hr < 12 ? 0 : hr < 17 ? 1 : hr < 22 ? 2 : 3]++; });
+    const tt = tb.reduce((a, b) => a + b, 0);
+    const prevOk = m0 > h.start.slice(0, 8) + '01', nextOk = m0 < t.slice(0, 8) + '01';
+    openSheet(`<div class="hab-d" style="--hc:${col}">
+      <div class="hab-dh"><span class="ico">${h.emo}</span><div><h2>${esc(h.name)}</h2><div class="sub">${[hbTypeText(h), hbSchedText(h), ((HB_TOD.find(x => x[0] === h.tod) || [])[1] || '').toLowerCase()].filter(Boolean).join(' · ')}${h.paused ? ' · на паузе' : ''}</div></div><button class="iconbtn" data-act="hb-edit" data-id="${h.id}" aria-label="Изменить привычку"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg></button></div>
+      <div class="hab-tiles">
+        <div class="hab-tile"><div class="tt"><b class="num">${hbStrength(h)}<small>%</small></b><i>💪</i></div><span>сила привычки</span></div>
+        <div class="hab-tile"><div class="tt"><b class="num">${doneDays.length}</b><i>✅</i></div><span>всего выполнений</span></div>
+        <div class="hab-tile"><div class="tt"><b class="num">${hbStreak(h)}<small> ${hbUnit(h)}</small></b><i>🔥</i></div><span>текущая серия</span></div>
+        <div class="hab-tile"><div class="tt"><b class="num">${hbBest(h)}<small> ${hbUnit(h)}</small></b><i>👑</i></div><span>лучшая серия</span></div>
+      </div>
+      <div class="hab-box2"><div class="hab-nav"><button data-act="hb-month" data-id="${h.id}" data-d="-1" ${prevOk ? '' : 'disabled'} aria-label="Предыдущий месяц">${hbChev('M15 5l-7 7 7 7')}</button><b>${HB_MONL[m].charAt(0).toUpperCase() + HB_MONL[m].slice(1)} ${y} · ${mDone} ${plural(mDone, 'раз', 'раза', 'раз')}</b><button data-act="hb-month" data-id="${h.id}" data-d="1" ${nextOk ? '' : 'disabled'} aria-label="Следующий месяц">${hbChev('M9 5l7 7-7 7')}</button></div><div class="hab-cal">${cal}</div>${h.type === 'auto' ? '' : '<p class="hint" style="margin-top:8px">Нажми на день, чтобы отметить или снять отметку.</p>'}</div>
+      <div class="hab-box2"><h3>Год</h3><div style="margin-top:10px">${hbHeat(h, 48)}</div></div>
+      <div class="hab-box2"><h3>Выполнений по месяцам</h3><div class="hab-bars">${mc.map((n, i) => `<div><i style="height:${Math.max(3, Math.round(n / mx * 88))}px" title="${n}"></i><span>${HB_MON[+months[i].slice(5, 7) - 1]}</span></div>`).join('')}</div></div>
+      ${tt ? `<div class="hab-box2"><h3>Когда отмечаешь</h3><div class="hab-tod">${[['Утро', tb[0]], ['День', tb[1]], ['Вечер', tb[2]], ['Ночь', tb[3]]].map(([n, v]) => `<div><span>${n}</span><span class="b"><i style="width:${Math.round(v / tt * 100)}%"></i></span><b>${Math.round(v / tt * 100)}%</b></div>`).join('')}</div></div>` : ''}
+      <label class="swrow" style="border:0;padding:4px 2px"><span>Пауза<small>Болезнь или отпуск — дни не пропуски, серия не сгорает</small></span><input type="checkbox" switch data-hbpause="${h.id}" ${h.paused ? 'checked' : ''} aria-label="Пауза"></label>
+    </div>`);
+  }
+
+  // ---------- Новая привычка и правка ----------
+  const HB_TPL = [
+    { name: 'Витамины', emo: '💊', c: '-peach', type: 'check', sched: { k: 'daily' }, tod: 'morning' },
+    { name: 'Растяжка', emo: '🧘‍♀️', c: '-lilac', type: 'timer', target: 10, sched: { k: 'daily' }, tod: 'morning' },
+    { name: 'Уход за кожей', emo: '🧴', c: '-candy', type: 'count', target: 2, unit: 'раза', sched: { k: 'daily' }, tod: 'any' },
+    { name: 'Книга', emo: '📖', c: '-mint', type: 'count', target: 10, unit: 'стр.', sched: { k: 'weekly', n: 5 }, tod: 'evening' },
+    { name: 'Сон до 23:00', emo: '🌙', c: '-peri', type: 'check', sched: { k: 'daily' }, tod: 'evening' },
+    { name: 'Без сладкого после 20:00', emo: '🍫', c: '-coral', type: 'quit', sched: { k: 'daily' }, tod: 'evening' },
+    { name: 'Без телефона перед сном', emo: '📵', c: '-orchid', type: 'quit', sched: { k: 'daily' }, tod: 'evening' },
+    { name: 'Медитация', emo: '🌸', c: '', type: 'timer', target: 5, sched: { k: 'days', days: [0, 2, 4] }, tod: 'morning' },
+    { name: 'Прогулка', emo: '🚶‍♀️', c: '-aqua', type: 'timer', target: 30, sched: { k: 'every', n: 2 }, tod: 'day' },
+    { name: 'Дневник', emo: '✍️', c: '-champ', type: 'check', sched: { k: 'weekly', n: 3 }, tod: 'evening' },
+  ];
+  const HB_EMO = ['💊', '🧘‍♀️', '📖', '🧴', '🌙', '📵', '🚶‍♀️', '🌸', '🥗', '🍎', '🦷', '✍️', '🎧', '💤', '🏋️‍♀️', '🍫', '🎨', '🧹', '🪴', '💅', '🎹', '💧', '👟', '🫶'];
+  const HB_TYPES = [['check', 'Сделала', 'да или нет'], ['count', 'Сколько', 'страницы, разы'], ['timer', 'По времени', 'с таймером'], ['quit', 'Отказ', 'держаться']];
+  const HB_SCHED = [['daily', 'Каждый день'], ['days', 'Дни недели'], ['weekly', 'N раз в неделю'], ['every', 'Раз в N дней']];
+  const HB_MINS = [5, 10, 15, 20, 30, 45, 60];
+  let hbF = null, hbEditId = null;
+  const hbBlank = () => ({ name: '', emo: '🌸', c: '-candy', type: 'check', target: 10, unit: 'стр.', src: null, sched: { k: 'daily', days: [0, 2, 4], n: 3 }, tod: 'any' });
+  function hbForm(id) {
+    hbEditId = id || null;
+    const h = id && hbFind(id);
+    hbF = h ? JSON.parse(JSON.stringify(Object.assign(hbBlank(), h, { sched: Object.assign(hbBlank().sched, h.sched) }))) : hbBlank();
+    hbFormDraw(true);
+  }
+  function hbFormDraw(fresh) {
+    const f = hbF, s = f.sched, sh = $('#sheet'), y = fresh ? 0 : sh.scrollTop;
+    const segs = (list, cur, act) => list.map(([k, n, sub]) => `<button class="seg" data-act="${act}" data-v="${k}" aria-pressed="${cur === k}">${n}${sub ? `<small>${sub}</small>` : ''}</button>`).join('');
+    const auto = f.type === 'auto';
+    const typeExtra = f.type === 'count' ? `<span class="lbl2">Цель за день</span><div class="hab-step"><button data-act="hbf-tg" data-d="-1" aria-label="Меньше">−</button><b class="num">${f.target}</b><button data-act="hbf-tg" data-d="1" aria-label="Больше">+</button><input id="hbUnit" value="${esc(f.unit || '')}" placeholder="стр., раза" maxlength="12" aria-label="Единица"></div>`
+      : f.type === 'timer' ? `<span class="lbl2">Время на привычку</span><div class="segs">${HB_MINS.map(m => `<button class="seg" data-act="hbf-min" data-v="${m}" aria-pressed="${f.target === m}">${m} мин</button>`).join('')}</div>`
+      : f.type === 'quit' ? '<p class="hint">Отмечается вечером: «держалась». Без «нельзя» — просто бережное напоминание.</p>'
+      : auto ? `<p class="hint">Отмечается сама, когда выполнена цель ${f.src === 'steps' ? 'по шагам' : 'по воде'} на «Сегодня».</p>` : '';
+    const schedExtra = s.k === 'days' ? `<div class="hab-wd">${HB_WD.map((n, i) => `<button data-act="hbf-wd" data-v="${i}" aria-pressed="${s.days.includes(i)}">${n}</button>`).join('')}</div>`
+      : s.k === 'weekly' ? `<div class="hab-step"><button data-act="hbf-sn" data-d="-1" aria-label="Меньше">−</button><b class="num">${s.n}</b><button data-act="hbf-sn" data-d="1" aria-label="Больше">+</button><span class="muted small">${plural(s.n, 'раз', 'раза', 'раз')} в неделю, в любые дни</span></div>`
+      : s.k === 'every' ? `<div class="hab-step"><span class="muted small">раз в</span><button data-act="hbf-sn" data-d="-1" aria-label="Меньше">−</button><b class="num">${s.n}</b><button data-act="hbf-sn" data-d="1" aria-label="Больше">+</button><span class="muted small">${plural(s.n, 'день', 'дня', 'дней')}</span></div>` : '';
+    openSheet(`<div class="hab-form"><h2>${hbEditId ? 'Изменить привычку' : 'Новая привычка'}</h2>
+      ${hbEditId ? '' : `<span class="lbl2">Быстрый старт</span><div class="tplrow">${hbTplList().map((p, i) => `<button class="hab-tpl" data-act="hbf-tpl" data-v="${i}">${p.emo} ${esc(p.name)}</button>`).join('')}</div>`}
+      <span class="lbl2">Название</span><div class="field"><input id="hbName" type="text" value="${esc(f.name)}" placeholder="например, растяжка" maxlength="40" autocomplete="off"></div><div class="hab-err" id="hbErr"></div>
+      <span class="lbl2">Значок</span><div class="emo">${HB_EMO.map(e => `<button data-act="hbf-emo" data-v="${e}" aria-pressed="${f.emo === e}">${e}</button>`).join('')}</div>
+      <span class="lbl2">Цвет — такой стразик будет падать за неё</span><div class="gems">${Object.keys(HB_COL).map(c => `<button data-act="hbf-c" data-v="${c}" aria-pressed="${f.c === c}" aria-label="Цвет стразика">${gemC(c)}</button>`).join('')}</div>
+      ${auto ? '' : `<span class="lbl2">Как отмечать</span><div class="segs two">${segs(HB_TYPES, f.type, 'hbf-type')}</div>`}${typeExtra}
+      ${auto ? '' : `<span class="lbl2">Как часто</span><div class="segs">${segs(HB_SCHED, s.k, 'hbf-sk')}</div>${schedExtra}`}
+      <span class="lbl2">Когда</span><div class="segs">${segs(HB_TOD, f.tod, 'hbf-tod')}</div>
+      <div class="hab-reward">${gemC(f.c)}<span>За каждое выполнение — стразик этого цвета.${s.k === 'weekly' ? ' За выполненный план недели — ещё бонусный.' : ''}</span></div>
+      <div class="stack"><button class="btn block" data-act="hbf-save">${hbEditId ? 'Сохранить' : 'Добавить привычку'}</button>
+      ${hbEditId ? `<button class="btn danger block" data-act="hbf-del" data-id="${hbEditId}">Удалить привычку</button>` : ''}</div></div>`);
+    sh.scrollTop = y;
+    const n = $('#hbName'); n.addEventListener('input', () => { hbF.name = n.value; $('#hbErr').textContent = ''; });
+    const u = $('#hbUnit'); if (u) u.addEventListener('input', () => { hbF.unit = u.value; });
+  }
+  function hbFromTpl(p) { return Object.assign(hbBlank(), JSON.parse(JSON.stringify(p)), { sched: Object.assign(hbBlank().sched, p.sched) }); }
+  function hbCreate(f) {
+    const t = today(), sched = { k: f.sched.k };
+    if (sched.k === 'days') sched.days = f.sched.days.slice().sort((a, b) => a - b);
+    if (sched.k === 'weekly' || sched.k === 'every') sched.n = f.sched.n;
+    if (sched.k === 'every') sched.from = t;
+    const rec = { name: f.name.trim().slice(0, 40), emo: f.emo, c: f.c, type: f.type, target: f.type === 'count' || f.type === 'timer' ? f.target : null, unit: f.type === 'count' ? String(f.unit || '').trim().slice(0, 12) : '', src: f.type === 'auto' ? (f.src || 'water') : null, sched, tod: f.tod };
+    hbStore();
+    if (hbEditId) {
+      const h = hbFind(hbEditId);
+      if (sched.k === 'every' && h.sched.k === 'every' && h.sched.from) sched.from = h.sched.from;
+      Object.assign(h, rec); save(); closeSheet(); render(); toast('Сохранено');
+    } else {
+      S.habits.push(Object.assign({ id: uid(), start: t, paused: null, archived: false }, rec)); save();
+      closeSheet(); ui.hbMode = 'day'; ui.hbFollow = true; render();
+      toast(`Новая привычка: ${rec.name}`, null, { c: rec.c });
+    }
+  }
+
+  // ---------- Таймер с мишкой (идёт по часам — не сбивается, если телефон уснул) ----------
+  let hbTm = null;
+  function hbTimer(id, d) {
+    const h = hbFind(id); if (!h) return;
+    const total = h.target * 60, have = Math.min(total, (+hbVal(h, d) || 0) * 60), C = 2 * Math.PI * 98;
+    const st = { run: false, from: 0, acc: have };
+    const left = () => Math.max(0, total - st.acc - (st.run ? (Date.now() - st.from) / 1000 : 0));
+    const draw = () => { const sh = $('#sheet'), r = sh.querySelector('.hab-timer .v'); if (!r) return; const l = left(); r.setAttribute('stroke-dashoffset', (C * (l / total)).toFixed(1)); sh.querySelector('.hab-timer b').textContent = `${Math.floor(Math.ceil(l) / 60)}:${z(Math.ceil(l) % 60)}`; sh.querySelector('[data-hbt="go"]').textContent = st.run ? 'Пауза' : st.acc > 0 ? 'Продолжить' : 'Старт'; if (st.run && l <= 0) finish(); };
+    const stop = () => { if (st.run) { st.acc += (Date.now() - st.from) / 1000; st.run = false; } clearInterval(hbTm); hbTm = null; };
+    let ended = false;
+    const finish = () => { if (ended) return; ended = true; stop(); closeSheet(); hbSet(h, d, h.target, document.querySelector(`.hab-row[data-id="${h.id}"]`)); };
+    openSheet(`<div style="text-align:center"><h2>${h.emo} ${esc(h.name)}</h2><div class="muted small">${h.target} минут — мишка считает вместе с тобой</div>
+      <div class="hab-timer"><svg class="r" viewBox="0 0 220 220"><circle cx="110" cy="110" r="98" fill="none" stroke="var(--track)" stroke-width="14"/><circle class="v" cx="110" cy="110" r="98" fill="none" stroke="${HB_COL[h.c] || HB_COL['']}" stroke-width="14" stroke-linecap="round" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="0"/></svg><div class="tm">${bearSvg()}<b class="num">${h.target}:00</b><span>осталось</span></div></div>
+      <div class="stack"><button class="btn block" data-hbt="go">Старт</button><button class="btn plain block" data-hbt="done">Уже сделала</button></div></div>`, () => {
+      // закрыла раньше — сохраняем пройденные минуты, если их больше, чем было
+      if (ended) return; stop(); const mins = Math.floor(st.acc / 60);
+      if (mins > (+hbVal(h, d) || 0) && mins < h.target) { hbLog(h)[d] = mins; save(); render(); toast(`Засчитано ${mins} мин из ${h.target}`); }
+    });
+    const sh = $('#sheet');
+    sh.querySelector('[data-hbt="go"]').onclick = () => { if (st.run) stop(); else { st.run = true; st.from = Date.now(); clearInterval(hbTm); hbTm = setInterval(draw, 250); } draw(); };
+    sh.querySelector('[data-hbt="done"]').onclick = finish;
+    draw();
+  }
 
   // ---------- Судоку ----------
   const SDK_DIFF = [['easy', 'Лёгкий', 38], ['medium', 'Средний', 31], ['hard', 'Сложный', 26]];
@@ -2055,7 +2419,7 @@
   let toastTimer = null;
   function toast(msg, undo, shiny) {
     const el = $('#toast');
-    el.innerHTML = `${shiny ? (typeof shiny === 'string' ? gemOf(shiny, 'width:22px;height:22px') : '<svg class="gem" viewBox="0 0 24 24" aria-hidden="true" style="width:22px;height:22px"><use href="#gem"/></svg>') : ''}<span>${esc(msg)}</span>${undo ? '<button data-act="undo">Отменить</button>' : ''}`;
+    el.innerHTML = `${shiny ? (typeof shiny === 'object' ? gemC(shiny.c, 'width:22px;height:22px') : typeof shiny === 'string' ? gemOf(shiny, 'width:22px;height:22px') : '<svg class="gem" viewBox="0 0 24 24" aria-hidden="true" style="width:22px;height:22px"><use href="#gem"/></svg>') : ''}<span>${esc(msg)}</span>${undo ? '<button data-act="undo">Отменить</button>' : ''}`;
     el.hidden = false;
     el._undo = undo || null;
     clearTimeout(toastTimer);
@@ -2246,6 +2610,40 @@
     'onb-start'() { S.settings.onboarded = true; save(); closeSheet(); setTimeout(() => $('#food').focus(), 80); },
     'onb-limit'() { S.settings.onboarded = true; save(); closeSheet(); ui.view = 'more'; render(); setTimeout(() => { const i = $('#sLimit'); i && i.focus(); }, 80); },
     'sheet-close'() { closeSheet(); },
+    // --- привычки ---
+    'hb-open'() { ui.view = 'habits'; ui.hbFollow = true; ui.hbMode = 'day'; render(); window.scrollTo(0, 0); },
+    'hb-mode'(b) { ui.hbMode = b.dataset.m; render(); },
+    'hb-day'(b) { ui.hbDay = b.dataset.day; ui.hbFollow = ui.hbDay === today(); render(); },
+    'hb-wk'(b) { ui.hbRep = Math.min(0, Math.max(-52, (ui.hbRep || 0) + +b.dataset.d)); render(); },
+    'hb-tap'(b) {
+      const h = hbFind(b.dataset.id); if (!h) return;
+      const d = ui.hbDay || today();
+      if (h.type === 'auto') { toast(h.src === 'steps' ? 'Шаги отметятся сами, когда наберётся цель' : 'Вода отметится сама, когда наберёшь цель на «Сегодня»'); return; }
+      if (h.type === 'timer') { if (hbDone(h, d)) hbSet(h, d, 0); else if (d === today()) hbTimer(h.id, d); else hbSet(h, d, h.target, b); return; }
+      if (h.type === 'count') { const v = +hbVal(h, d) || 0; hbSet(h, d, v >= h.target ? 0 : v + 1, b); return; }
+      hbSet(h, d, !hbDone(h, d), b);
+    },
+    'hb-detail'(b) { hbDetail(b.dataset.id); },
+    'hb-month'(b) { const m = toDate(ui.hbCal); m.setMonth(m.getMonth() + +b.dataset.d, 1); ui.hbCal = iso(m); const y = $('#sheet').scrollTop; hbDetail(b.dataset.id, true); $('#sheet').scrollTop = y; },
+    'hb-cal'(b) { const h = hbFind(b.dataset.id); if (!h) return; const d = b.dataset.day; hbSet(h, d, hbDone(h, d) ? 0 : hbFull(h)); const y = $('#sheet').scrollTop; hbDetail(h.id, true); $('#sheet').scrollTop = y; },
+    'hb-edit'(b) { hbForm(b.dataset.id); },
+    'hb-new'() { hbForm(); },
+    'hb-quick'(b) { const p = hbTplList()[+b.dataset.v]; if (!p) return; hbEditId = null; hbCreate(hbFromTpl(p)); },
+    'hbf-tpl'(b) { const p = hbTplList()[+b.dataset.v]; if (!p) return; hbF = hbFromTpl(p); hbFormDraw(); },
+    'hbf-emo'(b) { hbF.emo = b.dataset.v; hbFormDraw(); },
+    'hbf-c'(b) { hbF.c = b.dataset.v; hbFormDraw(); },
+    'hbf-type'(b) { hbF.type = b.dataset.v; if (hbF.type === 'timer' && !HB_MINS.includes(hbF.target)) hbF.target = 10; if (hbF.type === 'count' && !(hbF.target >= 1 && hbF.target <= 99)) hbF.target = 10; hbFormDraw(); },
+    'hbf-tg'(b) { hbF.target = Math.max(1, Math.min(99, (hbF.target || 1) + +b.dataset.d)); hbFormDraw(); },
+    'hbf-min'(b) { hbF.target = +b.dataset.v; hbFormDraw(); },
+    'hbf-sk'(b) { const s = hbF.sched; s.k = b.dataset.v; if (s.k === 'weekly') s.n = Math.min(6, Math.max(1, s.n || 3)); if (s.k === 'every') s.n = Math.max(2, Math.min(14, s.n || 2)); if (!Array.isArray(s.days) || !s.days.length) s.days = [0, 2, 4]; hbFormDraw(); },
+    'hbf-wd'(b) { const i = +b.dataset.v, d = hbF.sched.days; hbF.sched.days = d.includes(i) ? (d.length > 1 ? d.filter(x => x !== i) : d) : d.concat(i); hbFormDraw(); },
+    'hbf-sn'(b) { const s = hbF.sched, ev = s.k === 'every'; s.n = Math.max(ev ? 2 : 1, Math.min(ev ? 14 : 6, (s.n || 1) + +b.dataset.d)); hbFormDraw(); },
+    'hbf-tod'(b) { hbF.tod = b.dataset.v; hbFormDraw(); },
+    'hbf-save'() { if (!hbF.name.trim()) { $('#hbErr').textContent = 'Назови привычку — например, «Растяжка»'; $('#hbName').focus(); return; } hbCreate(hbF); },
+    'hbf-del'(b) {
+      if (!b.dataset.armed) { b.dataset.armed = '1'; b.textContent = 'Точно удалить? Стразики останутся'; return; }
+      const h = hbFind(b.dataset.id); if (!h) return; h.archived = true; save(); closeSheet(); render(); toast(`Привычка «${h.name}» удалена`);
+    },
     undo() { const el = $('#toast'); const f = el._undo; el.hidden = true; el._undo = null; if (f) f(); },
     export() { exportData(); },
     import() { $('#importFile').value = ''; $('#importFile').click(); },
@@ -2603,6 +3001,16 @@
   // Прячем нижнюю панель, пока открыта клавиатура
   document.addEventListener('focusin', ev => { if (ev.target.matches('input:not([type=checkbox]):not([type=radio]):not([type=file]), textarea')) document.body.classList.add('kb'); if (ev.target.id === 'food') bearLook(true); });
   document.addEventListener('change', ev => { const sw = ev.target.closest && ev.target.closest('input[data-sw]'); if (sw) swChange(sw.dataset.sw, sw.checked); });
+  // пауза привычки — переключатель в её карточке
+  document.addEventListener('change', ev => {
+    const p = ev.target.closest && ev.target.closest('input[data-hbpause]'); if (!p) return;
+    const h = hbFind(p.dataset.hbpause); if (!h) return;
+    h.paused = p.checked ? today() : null; save(); render();
+    toast(p.checked ? `«${h.name}» на паузе — дни не считаются пропусками` : `«${h.name}» снова в деле`);
+    const y = $('#sheet').scrollTop; hbDetail(h.id, true); $('#sheet').scrollTop = y;
+  });
+  // привычку можно отметить и с клавиатуры
+  document.addEventListener('keydown', ev => { if ((ev.key === 'Enter' || ev.key === ' ') && ev.target.matches && ev.target.matches('.hab-row')) { ev.preventDefault(); ev.target.click(); } });
   document.addEventListener('focusout', ev => { if (ev.target.id === 'food') bearLook(false); });
   document.addEventListener('focusout', () => { setTimeout(() => { if (!document.activeElement || !document.activeElement.matches('input, textarea')) document.body.classList.remove('kb'); }, 60); });
 

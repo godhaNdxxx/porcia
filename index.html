@@ -633,6 +633,7 @@ html.dz .tab.pop[data-tab="today"] .ti-arc { animation: ti-arc .7s cubic-bezier(
 .ti-arc { transform-origin: 12px 12px; }
 html.dz .tab.pop[data-tab="act"] .ti-pulse { animation: ti-draw .7s ease-out; }
 @keyframes ti-draw { from { stroke-dasharray: 1; stroke-dashoffset: 1; } to { stroke-dasharray: 1; stroke-dashoffset: 0; } }
+html.dz .tab.pop[data-tab="habits"] .ti-check { animation: ti-draw .6s ease-out; }
 html.dz .tab.pop[data-tab="diary"] .ti-page { animation: ti-page .6s ease-in-out; }
 .ti-page { transform-origin: 12px 15.5px; }
 @keyframes ti-page { 0% { transform: none; } 45% { transform: scaleY(0); opacity: .3; } 100% { transform: none; } }
@@ -688,6 +689,146 @@ html.sw-fb .swrow input[switch]:checked:active::before { transform: translateX(1
 .bd .ps { font-size: 13.5px; color: var(--muted); }
 @media (prefers-reduced-motion: reduce) { .bd-age span, .bd-age svg { animation: none; } }
 
+/* ===== Привычки ===== */
+.hab-hdr { display: flex; align-items: center; gap: 8px; }
+.hab-box { display: flex; align-items: center; gap: 4px; padding: 5px 10px 5px 5px; border-radius: 99px; background: var(--accent-soft); font: 800 14px/1 var(--font-display); color: var(--accent); }
+.hab-box svg { width: 22px; height: 22px; }
+.hab-box.pop { animation: hab-pop .4s cubic-bezier(.3, 1.6, .5, 1); }
+@keyframes hab-pop { 50% { transform: scale(1.18); } }
+.iconbtn.hab-add { background: var(--accent); color: var(--accent-ink); }
+.hab-tabs { display: grid; grid-template-columns: repeat(3, 1fr); background: var(--surface-2); border-radius: 14px; padding: 3px; }
+.hab-tabs button { border: 0; background: none; border-radius: 11px; padding: 8px 0; font: 600 14px/1 var(--font-body); color: var(--muted); }
+.hab-tabs button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(0, 0, 0, .12); }
+.hab-sum { display: flex; align-items: center; gap: 12px; }
+.hab-ring { width: 48px; height: 48px; position: relative; flex: none; }
+.hab-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.hab-ring b { position: absolute; inset: 0; display: grid; place-items: center; font: 800 13px/1 var(--font-display); }
+.hab-sum .t { font: 700 17px/1.2 var(--font-display); }
+.hab-sum .s { font-size: 13px; color: var(--muted); }
+.hab-grp { display: grid; gap: 8px; }
+.hab-grp > span { font: 600 12px/1 var(--font-body); color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin: 6px 0 0 4px; }
+.hab-row { position: relative; overflow: hidden; border-radius: 18px; min-height: 58px; padding: 0 8px 0 10px; display: grid; grid-template-columns: 36px minmax(0, 1fr) auto auto; align-items: center; gap: 10px; background: color-mix(in srgb, var(--hc) 14%, var(--surface)); cursor: pointer; -webkit-user-select: none; user-select: none; }
+.hab-row::before { content: ""; position: absolute; inset: 0 auto 0 0; width: calc(var(--f, 0) * 100%); background: color-mix(in srgb, var(--hc) 55%, var(--surface)); transition: width .4s cubic-bezier(.3, .9, .3, 1); border-radius: inherit; }
+.hab-row > * { position: relative; }
+.hab-row .ico { width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; font-size: 19px; background: color-mix(in srgb, var(--surface) 70%, transparent); }
+.hab-row .nm { font-weight: 700; font-size: 15px; line-height: 1.2; overflow-wrap: anywhere; }
+.hab-row .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.hab-row.done .sub { color: color-mix(in srgb, var(--ink) 70%, transparent); }
+.hab-row .v { font: 800 14px/1 var(--font-display); white-space: nowrap; }
+.hab-row .chk { width: 26px; height: 26px; border-radius: 50%; border: 2px solid color-mix(in srgb, var(--hc) 80%, var(--line)); display: grid; place-items: center; }
+.hab-row.done .chk { background: var(--hc); border-color: var(--hc); color: #2A1F33; }
+.hab-row .chk svg { width: 15px; height: 15px; }
+.hab-row .more { width: 30px; height: 30px; border-radius: 50%; border: 0; background: color-mix(in srgb, var(--surface) 65%, transparent); display: grid; place-items: center; color: var(--muted); }
+.hab-row .more svg { width: 16px; height: 16px; }
+html.dz .hab-row:active { transform: scale(.985); }
+html.dz .hab-row { transition: transform .14s ease; }
+.hab-not { font-size: 13px; color: var(--muted); padding: 2px 4px; }
+.hab-empty { display: grid; justify-items: center; text-align: center; gap: 8px; }
+.hab-empty .bear { width: 86px; height: 86px; }
+.hab-empty h2 { text-transform: none; letter-spacing: 0; color: var(--ink); font: 700 20px/1.2 var(--font-display); margin: 0; }
+.hab-tpls { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 4px; }
+.hab-tpl { border: 1.5px solid var(--line); background: var(--surface); border-radius: 16px; padding: 8px 12px; font: 600 14px/1.2 var(--font-body); color: var(--ink); }
+.hab-rep { display: grid; grid-template-columns: minmax(0, 1fr) repeat(7, 26px); gap: 6px 4px; align-items: center; margin-top: 12px; }
+.hab-rep .h { font: 600 11px/1 var(--font-body); color: var(--muted); text-align: center; }
+.hab-rep .n { font-size: 13px; font-weight: 600; display: flex; gap: 6px; align-items: center; min-width: 0; }
+.hab-rep .n span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hab-rep i { width: 22px; height: 22px; justify-self: center; border-radius: 8px; background: var(--surface-2); display: block; }
+.hab-rep i.on { background: var(--hc); }
+.hab-rep i.part { background: color-mix(in srgb, var(--hc) 45%, var(--surface-2)); }
+.hab-rep i.miss { background: none; box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--hc) 55%, var(--line)); }
+.hab-rep i.no { background: none; position: relative; } .hab-rep i.no::after { content: ""; position: absolute; left: 50%; top: 50%; width: 4px; height: 4px; margin: -2px; border-radius: 50%; background: var(--line); }
+.hab-rep i.fut { opacity: .3; }
+.hab-rep i.today { outline: 2px solid var(--accent); outline-offset: 1px; }
+.hab-nav { display: flex; align-items: center; justify-content: space-between; }
+.hab-nav b { font: 700 15px/1 var(--font-display); }
+.hab-nav button { width: 32px; height: 32px; border-radius: 50%; border: 0; background: var(--surface-2); display: grid; place-items: center; color: var(--accent); }
+.hab-nav button:disabled { opacity: .35; }
+.hab-nav svg { width: 16px; height: 16px; }
+.hab-kpi { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.hab-kpi > div { background: var(--surface); border-radius: 20px; padding: 12px 14px; box-shadow: var(--shadow); }
+.hab-kpi b { display: block; font: 800 26px/1.1 var(--font-display); }
+.hab-kpi b small { font-size: 14px; font-weight: 700; color: var(--muted); }
+.hab-kpi span { font-size: 12.5px; color: var(--muted); }
+.hab-kpi .em { font-size: 18px; float: right; }
+.hab-note { display: flex; gap: 10px; align-items: center; font-size: 14px; }
+.hab-note .bear { width: 46px; height: 46px; flex: none; }
+.hab-yhead { display: flex; align-items: baseline; gap: 8px; }
+.hab-yhead b { font: 900 40px/1 var(--font-display); }
+.hab-yhead span { font: 700 20px/1 var(--font-display); color: var(--muted); }
+.hab-yh { display: grid; gap: 6px; width: 100%; border: 0; text-align: left; color: var(--ink); }
+.hab-yh .t { display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 14px; }
+.hab-yh .t small { margin-left: auto; font-weight: 600; color: var(--muted); font-size: 12px; }
+.hab-hm { display: grid; grid-auto-flow: column; grid-template-rows: repeat(7, 1fr); gap: 1.5px; }
+.hab-hm i { width: 100%; aspect-ratio: 1; border-radius: 1.5px; background: var(--surface-2); display: block; }
+.hab-hm i.e { background: none; }
+.hab-ml { display: grid; font: 600 9.5px/1 var(--font-body); color: var(--muted); margin-bottom: 3px; }
+.hab-fly { position: fixed; width: 22px; height: 22px; z-index: 60; pointer-events: none; transition: transform .7s cubic-bezier(.5, -.3, .4, 1), opacity .7s; }
+/* карточка привычки и форма в шторке */
+.hab-d { display: grid; gap: 10px; }
+.hab-dh { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 10px; align-items: center; }
+.hab-dh .ico { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; font-size: 22px; background: color-mix(in srgb, var(--hc) 30%, var(--surface)); }
+.hab-dh h2 { margin: 0; font-size: 20px; }
+.hab-dh .sub { font-size: 13px; color: var(--muted); }
+.hab-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.hab-tile { background: var(--surface-2); border-radius: 18px; padding: 11px 12px; }
+.hab-tile .tt { display: flex; justify-content: space-between; align-items: center; }
+.hab-tile .tt i { width: 28px; height: 28px; border-radius: 9px; display: grid; place-items: center; font-style: normal; font-size: 15px; background: color-mix(in srgb, var(--hc) 25%, var(--surface)); }
+.hab-tile b { font: 800 26px/1 var(--font-display); }
+.hab-tile b small { font-size: 13px; color: var(--muted); font-weight: 700; }
+.hab-tile span { display: block; font-size: 12px; color: var(--muted); margin-top: 4px; }
+.hab-box2 { background: var(--surface-2); border-radius: 20px; padding: 12px; }
+.hab-box2 h3 { margin: 0; font: 600 12.5px/1.2 var(--font-body); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.hab-cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px 4px; margin-top: 10px; }
+.hab-cal .h { font: 600 11px/1 var(--font-body); color: var(--muted); text-align: center; }
+.hab-cal button { border: 0; aspect-ratio: 1; max-width: 38px; width: 100%; justify-self: center; border-radius: 50%; background: none; font: 600 13px/1 var(--font-display); color: var(--ink); }
+.hab-cal button.on { background: var(--hc); color: #2A1F33; }
+.hab-cal button.part { background: color-mix(in srgb, var(--hc) 40%, var(--surface)); }
+.hab-cal button.miss { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--hc) 55%, var(--line)); }
+.hab-cal button.pause { background: repeating-linear-gradient(135deg, var(--surface) 0 4px, transparent 4px 8px); }
+.hab-cal button:disabled { color: var(--muted); opacity: .45; }
+.hab-cal button.today { outline: 2px solid var(--accent); outline-offset: 1px; }
+.hab-cal .x { visibility: hidden; }
+.hab-bars { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 5px; align-items: end; height: 110px; margin-top: 10px; }
+.hab-bars div { display: flex; flex-direction: column; gap: 4px; align-items: center; justify-content: flex-end; height: 100%; }
+.hab-bars i { width: 100%; max-width: 18px; border-radius: 6px 6px 3px 3px; background: var(--hc); display: block; }
+.hab-bars span { font: 600 9.5px/1 var(--font-body); color: var(--muted); }
+.hab-tod { display: grid; gap: 8px; margin-top: 10px; }
+.hab-tod div { display: grid; grid-template-columns: 62px 1fr 38px; gap: 8px; align-items: center; font-size: 13px; }
+.hab-tod .b { height: 10px; border-radius: 5px; background: var(--surface); overflow: hidden; }
+.hab-tod .b i { display: block; height: 100%; background: var(--hc); border-radius: inherit; }
+.hab-tod b { text-align: right; font: 700 13px/1 var(--font-display); }
+.hab-form .lbl2 { display: block; font: 600 12.5px/1.2 var(--font-body); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 16px 0 8px; }
+.hab-form .segs { display: flex; flex-wrap: wrap; gap: 6px; }
+.hab-form .segs.two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.hab-form .segs.two .seg { border-radius: 16px; padding: 10px 12px; text-align: left; white-space: normal; }
+.hab-form .seg small { display: block; font-size: 11px; opacity: .75; margin-top: 3px; font-weight: 500; }
+.hab-form .tplrow { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; margin: 0 -18px; padding: 0 18px 2px; }
+.hab-form .tplrow::-webkit-scrollbar { display: none; }
+.hab-form .tplrow .hab-tpl { flex: none; }
+.hab-form .emo { display: flex; flex-wrap: wrap; gap: 6px; }
+.hab-form .emo button { width: 40px; height: 40px; border: 0; border-radius: 12px; background: var(--surface-2); font-size: 20px; }
+.hab-form .emo button[aria-pressed="true"], .hab-form .gems button[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--accent); background: var(--accent-soft); }
+.hab-form .gems { display: flex; flex-wrap: wrap; gap: 6px; }
+.hab-form .gems button { width: 38px; height: 38px; border: 0; border-radius: 50%; background: var(--surface-2); display: grid; place-items: center; }
+.hab-form .gems svg { width: 26px; height: 26px; }
+.hab-step { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+.hab-step button { width: 38px; height: 38px; border: 0; border-radius: 50%; background: var(--surface-2); font: 700 20px/1 var(--font-body); color: var(--ink); }
+.hab-step b { font: 800 22px/1 var(--font-display); min-width: 34px; text-align: center; }
+.hab-step input { width: 110px; border: 1.5px solid var(--line); background: var(--bg); border-radius: 14px; padding: 9px 12px; font-size: 16px; }
+.hab-wd { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; margin-top: 10px; }
+.hab-wd button { border: 0; border-radius: 12px; padding: 10px 0; background: var(--surface-2); font: 700 13px/1 var(--font-body); color: var(--ink); }
+.hab-wd button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.hab-reward { margin-top: 16px; display: flex; gap: 10px; align-items: center; padding: 12px; border-radius: 18px; background: var(--accent-soft); font-size: 13.5px; }
+.hab-reward svg { width: 30px; height: 30px; flex: none; }
+.hab-err { color: var(--warn); font-size: 13px; margin-top: 6px; min-height: 1em; }
+.hab-timer { display: grid; place-items: center; margin: 14px 0 4px; position: relative; }
+.hab-timer svg.r { width: 220px; height: 220px; transform: rotate(-90deg); }
+.hab-timer .tm { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; text-align: center; }
+.hab-timer .tm .bear { width: 66px; height: 66px; }
+.hab-timer .tm b { font: 800 44px/1 var(--font-display); font-variant-numeric: tabular-nums; }
+.hab-timer .tm span { font-size: 13px; color: var(--muted); margin-top: 6px; }
+@media (prefers-reduced-motion: reduce) { .hab-row::before, .hab-fly { transition: none; } .hab-box.pop { animation: none; } }
+
 /* Гардероб мишки */
 .wtabs { display: flex; gap: 6px; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding: 3px 2px; margin: 0 -2px; }
 .wtabs::-webkit-scrollbar { display: none; }
@@ -711,8 +852,8 @@ html.sw-fb .swrow input[switch]:checked:active::before { transform: translateX(1
   padding-bottom: env(safe-area-inset-bottom, 0px);
   padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px);
 }
-.tabbar .in { max-width: 560px; margin: 0 auto; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); height: var(--tabbar-h); }
-.tab { border: 0; background: none; display: grid; justify-items: center; align-content: center; gap: 2px; color: var(--muted); font-size: 11px; font-weight: 500; white-space: nowrap; overflow: hidden; min-width: 0; }
+.tabbar .in { max-width: 560px; margin: 0 auto; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); height: var(--tabbar-h); }
+.tab { border: 0; background: none; display: grid; justify-items: center; align-content: center; gap: 2px; color: var(--muted); font-size: 10.5px; font-weight: 500; white-space: nowrap; overflow: hidden; min-width: 0; }
 .tab svg { width: 25px; height: 25px; transition: transform .28s cubic-bezier(.3, 1.5, .5, 1); }
 .tab[aria-current="page"] svg { transform: translateY(-1px) scale(1.1); }
 .tab[aria-current="page"] { color: var(--accent); }
@@ -1082,6 +1223,7 @@ html.pg-hold .app, html.pg-hold .tabbar { opacity: 0; }
     <div class="wstrip" id="weekStrip" role="group" aria-label="Дни недели" hidden></div>
     <div class="card" id="summary"></div>
     <div class="card" id="water" hidden></div>
+    <div id="habMini"></div>
     <div id="actMini"></div>
     <div id="tips" class="view" style="padding:0"></div>
     <div class="card composer">
@@ -1120,6 +1262,17 @@ html.pg-hold .app, html.pg-hold .tabbar { opacity: 0; }
     <div class="card" id="actList"></div>
     <div class="card" id="actRecent"></div>
     <div id="actBody"></div>
+  </section>
+
+  <!-- Привычки -->
+  <section class="view" id="v-habits" aria-label="Привычки" hidden>
+    <div class="vhead">
+      <h1>Привычки</h1>
+      <div class="hab-hdr"><span class="hab-box" id="habBox"></span><button class="iconbtn hab-add" data-act="hb-new" aria-label="Новая привычка"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5.5v13M5.5 12h13"/></svg></button></div>
+    </div>
+    <div class="wstrip" id="habWeek" role="group" aria-label="Дни недели"></div>
+    <div class="hab-tabs" id="habTabs" role="group" aria-label="Режим"></div>
+    <div id="habBody" class="view" style="padding:0"></div>
   </section>
 
   <!-- Вес -->
@@ -1184,6 +1337,9 @@ html.pg-hold .app, html.pg-hold .tabbar { opacity: 0; }
     <button class="tab" data-tab="act">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path class="ti-pulse" pathLength="1" d="M3 12h4l2.5-6 4 12 2.5-6H21"/></svg>
       Активность</button>
+    <button class="tab" data-tab="habits">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="5"/><path class="ti-check" pathLength="1" d="M8.5 12.2l2.4 2.4 4.6-5"/></svg>
+      Привычки</button>
     <button class="tab" data-tab="diary">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16"/><path class="ti-page" d="M8 14h3M8 17h6"/></svg>
       Дневник</button>
