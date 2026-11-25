@@ -1,4 +1,4 @@
-/* Порция — приветствие при открытии. 10 заставок, показываются не при каждом входе. */
+/* Порция — приветствие при открытии. 10 заставок + зимние (снеговик, мишка с какао, ёлочка), показываются не при каждом входе. */
 (function () {
   'use strict';
   const STORE = 'porcia.greet';
@@ -16,9 +16,18 @@
     { id: 'bunny', name: 'Зайка с сердечком', sub: 'Зайка уже ждёт' },
     { id: 'stars', name: 'Звездопад', when: ['evening', 'night'], sub: 'Загадай желание' },
     { id: 'bubbles', name: 'Мыльные пузыри', sub: 'Пусть всё будет легко' },
-    { id: 'bloom', name: 'Сакура', sub: 'Ты сегодня прекрасна' },
+    { id: 'bloom', name: 'Сакура', off: 'winter', sub: 'Ты сегодня прекрасна' },
     { id: 'crown', name: 'Диадема', sub: 'Корона уже на месте' },
+    // Зимние: с 20 ноября до конца февраля; ёлочка — с 15 декабря по 8 января
+    { id: 'snow', name: 'Снеговик', season: 'winter', sub: ['На улице мороз, а тут тепло', 'Снег идёт — самое время для уюта', 'Снеговик передаёт привет', 'Шапку надела? Снеговик проверил'] },
+    { id: 'cocoa', name: 'Мишка с какао', season: 'winter', sub: ['Мишка сварил тебе какао', 'Какао с зефирками уже ждёт', 'Укутывайся теплее — и за дела', 'Тёплый плед, какао и ты — идеально'] },
+    { id: 'tree', name: 'Ёлочка', season: 'ny', sub: () => new Date().getMonth() === 0
+      ? ['С Новым годом! Пусть он будет сияющим', 'Новый год — новые маленькие победы', 'Ёлочка ещё стоит — праздник продолжается']
+      : ['Скоро Новый год — загадывай желание', 'Ёлочка уже в стразиках', 'Пахнет мандаринами и чудесами'] },
   ];
+  const isWinter = (d = new Date()) => { const m = d.getMonth(); return m === 11 || m < 2 || (m === 10 && d.getDate() >= 20); };
+  const isNY = (d = new Date()) => { const m = d.getMonth(), dd = d.getDate(); return (m === 11 && dd >= 15) || (m === 0 && dd <= 8); };
+  const fits = v => (!v.season || (v.season === 'ny' ? isNY() : isWinter())) && !(v.off === 'winter' && isWinter());
   // ---------- День рождения Сони: только 20 ноября 2026 ----------
   // Весь день при каждом входе (если не заходила хотя бы минуту) — праздничная заставка, они идут по кругу.
   // Самый первый вход — большой праздник с фейерверком и конфетти, после него приложение показывает открытку от мишки.
@@ -75,6 +84,7 @@
     ${Object.keys(GEM_FILLS).map(c => `<symbol id="pg-gem${c}" viewBox="0 0 24 24"><path d="${GEM_PATH}" fill="url(#pg-gF${c})"/><use href="#pg-gemShape"/></symbol>`).join('')}
     <symbol id="pg-spark" viewBox="0 0 24 24"><path d="M12 1.5c.7 5.6 3.4 8.6 10.5 10.5-7.1 1.9-9.8 4.9-10.5 10.5-.7-5.6-3.4-8.6-10.5-10.5C8.6 10.1 11.3 7.1 12 1.5z" fill="url(#pg-spF)"/></symbol>
     <symbol id="pg-spark2" viewBox="0 0 24 24"><path d="M12 1.5c.7 5.6 3.4 8.6 10.5 10.5-7.1 1.9-9.8 4.9-10.5 10.5-.7-5.6-3.4-8.6-10.5-10.5C8.6 10.1 11.3 7.1 12 1.5z" fill="url(#pg-spF2)"/></symbol>
+    <symbol id="pg-flake" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">${[0, 60, 120, 180, 240, 300].map(a => `<path transform="rotate(${a} 12 12)" d="M12 12V2.6M12 6.4l-2.6-2.3M12 6.4l2.6-2.3M12 9.4l-1.8-1.6M12 9.4l1.8-1.6"/>`).join('')}</g><circle cx="12" cy="12" r="1.6" fill="currentColor"/></symbol>
     <symbol id="pg-heartp" viewBox="0 0 24 22"><path d="M12 21C5 16 1 12 1 7.2 1 3.8 3.6 1.2 6.8 1.2c2.2 0 4 1.1 5.2 3 1.2-1.9 3-3 5.2-3 3.2 0 5.8 2.6 5.8 6 0 4.8-4 8.8-11 13.8z" fill="url(#pg-balF)"/><path d="M5.5 5.2c-1 .8-1.4 2-1.2 3.2" stroke="#fff" stroke-width="1.6" stroke-linecap="round" fill="none" opacity=".75"/></symbol>
     <symbol id="pg-petal" viewBox="0 0 20 20"><path d="M10 1c5 4 7 10 0 18C3 11 5 5 10 1z" fill="#FFB7D2"/><path d="M10 4c1.6 3 1.8 7 0 11" stroke="#FFE1EC" stroke-width="1.4" fill="none" stroke-linecap="round"/></symbol>
   </svg>`;
@@ -186,6 +196,44 @@
 
   // ---------- День рождения: картинки ----------
   // праздничный колпачок поверх головы мишки (в координатах мишки 120×120)
+  // ---------- Зима ----------
+  const SNOWMAN = `
+    <ellipse cx="70" cy="168" rx="50" ry="6" fill="#9AA8D8" opacity=".3"/>
+    <path d="M44 116l-26-16M30 108l-4-10M30 108l-10 1M96 116l26-18M110 107l3-10M110 107l10 0" stroke="#9A7A68" stroke-width="3.2" stroke-linecap="round" fill="none"/>
+    <circle cx="70" cy="128" r="40" fill="#FFFFFF" stroke="#D3DBF3" stroke-width="1.2"/><path d="M31 138a40 40 0 0 0 78 0q-39 20-78 0z" fill="#E4EAFB"/>
+    <use href="#pg-gem-lilac" x="64" y="104" width="12" height="12"/><use href="#pg-gem" x="64" y="122" width="12" height="12"/><use href="#pg-gem-mint" x="64" y="140" width="12" height="12"/>
+    <circle cx="70" cy="70" r="29" fill="#FFFFFF" stroke="#D3DBF3" stroke-width="1.2"/><path d="M43 80a29 29 0 0 0 54 0q-27 13-54 0z" fill="#E9EEFC"/>
+    <circle cx="60" cy="66" r="3.4" fill="#3B2C47"/><circle cx="80" cy="66" r="3.4" fill="#3B2C47"/><circle cx="61.2" cy="64.8" r="1.1" fill="#fff"/><circle cx="81.2" cy="64.8" r="1.1" fill="#fff"/>
+    <ellipse cx="52" cy="76" rx="5" ry="3" fill="#F7A8CF" opacity=".8"/><ellipse cx="88" cy="76" rx="5" ry="3" fill="#F7A8CF" opacity=".8"/>
+    <path d="M70 70.5l15 3.5-15 3z" fill="#FFAE6B"/><path d="M63 82q7 5 14 0" stroke="#3B2C47" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M43 91q27 11 54 0l1.6 8.4q-28.6 13-57.2 0z" fill="#F7A8CF"/><path d="M82 97l4.4 24 8.6-2-4.4-23.6z" fill="#F28FBF"/><path d="M83.4 104.4l8.2-1.8M84.6 111.4l8.2-1.8" stroke="#fff" stroke-width="2" opacity=".7"/>
+    <path d="M47 50c0-17 10.4-27 23-27s23 10 23 27z" fill="#C9AEFF"/><path d="M57 27c-2 6-2.6 14-2 21M70 23.6V48M83 27c2 6 2.6 14 2 21" stroke="#B49CFF" stroke-width="1.4" fill="none"/>
+    <rect x="43" y="45" width="54" height="10" rx="5" fill="#B49CFF"/><circle cx="70" cy="21" r="7" fill="#FFFFFF"/><circle cx="68" cy="19" r="2" fill="#E9EEFC"/>`;
+  const SCARF = `<path d="M36.4 73.2Q60 87 83.6 73.2a5.6 5.6 0 0 1 1.6 8.4Q60 97 34.8 81.6a5.6 5.6 0 0 1 1.6-8.4z" fill="#F7A8CF"/><path d="M41 77.6q1.6 3.6.6 7.4M49 81q1.2 3.8.4 7.6M60 82.4v7.6M71 81q-1.2 3.8-.4 7.6M79 77.6q-1.6 3.6-.6 7.4" stroke="#fff" stroke-opacity=".55" stroke-width="1.3" stroke-linecap="round" fill="none"/>`;
+  const MUG = `<g fill="none" stroke="#fff" stroke-width="1.4" stroke-linecap="round"><path class="pg-steam" d="M71 89.2q-1.8-2.5 0-5t0-5"/><path class="pg-steam pg-steam2" d="M75.6 88.6q-1.8-2.5 0-5t0-5"/></g>
+    <path d="M79.6 94.2h1.6a3.5 3.5 0 0 1 0 7h-1.6" fill="none" stroke="#7CC4AB" stroke-width="2.4"/><path d="M66.8 91.6h13.2l-.9 10.6a3 3 0 0 1-3 2.7h-5.4a3 3 0 0 1-3-2.7z" fill="#9ED9C4"/>
+    <path d="M68 93.6l.7 8.4" stroke="#fff" stroke-opacity=".45" stroke-width="1.1" stroke-linecap="round"/><ellipse cx="73.4" cy="91.8" rx="6.6" ry="1.7" fill="#8B5E4A"/>
+    <rect x="70" y="89.8" width="2.9" height="2.4" rx=".8" fill="#fff"/><rect x="73.6" y="89.4" width="2.9" height="2.4" rx=".8" fill="#FFE3EE"/>
+    <path d="M72.4 99.3c-1.9-1.3-2.8-2.3-2.8-3.3 0-.7.5-1.3 1.3-1.3.6 0 1.1.3 1.5.9.4-.6.9-.9 1.5-.9.8 0 1.3.6 1.3 1.3 0 1-.9 2-2.8 3.3z" fill="#fff" fill-opacity=".85"/>
+    <ellipse cx="82" cy="100.4" rx="5.6" ry="4.8" transform="rotate(28 82 100.4)" style="fill:${pv('--plush', '#E9D3F3')}"/><path d="M79.4 102.8q1.4 1 2.8.6M81.6 103.6q1.4.8 2.8.2" fill="none" style="stroke:${pv('--plush-3', '#D5B8E8')}" stroke-width=".8" stroke-linecap="round"/>`;
+  const SANTA = `<path d="M37 29C38 13 52 3 68 4.5c11 1 18 8 24 14.5 3.2 3.5 6.4 5.4 9.6 5.8-4 3.6-10.4 3.4-15.6-.4 1.8 3.2 2.6 6.4 2 9.6z" fill="#EC8394"/><path d="M50 10c5-3.2 12-4.2 18-3.2" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="2.4" stroke-linecap="round"/><path d="M33.6 31.4c8.6-9.8 44.2-9.8 52.8 0l-.4 8.2c-10-7.8-41.6-7.8-52 0z" fill="#fff"/><g fill="#fff"><circle cx="36" cy="35.2" r="3.4"/><circle cx="47" cy="29.6" r="3.4"/><circle cx="60" cy="28" r="3.4"/><circle cx="73" cy="29.6" r="3.4"/><circle cx="84" cy="35.2" r="3.4"/></g><circle cx="102" cy="25" r="6.2" fill="#fff"/>`;
+  // Мишка с какао: правая лапка опущена и держит кружку, сердечко «переезжает» на кружку; под Новый год — в колпаке
+  function cocoaBear(ny) {
+    let b = BEAR.replace('cx="88" cy="80" rx="9" ry="13" transform="rotate(-150 88 80)"', 'cx="87" cy="90" rx="9" ry="13" transform="rotate(28 87 90)"').replace(/<path d="M60 107c[^>]*\/>/, '');
+    if (ny) b = b.replace(/<path d="M77 21l[\s\S]*$/, SANTA);
+    return b + SCARF + MUG;
+  }
+  const TREE = `
+    <ellipse cx="80" cy="190" rx="66" ry="7" fill="#1B1436" opacity=".25"/>
+    <rect x="72" y="160" width="16" height="22" rx="3" fill="#B08A73"/>
+    <path d="M80 86L140 160Q80 174 20 160z" fill="#6FC3A3"/><path d="M80 50L126 112Q80 124 34 112z" fill="#7FCFB0"/><path d="M80 22L112 70Q80 80 48 70z" fill="#8FD9BC"/>
+    <path d="M80 30L60 64M80 58L50 104M80 94L42 150" stroke="#fff" stroke-opacity=".22" stroke-width="3" stroke-linecap="round"/>
+    <g class="pg-lights" fill="none" stroke="#FFE08A" stroke-width="3" stroke-linecap="round" stroke-dasharray=".1 7"><path d="M56 66Q80 80 104 64"/><path d="M42 106Q80 124 120 102"/><path d="M30 150Q80 172 132 146"/></g>
+    ${[['-ruby', 74, 54], ['-lilac', 58, 88], ['-aqua', 98, 84], ['', 76, 100], ['-gold', 46, 128], ['-mint', 84, 134], ['-peri', 112, 124], ['-coral', 60, 150], ['-candy', 102, 152]]
+      .map(([c, x, y], i) => `<use class="pg-orn" style="--dl:${(0.9 + i * 0.12).toFixed(2)}s" href="#pg-gem${c}" x="${x - 7}" y="${y - 7}" width="14" height="14"/>`).join('')}
+    <path class="pg-tstar" d="M80 1l4.4 9 9.9 1.4-7.2 7 1.7 9.8L80 23.6l-8.8 4.6 1.7-9.8-7.2-7 9.9-1.4z" fill="#FFE08A" stroke="#fff" stroke-width="1.2" stroke-linejoin="round"/>
+    <rect x="18" y="166" width="32" height="24" rx="3" fill="#F7A8CF"/><rect x="31.5" y="166" width="5" height="24" fill="#fff"/><path d="M34 166c-6-7-12-2-6 0M34 166c6-7 12-2 6 0" stroke="#fff" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+    <rect x="110" y="170" width="30" height="20" rx="3" fill="#C9AEFF"/><rect x="122.5" y="170" width="5" height="20" fill="#FFE08A"/><path d="M125 170c-6-6-11-1-5 0M125 170c6-6 11-1 5 0" stroke="#FFE08A" stroke-width="2.4" fill="none" stroke-linecap="round"/>`;
   const HAT = `<g transform="rotate(-10 60 22)"><path d="M45 25L60 -10L75 25z" fill="url(#pg-hatF)"/><path d="M49.5 15.5l17-4.6M53.6 6.2l11.2-3" stroke="#fff" stroke-width="2.6" stroke-linecap="round" opacity=".85"/><circle cx="60" cy="-11" r="5.4" fill="#FFE08A" stroke="#fff" stroke-width="1.2"/><path d="M44 25.5q16 5.5 32 0" stroke="#fff" stroke-width="3.4" fill="none" stroke-linecap="round"/></g>`;
   const CAKE = `
     <ellipse cx="100" cy="186" rx="88" ry="10" fill="#FFFFFF" opacity=".9"/>
@@ -464,6 +512,33 @@ ${dk('.pg-v-bgift', '--pg-top:#261A3A;background:radial-gradient(90% 60% at 50% 
 @keyframes pgGLid{to{transform:translateY(-34px) rotate(-14deg)}}
 .pg-v-bgift .pg-fly{bottom:210px}
 
+/* ===== Зима ===== */
+.pg-v-snow{--pg-top:#DCE8FF;background:linear-gradient(180deg,#DCE8FF 0%,#ECE4FF 55%,#FFF0F8 100%);color:#3F2E72}
+.pg-v-cocoa{--pg-top:#FFE8F1;background:linear-gradient(170deg,#FFE8F1 0%,#FBE4F1 50%,#E9DDFF 100%);color:#5A2A63}
+.pg-v-tree{--pg-top:#221A44;background:linear-gradient(180deg,#221A44 0%,#3B2968 60%,#6A4590 100%);color:#fff}
+${dk('.pg-v-snow', '--pg-top:#16203F;background:linear-gradient(180deg,#16203F 0%,#2A2451 55%,#3B2A55 100%);color:#fff')}
+${dk('.pg-v-cocoa', '--pg-top:#2A1A38;background:linear-gradient(170deg,#2A1A38 0%,#3A2150 55%,#2A1E48 100%);color:#FFEFF7')}
+.pg-hill{left:-15%;right:-15%;bottom:-70px;height:170px;border-radius:50% 50% 0 0/100% 100% 0 0;background:linear-gradient(180deg,#FFFFFF,#EEF2FF);animation:pgUp .9s .05s ease-out both}
+.pg-v-tree .pg-hill{background:linear-gradient(180deg,#E9EDFF,#C6CDEC)}
+${dk('.pg-hill', 'background:linear-gradient(180deg,#DDE4F7,#B9C3E3)')}
+.pg-snowf{top:-30px;left:var(--x);width:var(--s,14px);height:var(--s,14px);color:#fff;filter:drop-shadow(0 0 2px rgba(110,130,210,.6));animation:pgSnow var(--d,4s) var(--dl,0s) linear both}
+.pg-v-cocoa .pg-snowf{color:#C7B3F5;filter:none}
+${dk('.pg-v-cocoa .pg-snowf', 'color:#E6DAFF')}
+@keyframes pgSnow{0%{transform:translate(0,0) rotate(0);opacity:0}8%{opacity:1}50%{transform:translate(var(--dx,30px),45vh) rotate(160deg)}85%{opacity:.9}100%{transform:translate(0,92vh) rotate(320deg);opacity:0}}
+.pg-v-snow .pg-snowman{width:250px;left:50%;margin-left:-125px;bottom:34px;animation:pgUp 1s .15s cubic-bezier(.2,.9,.3,1.35) both}
+.pg-v-cocoa .pg-glow{left:50%;bottom:20px;width:420px;height:420px;margin-left:-210px;border-radius:50%;background:radial-gradient(circle,rgba(255,196,224,.55) 0%,rgba(255,196,224,0) 65%);animation:pgOrb 1.4s .1s ease-out both}
+.pg-v-cocoa .pg-bear{width:290px;left:50%;margin-left:-145px;bottom:10px;animation:pgUp 1s .15s cubic-bezier(.2,.9,.3,1.35) both}
+.pg-steam{animation:pgSteam 1.6s .9s ease-in-out infinite both}
+.pg-steam2{animation-delay:1.4s}
+@keyframes pgSteam{0%{opacity:0;transform:translateY(3px)}40%{opacity:.9}100%{opacity:0;transform:translateY(-6px)}}
+.pg-v-tree .pg-tree{width:270px;left:50%;margin-left:-135px;bottom:28px;animation:pgBoxIn .8s .15s cubic-bezier(.2,.9,.3,1.3) both}
+.pg-v-tree .pg-dot{animation:pgTw var(--d,2s) var(--dl,0s) ease-in-out infinite both}
+.pg-orn{transform-box:fill-box;transform-origin:center;animation:pgOrn 1.6s var(--dl,1s) ease-in-out infinite both}
+@keyframes pgOrn{0%,100%{opacity:.8;transform:scale(.9)}50%{opacity:1;transform:scale(1.14)}}
+.pg-tstar{transform-box:fill-box;transform-origin:center;animation:pgDrop .9s .5s cubic-bezier(.3,1.35,.5,1) both}
+.pg-lights{animation:pgLights 1s .8s steps(2,jump-none) infinite}
+@keyframes pgLights{from{stroke:#FFE08A}to{stroke:#FFC2E0}}
+
 .pg-still,.pg-still *{animation-duration:.01s!important;animation-delay:0s!important;animation-iteration-count:1!important}
 `;
 
@@ -539,6 +614,26 @@ ${dk('.pg-v-bgift', '--pg-top:#261A3A;background:radial-gradient(90% 60% at 50% 
         for (let i = 0; i < 10; i++) h += ico(i % 2 ? 'pg-spark2' : 'pg-spark', 'pg-sp', `left:${rnd(6, 90)}%;top:${rnd(30, 75)}%;--s:${rnd(10, 18)}px;--d:${rnd(1.2, 2)}s;--dl:${rnd(.8, 1.8)}s`);
         for (let i = 0; i < 6; i++) h += ico(g(i), 'pg-gm pg-sp', `left:${rnd(6, 88)}%;top:${rnd(64, 86)}%;--s:${rnd(14, 20)}px;--d:${rnd(1.6, 2.4)}s;--dl:${rnd(1, 1.8)}s`);
         return h;
+      // --- зима ---
+      case 'snow':
+        h += '<div class="pg-a pg-hill"></div>';
+        for (let i = 0; i < 24; i++) h += ico('pg-flake', 'pg-a pg-snowf', `--x:${rnd(-4, 98)}%;--s:${rnd(10, 24)}px;--d:${rnd(3.4, 5.2)}s;--dl:${rnd(0, 1.6)}s;--dx:${rnd(-40, 40)}px`);
+        for (let i = 0; i < 5; i++) h += ico('pg-spark2', 'pg-sp', `left:${rnd(6, 90)}%;top:${rnd(34, 58)}%;--s:${rnd(10, 16)}px;--d:${rnd(1.2, 2)}s;--dl:${rnd(.6, 1.6)}s`);
+        h += pic('0 0 140 175', 'pg-a pg-snowman', SNOWMAN);
+        return h;
+      case 'cocoa':
+        for (let i = 0; i < 18; i++) h += ico('pg-flake', 'pg-a pg-snowf', `--x:${rnd(-4, 98)}%;--s:${rnd(10, 20)}px;--d:${rnd(3.4, 5.2)}s;--dl:${rnd(0, 1.6)}s;--dx:${rnd(-40, 40)}px`);
+        for (let i = 0; i < 6; i++) h += ico(i % 2 ? 'pg-spark2' : 'pg-spark', 'pg-sp', `left:${rnd(6, 90)}%;top:${rnd(32, 58)}%;--s:${rnd(10, 16)}px;--d:${rnd(1.2, 2)}s;--dl:${rnd(.6, 1.6)}s`);
+        h += '<div class="pg-a pg-glow"></div>';
+        for (let i = 0; i < 5; i++) h += ico('pg-heartp', 'pg-a pg-float', `--x:${rnd(53, 59)}%;--b:${rnd(88, 100)}px;--s:${rnd(12, 20)}px;--d:${rnd(2, 2.6)}s;--dl:${(1 + i * .35).toFixed(2)}s;--dx:${rnd(-30, 30)}px;--r:${rnd(-25, 25)}deg`);
+        h += pic('0 0 120 120', 'pg-a pg-bear', cocoaBear(isNY()));
+        return h;
+      case 'tree':
+        for (let i = 0; i < 30; i++) h += `<i class="pg-a pg-dot" style="left:${rnd(0, 100)}%;top:${rnd(20, 60)}%;--s:${rnd(1.5, 3)}px;--d:${rnd(1.4, 2.6)}s;--dl:${rnd(0, 1.5)}s"></i>`;
+        h += '<div class="pg-a pg-hill"></div>';
+        for (let i = 0; i < 18; i++) h += ico('pg-flake', 'pg-a pg-snowf', `--x:${rnd(-4, 98)}%;--s:${rnd(9, 18)}px;--d:${rnd(3.6, 5.4)}s;--dl:${rnd(0, 1.6)}s;--dx:${rnd(-40, 40)}px`);
+        h += pic('0 0 160 200', 'pg-a pg-tree', TREE);
+        return h;
       // --- день рождения ---
       case 'bparty':
         h += '<div class="pg-a pg-big26" aria-hidden="true">26</div>';
@@ -573,7 +668,9 @@ ${dk('.pg-v-bgift', '--pg-top:#261A3A;background:radial-gradient(90% 60% at 50% 
 
   function hello(v, o) {
     const t = o.tod || todOf(), n = String(o.name || '').trim();
-    const sub = typeof v.sub === 'string' ? v.sub : (v.sub[t] || Object.values(v.sub)[0]);
+    let sub = typeof v.sub === 'function' ? v.sub() : v.sub;
+    if (Array.isArray(sub)) sub = sub[Math.floor(Math.random() * sub.length)];
+    else if (typeof sub !== 'string') sub = sub[t] || Object.values(sub)[0];
     if (v.bday) return `<div class="pg-hello"><div class="pg-h">С днём рождения${n ? `,<br>${esc(n)}` : ''}!</div><div class="pg-s">${esc(sub)}</div></div>`;
     return `<div class="pg-hello"><div class="pg-h">${n ? `${GREET[t]},<br>${esc(n)}` : GREET[t] + '!'}</div><div class="pg-s">${esc(sub)}</div></div>`;
   }
@@ -638,8 +735,13 @@ ${dk('.pg-v-bgift', '--pg-top:#261A3A;background:radial-gradient(90% 60% at 50% 
   function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
   function due(p) { return p.on !== false && Date.now() - (p.last || 0) >= GAP; }
   function pick(p, t) {
-    const ok = id => { const v = byId(id); return v && (!v.when || v.when.includes(t)); };
-    if (!p.cur || !ok(p.cur) || !(p.left > 0)) {
+    const ok = id => { const v = byId(id); return v && fits(v) && (!v.when || v.when.includes(t)); };
+    // в сезон зимние заставки идут через раз, чтобы не терялись среди обычных
+    const seas = V.filter(v => v.season && v.id !== p.cur && ok(v.id));
+    if ((!p.cur || !ok(p.cur) || !(p.left > 0)) && seas.length && Math.random() < 0.5) {
+      p.cur = seas[Math.floor(Math.random() * seas.length)].id;
+      p.left = EVERY;
+    } else if (!p.cur || !ok(p.cur) || !(p.left > 0)) {
       if (!Array.isArray(p.order)) p.order = [];
       p.order = p.order.filter(byId);
       let i = p.order.findIndex(ok);

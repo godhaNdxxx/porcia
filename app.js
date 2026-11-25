@@ -167,7 +167,7 @@
   // ---------- Оформление 1.8: лента недели, плитки макросов, карточки приёмов, цель по весу ----------
   const ND = () => true;
   const DZ = () => true;
-  const APP_VER = '1.17.0';
+  const APP_VER = '1.18.1';
   const svgI = d => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
   const MEAL_IC = {
     b: svgI('<path d="M5 9h11v5a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5z"/><path d="M16 10h1.5a2.5 2.5 0 0 1 0 5H16"/><path d="M8.5 3.5c0 1 1 1.5 1 2.6M12.5 3.5c0 1 1 1.5 1 2.6"/>'),
@@ -193,7 +193,8 @@
     const tile = (name, v, goal, kpg, c, act) => {
       const pct = goal ? v / goal * 100 : (K ? v * kpg / K * 100 : 0);
       const frac = Math.min(1, pct / 100);
-      const inner = `<span class="mr"><svg viewBox="0 0 40 40" aria-hidden="true"><circle class="trk" cx="20" cy="20" r="${R}"/><circle class="val" cx="20" cy="20" r="${R}" stroke-dasharray="${CI.toFixed(1)}" stroke-dashoffset="${(CI * (1 - frac)).toFixed(1)}" ${frac > 0 ? '' : 'opacity="0"'}/></svg><span>${Math.round(pct)}%</span></span><span class="nm">${name}</span><span class="v num">${g1(v)} г</span><span class="s">${goal ? 'цель ' + nf(goal) + ' г' : act ? 'задать цель' : 'доля ккал'}</span>`;
+      // Компактная плитка: название и процент, граммы, полоска прогресса (цель — в подписи для экранного диктора)
+      const inner = `<span class="nm">${name}</span><span class="pc num">${Math.round(pct)}%</span><span class="v num" aria-label="${g1(v)} г${goal ? ' из ' + nf(goal) + ' г' : ''}">${g1(v)} г</span><span class="bar" aria-hidden="true"><i style="width:${(frac * 100).toFixed(1)}%"></i></span>${goal ? '' : `<span class="s">${act ? 'задать цель' : 'доля ккал'}</span>`}`;
       return act && !goal ? `<button class="mtile" style="--c:var(--${c})" data-act="${act}">${inner}</button>` : `<div class="mtile" style="--c:var(--${c})">${inner}</div>`;
     };
     return `<div class="mtiles">${tile('Белок', t.p, P, 4, 'protein', 'goto-protein')}${tile('Жиры', t.f, F, 9, 'fat', 'goto-macros')}${tile('Углеводы', t.c, Cg, 4, 'carb', 'goto-macros')}</div>`;
@@ -231,19 +232,21 @@
     ['cream', 'Молочный', ['#F7EFE4', '#FFFFFF', '#E3D3BE', '#F4B3C2'], '#F7EFE4', '#F4B3C2'],
     ['choco', 'Шоколадный', ['#BE9175', '#EBD6C5', '#9A6D52', '#F2A0B0'], '#BE9175', '#F2A0B0'],
   ];
-  const BEAR_HATS = [['none', 'Без шапки'], ['panama', 'Панама'], ['muffs', 'Меховые наушники'], ['nightcap', 'Ночной колпак'], ['beanie', 'Шапка с помпоном'], ['beret', 'Беретик'], ['sunhat', 'Шляпка'], ['crown', 'Корона']];
+  const BEAR_HATS = [['none', 'Без шапки'], ['panama', 'Панама'], ['muffs', 'Меховые наушники'], ['nightcap', 'Ночной колпак'], ['beanie', 'Шапка с помпоном'], ['beret', 'Беретик'], ['sunhat', 'Шляпка'], ['santa', 'Новогодний колпак'], ['crown', 'Корона']];
   const BEAR_COATS = [['none', 'Без одежды'], ['puffer', 'Пуховичок']];
   const BEAR_EYES = [['none', 'Без очков'], ['round', 'Круглые'], ['heart', 'Сердечки'], ['star', 'Звёздочки'], ['classic', 'Классика'], ['cat', 'Лисички']];
   const BEAR_NECK = [['none', 'Без украшений'], ['gold', 'Золотая цепь'], ['silver', 'Серебряная цепь'], ['rose', 'Цепь с бриллиантом'], ['pearl', 'Жемчуг']];
-  const BEAR_ITEMS = [['none', 'Ничего'], ['umbrella', 'Зонтик'], ['skis', 'Лыжи'], ['snowboard', 'Сноуборд'], ['suitcase', 'Чемодан'], ['balloon', 'Шарик']];
+  const BEAR_ITEMS = [['none', 'Ничего'], ['umbrella', 'Зонтик'], ['skis', 'Лыжи'], ['snowboard', 'Сноуборд'], ['suitcase', 'Чемодан'], ['balloon', 'Шарик'], ['cocoa', 'Кружка какао']];
   // Расцветки вещей: [ключ, название, [цвет1, цвет2, цвет3], узор]
-  const WARD_COL = {"coat": [["pink", "Розовый", ["#F7B8D2", "#EFA0C1", "#DD86AD"], ""], ["lilac", "Сиреневый", ["#CDB8F6", "#B9A0EF", "#9E80E2"], ""], ["mint", "Мятный", ["#AEE0CE", "#95D3BE", "#73BCA3"], ""], ["milk", "Молочный", ["#F8F1E8", "#ECE1D3", "#D6C5B0"], ""], ["black", "Чёрный", ["#433A50", "#352D41", "#5E5370"], ""]], "panama": [["white", "Белая", ["#FBF8F3", "#EFE8DD", "#F4A9C8"], ""], ["pink", "Розовая", ["#F8C2D8", "#F0ABC8", "#FFFFFF"], ""], ["denim", "Джинсовая", ["#9DB9E4", "#86A6D8", "#F6CC62"], ""], ["lemon", "Лимонная", ["#FBE59A", "#F3D774", "#9BD7C2"], ""]], "muffs": [["pink", "Розовые", ["#F9C6DC", "#E996BB", ""], ""], ["white", "Белые", ["#FFFFFF", "#C9B7EC", ""], ""], ["lilac", "Сиреневые", ["#D7C6F7", "#9E80E2", ""], ""]], "umbrella": [["red", "Красный в горошек", ["#F26D7D", "#F26D7D", "#B9475A"], "dots"], ["yellow", "Жёлтый", ["#F8CE5E", "#F8CE5E", "#C9952A"], ""], ["lilac", "Сиреневый в полоску", ["#C6AEF8", "#A88AEF", "#7C5BCB"], "stripes"], ["clear", "Прозрачный с сердечками", ["rgba(230,240,255,.78)", "#fff", "#9AA6C2"], "hearts"]], "skis": [["pink", "Розовые", ["#F48DB8", "#FFFFFF", "#5C536D"], ""], ["mint", "Мятные", ["#7FD1B6", "#FFFFFF", "#5C536D"], ""], ["lilac", "Сиреневые", ["#A88AEF", "#F6CC62", "#3E3650"], ""]], "snowboard": [["stars", "Сиреневый со звёздами", ["#A88AEF", "#8E6FE0", "#3E3650"], "stars"], ["hearts", "Розовый с сердечками", ["#F48DB8", "#E2709F", "#3E3650"], "hearts"], ["wave", "Мятный с волнами", ["#7FD1B6", "#5DBB9C", "#3E3650"], "wave"]], "suitcase": [["pink", "Розовый", ["#F7B0CC", "#E58EB2", ""], ""], ["mint", "Мятный", ["#9ED9C4", "#7CC4AB", ""], ""], ["lilac", "Сиреневый", ["#C3ACF4", "#A48AE8", ""], ""], ["lemon", "Лимонный", ["#F8DC82", "#E8C35A", ""], ""]], "balloon": [["pink", "Розовый", ["#F7A1C4", "#E2709F", ""], ""], ["red", "Красный", ["#F2647A", "#C9465B", ""], ""], ["lilac", "Сиреневый", ["#B89BF4", "#9070E2", ""], ""]]};
+  const WARD_COL = {"coat": [["pink", "Розовый", ["#F7B8D2", "#EFA0C1", "#DD86AD"], ""], ["lilac", "Сиреневый", ["#CDB8F6", "#B9A0EF", "#9E80E2"], ""], ["mint", "Мятный", ["#AEE0CE", "#95D3BE", "#73BCA3"], ""], ["milk", "Молочный", ["#F8F1E8", "#ECE1D3", "#D6C5B0"], ""], ["black", "Чёрный", ["#433A50", "#352D41", "#5E5370"], ""], ["sky", "Голубой", ["#BFD8F7", "#A6C6F0", "#86ABE3"], ""]], "santa": [["red", "Красный", ["#EC8394", "#FFFFFF", ""], ""], ["pink", "Розовый", ["#F6A9C8", "#FFFFFF", ""], ""], ["lilac", "Сиреневый", ["#BFA6F5", "#FFF6FB", ""], ""], ["mint", "Мятный", ["#9ED9C4", "#FFFFFF", ""], ""]], "cocoa": [["pink", "Розовая", ["#F7B0CC", "#E58EB2", ""], ""], ["mint", "Мятная", ["#9ED9C4", "#7CC4AB", ""], ""], ["lilac", "Сиреневая", ["#C3ACF4", "#A48AE8", ""], ""], ["milk", "Молочная", ["#FBF6EF", "#E2D3C0", ""], ""]],"panama": [["white", "Белая", ["#FBF8F3", "#EFE8DD", "#F4A9C8"], ""], ["pink", "Розовая", ["#F8C2D8", "#F0ABC8", "#FFFFFF"], ""], ["denim", "Джинсовая", ["#9DB9E4", "#86A6D8", "#F6CC62"], ""], ["lemon", "Лимонная", ["#FBE59A", "#F3D774", "#9BD7C2"], ""]], "muffs": [["pink", "Розовые", ["#F9C6DC", "#E996BB", ""], ""], ["white", "Белые", ["#FFFFFF", "#C9B7EC", ""], ""], ["lilac", "Сиреневые", ["#D7C6F7", "#9E80E2", ""], ""]], "umbrella": [["red", "Красный в горошек", ["#F26D7D", "#F26D7D", "#B9475A"], "dots"], ["yellow", "Жёлтый", ["#F8CE5E", "#F8CE5E", "#C9952A"], ""], ["lilac", "Сиреневый в полоску", ["#C6AEF8", "#A88AEF", "#7C5BCB"], "stripes"], ["clear", "Прозрачный с сердечками", ["rgba(230,240,255,.78)", "#fff", "#9AA6C2"], "hearts"]], "skis": [["pink", "Розовые", ["#F48DB8", "#FFFFFF", "#5C536D"], ""], ["mint", "Мятные", ["#7FD1B6", "#FFFFFF", "#5C536D"], ""], ["lilac", "Сиреневые", ["#A88AEF", "#F6CC62", "#3E3650"], ""]], "snowboard": [["stars", "Сиреневый со звёздами", ["#A88AEF", "#8E6FE0", "#3E3650"], "stars"], ["hearts", "Розовый с сердечками", ["#F48DB8", "#E2709F", "#3E3650"], "hearts"], ["wave", "Мятный с волнами", ["#7FD1B6", "#5DBB9C", "#3E3650"], "wave"]], "suitcase": [["pink", "Розовый", ["#F7B0CC", "#E58EB2", ""], ""], ["mint", "Мятный", ["#9ED9C4", "#7CC4AB", ""], ""], ["lilac", "Сиреневый", ["#C3ACF4", "#A48AE8", ""], ""], ["lemon", "Лимонный", ["#F8DC82", "#E8C35A", ""], ""]], "balloon": [["pink", "Розовый", ["#F7A1C4", "#E2709F", ""], ""], ["red", "Красный", ["#F2647A", "#C9465B", ""], ""], ["lilac", "Сиреневый", ["#B89BF4", "#9070E2", ""], ""]]};
   const wardPal = (key, ck) => { const L = WARD_COL[key] || []; return L.find(p => p[0] === ck) || L[0] || null; };
   const LOOKS = [
     { k: 'base', n: 'Как обычно', set: { hat: 'none', scarf: 'none', coat: 'none', eyes: 'none', neck: 'none', item: 'none' } },
     { k: 'autumn', n: 'Осенний', s: 'autumn', set: { hat: 'beret', scarf: 'plaid', coat: 'none', eyes: 'none', neck: 'none', item: 'umbrella' }, col: { umbrella: 'red' } },
     { k: 'winter', n: 'Зимний', s: 'winter', set: { hat: 'muffs', scarf: 'long', coat: 'puffer', eyes: 'none', neck: 'none', item: 'skis' }, col: { muffs: 'white', coat: 'pink', skis: 'pink' } },
     { k: 'board', n: 'Сноубордист', s: 'winter', set: { hat: 'beanie', scarf: 'knit', coat: 'puffer', eyes: 'classic', neck: 'none', item: 'snowboard' }, col: { coat: 'lilac', snowboard: 'stars' } },
+    { k: 'cozy', n: 'Уютный', s: 'winter', set: { hat: 'none', scarf: 'snood', coat: 'none', eyes: 'round', neck: 'none', item: 'cocoa' }, col: { cocoa: 'pink' } },
+    { k: 'newyear', n: 'Новогодний', s: 'winter', set: { hat: 'santa', scarf: 'none', coat: 'puffer', eyes: 'star', neck: 'none', item: 'cocoa' }, col: { santa: 'red', coat: 'milk', cocoa: 'mint' } },
     { k: 'spring', n: 'Весенний', s: 'spring', set: { hat: 'none', scarf: 'bandana', coat: 'none', eyes: 'cat', neck: 'pearl', item: 'balloon' }, col: { balloon: 'pink' } },
     { k: 'summer', n: 'Летний', s: 'summer', set: { hat: 'panama', scarf: 'none', coat: 'none', eyes: 'heart', neck: 'none', item: 'balloon' }, col: { panama: 'lemon', balloon: 'red' } },
     { k: 'travel', n: 'В путешествие', set: { hat: 'panama', scarf: 'none', coat: 'none', eyes: 'star', neck: 'none', item: 'suitcase' }, col: { panama: 'white', suitcase: 'pink' } },
@@ -324,10 +327,32 @@
   };
   const BEAR_SEASON = {
     autumn: ['Осень — время пледа, какао и заботы о себе', 'Дождик за окном, а у нас уютно', 'Листья падают, а ты — сияешь', 'Осенью особенно важно себя баловать'],
-    winter: ['Укутывайся теплее, снежинка', 'Зима — чтобы пить тёплый чай и мечтать', 'Снег идёт, а мишка тебя греет', 'Ты моя самая тёплая зимняя радость'],
+    winter: ['Укутывайся теплее, снежинка', 'Зима — чтобы пить тёплый чай и мечтать', 'Снег идёт, а мишка тебя греет', 'Ты моя самая тёплая зимняя радость',
+      'Ух, ну и холодок на улице! Утепляйся', 'Я так рад зиме — обожаю снежок', 'Шарфик надела? Я проверю', 'У меня лапки замёрзли — согреешь?',
+      'Медведи зимой спят, а я не могу — скучаю по тебе', 'Если увидишь снеговика — передай привет от меня', 'Снежинки сегодня почти такие же красивые, как ты',
+      'Какао с зефирками — тоже забота о себе', 'Варежки, шапка, улыбка — всё на месте?', 'Скользко! Иди аккуратно, как пингвинчик',
+      'Зимой воду пить тоже надо — тёплую можно', 'Я слепил бы тебе снеговика, но он бы растаял от твоей улыбки',
+      'Носик не замёрз? Мой вот розовый', 'Под пледом и с тобой — никакой мороз не страшен', 'Зима — время для уютных вечеров и тёплых носочков',
+      'Снег хрустит, как свежий огурчик', 'Я сегодня в шубке, а ты?'],
     spring: ['Весна! Всё расцветает — и ты тоже', 'Пахнет весной и новыми победами', 'Весеннее солнышко тебе к лицу', 'Весной всё получается легче'],
     summer: ['Лето! Не забывай пить воду — жарко', 'Солнышко светит, а ты — ярче', 'Летом прогулки — лучшая тренировка', 'Пусть лето будет лёгким и вкусным'],
   };
+  // Зимой к утренним и вечерним фразам добавляются свои; с середины декабря до Рождества — новогодние
+  const BEAR_WINTER_PART = {
+    morning: ['Доброе утро! За окном холодно — оденься потеплее', 'С добрым зимним утром! Начнём с тёплого чая?', 'Утро, снежинка! Не забудь шапку',
+      'Вылезать из-под одеяла зимой — уже подвиг. Ты молодец', 'Доброе утро! Пусть сегодня будет тёпленько'],
+    bed: ['Спокойной ночи! Укройся потеплее', 'Пусть снятся снежинки и какао', 'За окном метель, а у тебя — тёплое одеяло. Сладких снов',
+      'Носочки тёплые надела? Тогда баиньки', 'Доброй ночи! Я посторожу, чтобы мороз не пробрался'],
+  };
+  const BEAR_NY = ['Скоро Новый год! Что попросишь у Деда Мороза?', 'Я уже нарядил ёлочку — стразиками, конечно', 'Мандаринки — самый новогодний перекус',
+    'Новогоднее настроение уже включилось?', 'В этом году ты была очень хорошей — я Деду Морозу так и напишу', 'Пахнет ёлкой и мандаринами'];
+  function nyTime() { const d = new Date(), m = d.getMonth(), dd = d.getDate(); return (m === 11 && dd >= 15) || (m === 0 && dd <= 8); }
+  function seasonLines(part) {
+    const sn = seasonNow();
+    let L = part === 'morning' || part === 'bed' ? (sn === 'winter' ? BEAR_WINTER_PART[part] : []) : BEAR_SEASON[sn];
+    if (nyTime() && part !== 'bed') L = L.concat(BEAR_NY);
+    return L;
+  }
   function bearLines(part) {
     const hr = new Date().getHours(), t = today(), items = dayItems(t), tot = totals(items), L = limitFor(t);
     const out = [];
@@ -350,7 +375,7 @@
     }
     const part = reason || partOf(new Date().getHours()) || 'day';
     const ctx = part === 'morning' ? [] : bearLines(part);
-    const base = part === 'morning' || part === 'bed' ? BEAR_SAY[part] : BEAR_SAY[part].concat(BEAR_SAY.any, BEAR_SEASON[seasonNow()]);
+    const base = part === 'morning' || part === 'bed' ? BEAR_SAY[part].concat(seasonLines(part)) : BEAR_SAY[part].concat(BEAR_SAY.any, seasonLines(part));
     const useCtx = ctx.length && Math.random() < (part === 'bed' ? 0.3 : 0.5);
     const pool = useCtx ? ctx : base;
     const st = bearState(), recent = Array.isArray(st.recent) ? st.recent : [];
@@ -448,7 +473,7 @@
     else if (t === 'neck') body = chipsOf(BEAR_NECK, B.neck, 'bear-neck');
     else if (t === 'item') body = chipsOf(BEAR_ITEMS, B.item, 'bear-item') + (B.item !== 'none' ? swatchesOf(B.item, B) : '');
     else {
-      const notes = [B.hat !== 'none' ? 'в шапке бантик и цветочек прячутся' : '', B.scarf === 'bandana' ? 'под банданой сердечко прячется' : '', B.coat !== 'none' ? 'на пуховичке сердечко становится маленькой нашивкой' : ''].filter(Boolean);
+      const notes = [B.hat !== 'none' ? 'в шапке бантик и цветочек прячутся' : '', B.scarf === 'bandana' ? 'под банданой сердечко прячется' : '', B.coat !== 'none' ? 'на пуховичке сердечко становится маленькой нашивкой' : '', B.item === 'cocoa' ? 'с кружкой какао сердечко переезжает на кружку' : ''].filter(Boolean);
       body = `<div class="chips" role="group" aria-label="Аксессуары">${BEAR_ACC.map(([k, n]) => `<button class="seg" data-act="bear-acc" data-a="${k}" aria-pressed="${!!B.a[k]}">${n}</button>`).join('')}</div>${notes.length ? `<p class="hint" style="margin:0">${notes.join('; ')}.</p>` : ''}`;
     }
     return `<div class="field" style="margin-top:14px"><span>Гардероб</span><div class="wtabs" role="tablist" aria-label="Гардероб">${WARD_TABS.map(([k, n]) => `<button class="seg" role="tab" data-act="ward-tab" data-t="${k}" aria-pressed="${t === k}" aria-selected="${t === k}">${n}</button>`).join('')}</div></div>
@@ -626,6 +651,15 @@
   // Пункты по версиям: показываем всё, что вышло после той версии, которую она видела последней
   // (если обновление пропустила — увидит пункты сразу за несколько версий). Новые версии — сверху.
   const WHATS_NEW_BY = [
+    ['1.18.1', [
+      ['⛄', 'Зимние заставки', 'при входе теперь встречают снеговик и мишка с какао, а с 15 декабря — ёлочка в стразиках'],
+    ]],
+    ['1.18.0', [
+      ['✍️', 'Записать еду — сразу', 'на «Сегодня» стало компактнее: поле «Что съела?» видно без прокрутки, а привычки и шаги переехали ниже'],
+      ['❄️', 'Мишка встречает зиму', 'много новых зимних фраз, а ближе к Новому году — праздничные'],
+      ['🧣', 'Зимний гардероб', 'новогодний колпак, кружка какао в лапках, голубой пуховичок и образы «Уютный» и «Новогодний»'],
+      ['⚙️', 'Аккуратные настройки', 'разделы теперь сворачиваются — открывай только нужный'],
+    ]],
     ['1.17.0', [
       ['✅', 'Новая вкладка «Привычки»', 'добавляй свои: витамины, растяжку, книгу — и отмечай каждый день. Каждая отметка — стразик в шкатулку'],
       ['🎛', 'Как тебе удобно', 'каждый день, по дням недели, N раз в неделю или раз в N дней. Галочкой, счётчиком, таймером или «держалась»'],
@@ -729,7 +763,8 @@
   // Иногда, примерно раз в 3–6 минут, на фоне за карточками секунд 20 идёт погода по сезону.
   const SEASONS = [['autumn', 'Осень'], ['winter', 'Зима'], ['spring', 'Весна'], ['summer', 'Лето']];
   const SEASON_IN = { autumn: 'осень', winter: 'зима', spring: 'весна', summer: 'лето' };
-  function seasonNow() { const m = new Date().getMonth(); return m === 11 || m < 2 ? 'winter' : m < 5 ? 'spring' : m < 8 ? 'summer' : 'autumn'; }
+  // зима — с 20 ноября: в это время уже холодно и идёт снег
+  function seasonNow() { const d = new Date(), m = d.getMonth(); return m === 11 || m < 2 || (m === 10 && d.getDate() >= 20) ? 'winter' : m < 5 ? 'spring' : m < 8 ? 'summer' : 'autumn'; }
   const LEAF = ['#EFA04C', '#E2794E', '#D9B04A', '#C9693A'];
   function wxPlay(season, opt) {
     opt = opt || {};
@@ -1330,7 +1365,29 @@
     $('#setDanger').innerHTML = `<h2>Данные</h2>${ui.delArm === 'all'
       ? `<p class="small" style="margin:0 0 10px">Удалить все записи, замеры и настройки? Это нельзя отменить.</p><div class="row-btns"><button class="btn danger" data-act="wipe-confirm">Да, удалить всё</button><button class="btn plain" data-act="wipe-cancel">Отмена</button></div>`
       : `<button class="btn danger block" data-act="wipe">Удалить все данные</button>`}`;
+    setFolds();
   }
+  // Разделы настроек сворачиваются: открыт только лимит, остальные — по нажатию на заголовок (запоминается)
+  const SET_OPEN_KEY = 'porcia.setopen';
+  function setOpenList() { try { const v = JSON.parse(localStorage.getItem(SET_OPEN_KEY)); if (Array.isArray(v)) return v; } catch (e) { /* */ } return ['setLimit']; }
+  function setFolds() {
+    const open = setOpenList();
+    document.querySelectorAll('#v-more > .card').forEach(c => {
+      const k = c.id || 'how', h = c.querySelector(':scope > h2:first-child'); if (!h) return;
+      const on = open.includes(k);
+      c.classList.toggle('fold', !on);
+      h.setAttribute('role', 'button'); h.tabIndex = 0; h.setAttribute('aria-expanded', on);
+    });
+  }
+  function setToggle(c, force) {
+    const k = c.id || 'how', open = setOpenList().filter(x => x !== k), on = force != null ? force : c.classList.contains('fold');
+    if (on) open.push(k);
+    try { localStorage.setItem(SET_OPEN_KEY, JSON.stringify(open)); } catch (e) { /* */ }
+    setFolds();
+  }
+  function setUnfold(id) { const c = $('#' + id); if (c && c.classList.contains('fold')) setToggle(c, true); }
+  document.addEventListener('click', e => { const h = e.target.closest('#v-more > .card > h2:first-child'); if (h) setToggle(h.parentElement); });
+  document.addEventListener('keydown', e => { if (e.key !== 'Enter' && e.key !== ' ') return; const h = e.target.closest && e.target.closest('#v-more > .card > h2:first-child'); if (h) { e.preventDefault(); setToggle(h.parentElement); } });
   // ---------- Оформление: тема и приветствие ----------
   const THEMES = [['auto', 'Как в телефоне'], ['light', 'Светлая'], ['dark', 'Тёмная']];
   function themeGet() { try { const t = localStorage.getItem('porcia.theme'); return t === 'light' || t === 'dark' ? t : 'auto'; } catch (e) { return 'auto'; } }
@@ -1666,7 +1723,7 @@
       <div><span class="baseline-big">${a.steps ? nf(a.steps) : '—'}</span>${G ? ` <span class="muted">из ${nf(G)}</span>` : ''}${G && st >= G ? ' ' + GEM : ''}</div>
       ${G ? `<div class="bar accent" style="margin-top:10px"><i style="width:${Math.min(100, st / G * 100)}%"></i></div>` : ''}
       <div class="setrow" style="margin-top:12px"><label class="field"><span>Шагов за ${ui.day === t ? 'сегодня' : fmtLong(ui.day)}</span><input id="stepsIn" type="text" inputmode="numeric" value="${a.steps || ''}" placeholder="например, 7500"></label><button class="btn" data-act="steps-save">Сохранить</button></div>
-      <p class="hint">Число — из приложения «Здоровье» или с часов. Удобно вписывать вечером.</p>
+      ${a.steps ? '' : '<p class="hint">Число — из приложения «Здоровье» или с часов. Удобно вписывать вечером.</p>'}
       ${goalBlock}`;
 
     $('#actAdd').innerHTML = `<h2>Добавить тренировку</h2><div class="types">${ACT_TYPES.map(([k, n]) => `<button class="tchip" data-act="wk-new" data-type="${k}">${actIcon(k)}<span>${n}</span></button>`).join('')}</div>
@@ -2518,8 +2575,8 @@
     },
     'open-day'(b) { ui.day = b.dataset.day; ui.followToday = ui.day === today(); ui.view = 'today'; render(); window.scrollTo(0, 0); },
     'apply-baseline'() { const b = baseline(); setLimit(b.limit); toast(`Лимит: ${nf(b.limit)} ккал в день`); render(); },
-    'goto-limit'() { S.settings.baselineDismissed = true; save(); ui.view = 'more'; render(); setTimeout(() => { const i = $('#sLimit'); i && i.focus(); }, 50); },
-    'goto-protein'() { ui.view = 'more'; render(); setTimeout(() => { const i = $('#setProtein'); i && i.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 50); },
+    'goto-limit'() { S.settings.baselineDismissed = true; save(); ui.view = 'more'; render(); setUnfold('setLimit'); setTimeout(() => { const i = $('#sLimit'); i && i.focus(); }, 50); },
+    'goto-protein'() { ui.view = 'more'; render(); setUnfold('setProtein'); setTimeout(() => { const i = $('#setProtein'); i && i.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 50); },
     'goto-body'() { ui.view = 'body'; render(); window.scrollTo(0, 0); },
     'snooze-weigh'() { S.settings.weighSnooze = today(); save(); renderTips(); },
     'apply-stall'(b) { setLimit(+b.dataset.k); toast(`Новый лимит: ${nf(+b.dataset.k)} ккал`); render(); },
@@ -2587,7 +2644,7 @@
     'save-carb'() { const v = num($('#sCarb').value); S.settings.carb = v ? Math.round(v) : null; save(); toast(v ? `Цель по углеводам: ${Math.round(v)} г` : 'Цель по углеводам убрана'); render(); },
     'use-fat'(b) { S.settings.fat = +b.dataset.g; save(); toast(`Цель по жирам: ${b.dataset.g} г`); render(); },
     'use-carb'(b) { S.settings.carb = +b.dataset.g; save(); toast(`Цель по углеводам: ${b.dataset.g} г`); render(); },
-    'goto-macros'() { ui.view = 'more'; render(); setTimeout(() => { const i = $('#sFat'); i && i.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 50); },
+    'goto-macros'() { ui.view = 'more'; render(); setUnfold('setProtein'); setTimeout(() => { const i = $('#sFat'); i && i.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 50); },
     'save-fat'() { const v = num($('#sFat').value); S.settings.fat = v ? Math.round(v) : null; save(); toast(v ? `Цель по жирам: ${Math.round(v)} г` : 'Цель по жирам убрана'); render(); },
     'add-food'(b) { foodSheet(b.dataset.name || ''); },
     'my-foods'() { if (S.custom.length) myFoodsSheet(); else foodSheet(''); },
@@ -2608,7 +2665,7 @@
     },
     howto() { howtoSheet(false); },
     'onb-start'() { S.settings.onboarded = true; save(); closeSheet(); setTimeout(() => $('#food').focus(), 80); },
-    'onb-limit'() { S.settings.onboarded = true; save(); closeSheet(); ui.view = 'more'; render(); setTimeout(() => { const i = $('#sLimit'); i && i.focus(); }, 80); },
+    'onb-limit'() { S.settings.onboarded = true; save(); closeSheet(); ui.view = 'more'; render(); setUnfold('setLimit'); setTimeout(() => { const i = $('#sLimit'); i && i.focus(); }, 80); },
     'sheet-close'() { closeSheet(); },
     // --- привычки ---
     'hb-open'() { ui.view = 'habits'; ui.hbFollow = true; ui.hbMode = 'day'; render(); window.scrollTo(0, 0); },
@@ -2717,7 +2774,7 @@
       }
       const f = $('#photoFile'); f.value = ''; f.click();
     },
-    'goto-ai'() { closeSheet(); ui.view = 'more'; render(); setTimeout(() => { const c = $('#setAi'); c && c.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 60); },
+    'goto-ai'() { closeSheet(); ui.view = 'more'; render(); setUnfold('setAi'); setTimeout(() => { const c = $('#setAi'); c && c.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 60); },
     'photo-retry'() { analyzePhoto(); },
     'photo-del'() { if (ui.photo && ui.photo.url) URL.revokeObjectURL(ui.photo.url); ui.photo = null; ui.photoItems = []; reparse(); },
     'ai-model'(b) { const c = aiCfg(); c.model = b.dataset.m; aiSave(c); $('#setAi').innerHTML = aiCard(); },

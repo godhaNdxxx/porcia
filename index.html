@@ -358,19 +358,19 @@ textarea:focus, .field input:focus, .field select:focus { border-color: var(--ac
 .wbtn { width: 34px; height: 34px; border-radius: 50%; border: 0; background: var(--surface-2); color: var(--ink); display: grid; place-items: center; }
 .wbtn svg { width: 16px; height: 16px; }
 .wbtn:disabled { opacity: .35; }
-.wstat { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; margin: 6px 0 10px; font-size: 15px; }
+.wstat { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; margin: 4px 0 8px; font-size: 15px; }
 .wstat b { font: 700 20px/1 var(--font-display); font-variant-numeric: tabular-nums; }
 .wstat #wLeft { color: var(--muted); }
 .wstat #wLeft.done { color: var(--carb); font-weight: 600; }
-.glasses { display: flex; gap: 6px; }
+.glasses { display: flex; justify-content: space-between; gap: 6px; }
 .glasses.many { display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 44px)); gap: 8px 6px; }
 .wsize { border: 0; border-radius: 99px; padding: 7px 11px; background: color-mix(in srgb, var(--carb) 14%, var(--surface)); color: var(--ink); font: 600 13px/1 var(--font-body); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .wsize span { color: var(--carb); }
 .wsize svg { width: 11px; height: 11px; margin-left: 5px; vertical-align: -1px; opacity: .6; }
 .gchips { display: flex; flex-wrap: wrap; gap: 8px; }
-.wquick { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.wquick { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 .wquick:empty { display: none; }
-.wq { border: 0; border-radius: 99px; padding: 8px 12px; background: color-mix(in srgb, var(--carb) 14%, var(--surface)); color: var(--carb); font: 600 13.5px/1 var(--font-body); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.wq { border: 0; border-radius: 99px; padding: 7px 11px; background: color-mix(in srgb, var(--carb) 14%, var(--surface)); color: var(--carb); font: 600 13px/1 var(--font-body); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .wq.other { background: none; box-shadow: inset 0 0 0 1.5px var(--line); color: var(--muted); font-weight: 500; }
 .seg.wadd { color: var(--carb); font-weight: 600; font-variant-numeric: tabular-nums; }
 .wsub { font: 600 13px/1.2 var(--font-body); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 20px 0 10px; }
@@ -379,7 +379,7 @@ textarea:focus, .field input:focus, .field select:focus { border-color: var(--ac
 .wlog-i { display: inline-flex; align-items: center; gap: 6px; padding: 4px 4px 4px 12px; border-radius: 99px; background: var(--surface-2); font-size: 14.5px; font-variant-numeric: tabular-nums; }
 .wlog-i .xbtn { width: 26px; height: 26px; background: var(--surface); }
 .wlog-i .xbtn svg { width: 11px; height: 11px; }
-.glass { flex: 1 1 0; min-width: 0; max-width: 44px; border: 0; background: none; padding: 4px 0 0; --gd: 0ms; }
+.glass { flex: 1 1 0; min-width: 0; max-width: 32px; border: 0; background: none; padding: 4px 0 0; --gd: 0ms; }
 .glass svg { display: block; width: 100%; height: auto; overflow: visible; }
 .glass .gl { fill: var(--track); }
 .glass .wt { fill: var(--carb); transform: translateY(calc(36px - 29px * var(--f, 0))); transition: transform .4s cubic-bezier(.3, .9, .3, 1) var(--gd); }
@@ -435,17 +435,15 @@ textarea:focus, .field input:focus, .field select:focus { border-color: var(--ac
 .types:not(.sm) > .tchip:last-child:nth-child(3n+1) { grid-column: 1 / -1; }
 .chip-state.warn { background: var(--warn-soft); color: var(--warn); }
 .chip-state.soft { background: var(--over-soft); color: var(--over-ink); }
-.mtiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 14px; }
+.mtiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
 #summary > div > .mtiles { margin-top: 0; }
-.mtile { border: 0; border-radius: 18px; padding: 10px 4px 9px; display: grid; justify-items: center; gap: 1px; text-align: center; color: var(--ink); min-width: 0; background: color-mix(in srgb, var(--c) 9%, var(--surface)); }
-.mtile .mr { position: relative; width: 42px; height: 42px; display: grid; place-items: center; margin-bottom: 4px; }
-.mtile svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
-.mtile .trk { fill: none; stroke: color-mix(in srgb, var(--c) 22%, var(--surface)); stroke-width: 4; }
-.mtile .val { fill: none; stroke: var(--c); stroke-width: 4; stroke-linecap: round; }
-.mtile .mr > span { font: 700 11px/1 var(--font-display); color: var(--c); }
-.mtile .nm { font-size: 12.5px; color: var(--muted); }
-.mtile .v { font: 700 16px/1.2 var(--font-display); }
-.mtile .s { font-size: 11.5px; color: var(--muted); }
+.mtile { border: 0; border-radius: 16px; padding: 10px 11px 12px; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; gap: 3px 6px; text-align: left; color: var(--ink); min-width: 0; background: color-mix(in srgb, var(--c) 9%, var(--surface)); }
+.mtile .nm { grid-column: 1 / -1; font-size: 12.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mtile .pc { grid-column: 2; grid-row: 2; font: 700 11.5px/1 var(--font-display); color: var(--c); }
+.mtile .v { grid-column: 1; grid-row: 2; font: 700 17px/1.15 var(--font-display); white-space: nowrap; }
+.mtile .bar { grid-column: 1 / -1; height: 5px; margin-top: 5px; border-radius: 99px; overflow: hidden; background: color-mix(in srgb, var(--c) 22%, var(--surface)); }
+.mtile .bar i { display: block; height: 100%; border-radius: inherit; background: var(--c); transition: width .5s cubic-bezier(.3, .9, .3, 1); }
+.mtile .s { grid-column: 1 / -1; font-size: 11.5px; color: var(--muted); }
 button.mtile .s { color: var(--accent); font-weight: 600; }
 .mealcards { display: grid; gap: 14px; min-width: 0; }
 .mcard { padding: 14px 16px 6px; }
@@ -970,7 +968,15 @@ html.pg-hold .app, html.pg-hold .tabbar { opacity: 0; }
 
 /* Шкатулка */
 .gembox { display: flex; align-items: center; gap: 14px; }
-.gem.gembig { width: 52px; height: 52px; filter: drop-shadow(0 3px 6px rgba(160, 90, 200, .25)); }
+#actGems { padding-block: 12px; }
+/* Настройки: сворачиваемые разделы */
+#v-more > .card > h2:first-child { display: flex; align-items: center; justify-content: space-between; gap: 10px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+#v-more > .card > h2:first-child::after { content: ''; flex: none; width: 8px; height: 8px; margin-right: 4px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: translateY(-2px) rotate(45deg); transition: transform .2s ease; }
+#v-more > .card.fold > h2:first-child { margin: 0; }
+#v-more > .card.fold > h2:first-child::after { transform: rotate(-45deg); }
+#v-more > .card.fold > :not(h2:first-child) { display: none !important; }
+#v-more > .card > h2:first-child:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 6px; }
+.gem.gembig { width: 44px; height: 44px; filter: drop-shadow(0 3px 6px rgba(160, 90, 200, .25)); }
 .gemrow { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-top: 12px; }
 .gemrow .gem { width: 20px; height: 20px; }
 .toast .gem { animation: pop .5s ease-out; }
@@ -1162,7 +1168,7 @@ html.pg-hold .app, html.pg-hold .tabbar { opacity: 0; }
     <ellipse cx="33" cy="90" rx="9" ry="13" transform="rotate(-28 33 90)" style="fill:var(--plush)"/>
     <ellipse cx="87" cy="90" rx="9" ry="13" transform="rotate(28 87 90)" style="fill:var(--plush)"/>
     <g style="opacity:var(--b-coat,0)"><ellipse cx="60" cy="94.6" rx="30.6" ry="22.6" style="fill:var(--bc1)"/><g clip-path="url(#bwCoat)"><path d="M28 87q32 7 64 0M28 96q32 7 64 0M28 105q32 7 64 0" fill="none" style="stroke:var(--bc3)" stroke-width="1.2" stroke-linecap="round"/><path d="M28 111.6q32 6 64 0V120H28z" style="fill:var(--bc2)"/><path d="M60 78v40" style="stroke:var(--bc3)" stroke-width="1.3"/><path d="M36 84c2.6-3 6-5 10-6" fill="none" stroke="#fff" stroke-opacity=".45" stroke-width="2" stroke-linecap="round"/></g><rect x="58.4" y="84.6" width="3.2" height="5.4" rx="1.2" style="fill:var(--bc3)"/><circle cx="60" cy="88.6" r=".8" fill="#fff" fill-opacity=".8"/><path d="M72.6 99.6c-2.6-1.7-3.9-3.1-3.9-4.5 0-1 .8-1.7 1.7-1.7.9 0 1.6.5 2.2 1.3.6-.8 1.3-1.3 2.2-1.3.9 0 1.7.7 1.7 1.7 0 1.4-1.3 2.8-3.9 4.5z" style="fill:var(--blush);opacity:var(--b-heart,1)" stroke="#fff" stroke-width=".8"/><ellipse cx="33" cy="89.4" rx="10.2" ry="13.4" transform="rotate(-28 33 89.4)" style="fill:var(--bc1)"/><g clip-path="url(#bwSleeveL)"><g transform="rotate(-28 33 89.4)"><path d="M22 84q11 3 22 0M22 91q11 3 22 0" fill="none" style="stroke:var(--bc3)" stroke-width="1.1" stroke-linecap="round"/><rect x="22" y="96.6" width="22" height="3.6" style="fill:var(--bc2)"/><rect x="22" y="100.2" width="22" height="6" style="fill:var(--plush)"/></g></g><ellipse cx="87" cy="89.4" rx="10.2" ry="13.4" transform="rotate(28 87 89.4)" style="fill:var(--bc1)"/><g clip-path="url(#bwSleeveR)"><g transform="rotate(28 87 89.4)"><path d="M76 84q11 3 22 0M76 91q11 3 22 0" fill="none" style="stroke:var(--bc3)" stroke-width="1.1" stroke-linecap="round"/><rect x="76" y="96.6" width="22" height="3.6" style="fill:var(--bc2)"/><rect x="76" y="100.2" width="22" height="6" style="fill:var(--plush)"/></g></g><path d="M38.6 76Q60 87.4 81.4 76q3.6 2.4 1.6 6.2Q60 94.6 37 82.2q-2-3.8 1.6-6.2z" style="fill:var(--bc2)"/><path d="M40 79.4Q60 89.6 80 79.4" fill="none" style="stroke:var(--bc3)" stroke-width="1" stroke-opacity=".7"/></g>
-    <g style="opacity:calc(var(--b-heart,1) * (1 - var(--b-scarf-bandana,0)) * (1 - var(--b-coat,0)))"><path d="M60 107c-7-4.6-10.5-8.4-10.5-12.2 0-2.6 2-4.6 4.6-4.6 2.4 0 4.3 1.3 5.9 3.4 1.6-2.1 3.5-3.4 5.9-3.4 2.6 0 4.6 2 4.6 4.6 0 3.8-3.5 7.6-10.5 12.2z" style="fill:var(--blush)"/>
+    <g style="opacity:calc(var(--b-heart,1) * (1 - var(--b-scarf-bandana,0)) * (1 - var(--b-coat,0)) * (1 - var(--b-item-cocoa,0)))"><path d="M60 107c-7-4.6-10.5-8.4-10.5-12.2 0-2.6 2-4.6 4.6-4.6 2.4 0 4.3 1.3 5.9 3.4 1.6-2.1 3.5-3.4 5.9-3.4 2.6 0 4.6 2 4.6 4.6 0 3.8-3.5 7.6-10.5 12.2z" style="fill:var(--blush)"/>
     <path d="M60 107c-7-4.6-10.5-8.4-10.5-12.2 0-2.6 2-4.6 4.6-4.6 2.4 0 4.3 1.3 5.9 3.4 1.6-2.1 3.5-3.4 5.9-3.4 2.6 0 4.6 2 4.6 4.6 0 3.8-3.5 7.6-10.5 12.2z" transform="translate(60 98) scale(.74) translate(-60 -98)" fill="none" stroke="#fff" stroke-width="1.2" stroke-dasharray="2 2" opacity=".9"/></g>
     <circle cx="33" cy="27" r="12.5" style="fill:var(--plush)"/>
     <circle cx="87" cy="27" r="12.5" style="fill:var(--plush)"/>
@@ -1202,8 +1208,10 @@ html.pg-hold .app, html.pg-hold .tabbar { opacity: 0; }
     <g style="opacity:var(--b-hat-beret,0)"><path d="M58 13.5l2.2-5.4" stroke="#9B78E0" stroke-width="2.6" stroke-linecap="round"/><ellipse cx="56" cy="23" rx="29" ry="10" transform="rotate(-9 56 23)" fill="#B794F6"/><path d="M30 27.5c9 4.6 34 2.8 52-3.6" fill="none" stroke="#9B78E0" stroke-width="2.2" stroke-linecap="round"/><ellipse cx="48" cy="18.5" rx="9" ry="3" transform="rotate(-12 48 18.5)" fill="#fff" opacity=".25"/></g>
     <g style="opacity:var(--b-hat-sunhat,0)"><ellipse cx="60" cy="27.5" rx="36" ry="7.4" fill="#F3DDA8"/><path d="M43 27c0-11.5 7.6-17.5 17-17.5S77 15.5 77 27z" fill="#F6E4B6"/><path d="M43.2 21.4h33.6v5H43.2z" fill="#F4A9C8"/><path d="M27 28.5c10 4 56 4 66 0" fill="none" stroke="#E3C88A" stroke-width="1.2" opacity=".8"/><g transform="translate(73 23.6)"><circle r="2.6" cx="0" cy="-3" fill="#fff"/><circle r="2.6" cx="2.9" cy="-.9" fill="#fff"/><circle r="2.6" cx="1.8" cy="2.4" fill="#fff"/><circle r="2.6" cx="-1.8" cy="2.4" fill="#fff"/><circle r="2.6" cx="-2.9" cy="-.9" fill="#fff"/><circle r="1.8" fill="#F6CC62"/></g></g>
     <g style="opacity:var(--b-hat-crown,0)"><path d="M48.5 25l1.6-11.5 5.6 6.2 4.3-8.7 4.3 8.7 5.6-6.2 1.6 11.5z" fill="url(#gemFill-gold)" stroke="#fff" stroke-width="1.1" stroke-linejoin="round"/><circle cx="60" cy="19.6" r="2.3" fill="url(#gemFill-ruby)"/><circle cx="52.4" cy="21.4" r="1.3" fill="#fff"/><circle cx="67.6" cy="21.4" r="1.3" fill="#fff"/></g>
+    <g style="opacity:var(--b-hat-santa,0)"><path d="M37 29C38 13 52 3 68 4.5c11 1 18 8 24 14.5 3.2 3.5 6.4 5.4 9.6 5.8-4 3.6-10.4 3.4-15.6-.4 1.8 3.2 2.6 6.4 2 9.6z" style="fill:var(--bh1)"/><path d="M50 10c5-3.2 12-4.2 18-3.2" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="2.4" stroke-linecap="round"/><path d="M33.6 31.4c8.6-9.8 44.2-9.8 52.8 0l-.4 8.2c-10-7.8-41.6-7.8-52 0z" style="fill:var(--bh2)"/><g style="fill:var(--bh2)"><circle cx="36" cy="35.2" r="3.4"/><circle cx="47" cy="29.6" r="3.4"/><circle cx="60" cy="28" r="3.4"/><circle cx="73" cy="29.6" r="3.4"/><circle cx="84" cy="35.2" r="3.4"/></g><circle cx="102" cy="25" r="6.2" style="fill:var(--bh2)"/><circle cx="100.2" cy="23.2" r="1.8" fill="#fff" opacity=".9"/></g>
     <g style="opacity:var(--b-hat-panama,0)"><path d="M27 29.4Q60 21.4 93 29.4L97 36.6Q60 45.6 23 36.6z" style="fill:var(--bh2)"/><path d="M35.6 28.2C36.4 12.6 46 3.6 60 3.6S83.6 12.6 84.4 28.2Q60 23.6 35.6 28.2z" style="fill:var(--bh1)"/><path d="M36 24.2Q60 19.6 84 24.2l.4 4Q60 23.6 35.6 28.2z" style="fill:var(--bh3)"/><path d="M25.6 35.2Q60 43.6 94.4 35.2" fill="none" stroke="#fff" stroke-opacity=".6" stroke-width=".9" stroke-dasharray="1.8 1.5"/><path d="M44 12c3-3 7-4.8 11.6-5.2" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="1.8" stroke-linecap="round"/><g transform="translate(77.6 25.6)"><circle cy="-2.4" r="2" fill="#fff"/><circle cx="2.3" cy="-.8" r="2" fill="#fff"/><circle cx="1.4" cy="2" r="2" fill="#fff"/><circle cx="-1.4" cy="2" r="2" fill="#fff"/><circle cx="-2.3" cy="-.8" r="2" fill="#fff"/><circle r="1.3" fill="#F6CC62"/></g><g clip-path="url(#bwEarsUp)"><circle cx="33" cy="27" r="12.5" style="fill:var(--plush)"/><circle cx="87" cy="27" r="12.5" style="fill:var(--plush)"/><circle cx="33" cy="28" r="6.5" style="fill:var(--blush)"/><circle cx="87" cy="28" r="6.5" style="fill:var(--blush)"/></g></g><g style="opacity:var(--b-hat-muffs,0)"><path d="M30 25.6C32 6 88 6 90 25.6" fill="none" style="stroke:var(--bh2)" stroke-width="3.6" stroke-linecap="round"/><path d="M33.4 19.4C38 9.2 82 9.2 86.6 19.4" fill="none" stroke="#fff" stroke-opacity=".45" stroke-width="1" stroke-linecap="round"/><circle cx="31.6" cy="29" r="10.2" style="fill:var(--bh1)"/><circle cx="41.8" cy="29.0" r="3.1" style="fill:var(--bh1)"/><circle cx="39.9" cy="35.0" r="3.1" style="fill:var(--bh1)"/><circle cx="34.8" cy="38.7" r="3.1" style="fill:var(--bh1)"/><circle cx="28.4" cy="38.7" r="3.1" style="fill:var(--bh1)"/><circle cx="23.3" cy="35.0" r="3.1" style="fill:var(--bh1)"/><circle cx="21.4" cy="29.0" r="3.1" style="fill:var(--bh1)"/><circle cx="23.3" cy="23.0" r="3.1" style="fill:var(--bh1)"/><circle cx="28.4" cy="19.3" r="3.1" style="fill:var(--bh1)"/><circle cx="34.8" cy="19.3" r="3.1" style="fill:var(--bh1)"/><circle cx="39.9" cy="23.0" r="3.1" style="fill:var(--bh1)"/><circle cx="28.0" cy="25.4" r="3.1" fill="#fff" fill-opacity=".45"/><circle cx="88.4" cy="29" r="10.2" style="fill:var(--bh1)"/><circle cx="98.6" cy="29.0" r="3.1" style="fill:var(--bh1)"/><circle cx="96.7" cy="35.0" r="3.1" style="fill:var(--bh1)"/><circle cx="91.6" cy="38.7" r="3.1" style="fill:var(--bh1)"/><circle cx="85.2" cy="38.7" r="3.1" style="fill:var(--bh1)"/><circle cx="80.1" cy="35.0" r="3.1" style="fill:var(--bh1)"/><circle cx="78.2" cy="29.0" r="3.1" style="fill:var(--bh1)"/><circle cx="80.1" cy="23.0" r="3.1" style="fill:var(--bh1)"/><circle cx="85.2" cy="19.3" r="3.1" style="fill:var(--bh1)"/><circle cx="91.6" cy="19.3" r="3.1" style="fill:var(--bh1)"/><circle cx="96.7" cy="23.0" r="3.1" style="fill:var(--bh1)"/><circle cx="84.8" cy="25.4" r="3.1" fill="#fff" fill-opacity=".45"/></g>
     <g style="opacity:var(--b-item-umbrella,0)"><path d="M90.6 5L84.4 75" stroke="#7A6A8C" stroke-width="2.2" stroke-linecap="round"/><g transform="translate(88.4 30.6) rotate(5)"><path d="M-30 0C-30 -18.4 -16.8 -25.5 0 -25.5S30 -18.4 30 0q-5.00 -4.20 -10.00 0q-5.00 -4.20 -10.00 0q-5.00 -4.20 -10.00 0q-5.00 -4.20 -10.00 0q-5.00 -4.20 -10.00 0q-5.00 -4.20 -10.00 0z" style="fill:var(--bi1)"/><g clip-path="url(#bwUmb)"><g style="opacity:var(--bi-pat-dots,0)" fill="#fff" fill-opacity=".92"><circle cx="-19" cy="-6" r="2.3"/><circle cx="-9" cy="-14" r="2.3"/><circle cx="2" cy="-20" r="2.3"/><circle cx="12" cy="-13" r="2.3"/><circle cx="21" cy="-6" r="2.3"/><circle cx="-2" cy="-6" r="2.3"/><circle cx="8" cy="-3" r="2.3"/><circle cx="-14" cy="-1" r="2.3"/></g><g style="opacity:var(--bi-pat-stripes,0)"><path d="M0 -25.5L-20 2" stroke="var(--bi2)" stroke-width="7.4"/><path d="M0 -25.5L0 2" stroke="var(--bi2)" stroke-width="7.4"/><path d="M0 -25.5L20 2" stroke="var(--bi2)" stroke-width="7.4"/></g><g style="opacity:var(--bi-pat-hearts,0)" fill="#F48DB8"><path transform="translate(-15 -7) scale(1.6)" d="M0 2.6C-2 1.3-3 .2-3-.9c0-.8.6-1.3 1.3-1.3.7 0 1.2.4 1.7 1 .5-.6 1-1 1.7-1 .7 0 1.3.5 1.3 1.3 0 1.1-1 2.2-3 3.5z"/><path transform="translate(0 -16) scale(1.6)" d="M0 2.6C-2 1.3-3 .2-3-.9c0-.8.6-1.3 1.3-1.3.7 0 1.2.4 1.7 1 .5-.6 1-1 1.7-1 .7 0 1.3.5 1.3 1.3 0 1.1-1 2.2-3 3.5z"/><path transform="translate(14 -7) scale(1.6)" d="M0 2.6C-2 1.3-3 .2-3-.9c0-.8.6-1.3 1.3-1.3.7 0 1.2.4 1.7 1 .5-.6 1-1 1.7-1 .7 0 1.3.5 1.3 1.3 0 1.1-1 2.2-3 3.5z"/><path transform="translate(-3 -4) scale(1.6)" d="M0 2.6C-2 1.3-3 .2-3-.9c0-.8.6-1.3 1.3-1.3.7 0 1.2.4 1.7 1 .5-.6 1-1 1.7-1 .7 0 1.3.5 1.3 1.3 0 1.1-1 2.2-3 3.5z"/></g><path d="M0 -25.5Q-11.0 -14.0 -20.0 -1.2M0 -25.5Q-5.5 -14.0 -10.0 -1.2M0 -25.5Q0.0 -14.0 0.0 -1.2M0 -25.5Q5.5 -14.0 10.0 -1.2M0 -25.5Q11.0 -14.0 20.0 -1.2" fill="none" stroke="var(--bi3)" stroke-opacity=".5" stroke-width="1.1"/><path d="M-23.4 -10.7Q-18.0 -22.9 -3.6 -25.0" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="2.2" stroke-linecap="round"/></g><circle cx="-30.0" cy="-.4" r="1" style="fill:var(--bi3)"/><circle cx="-20.0" cy="-.4" r="1" style="fill:var(--bi3)"/><circle cx="-10.0" cy="-.4" r="1" style="fill:var(--bi3)"/><circle cx="0.0" cy="-.4" r="1" style="fill:var(--bi3)"/><circle cx="10.0" cy="-.4" r="1" style="fill:var(--bi3)"/><circle cx="20.0" cy="-.4" r="1" style="fill:var(--bi3)"/><circle cx="30.0" cy="-.4" r="1" style="fill:var(--bi3)"/><path d="M0 -25.5v-3.4" stroke="var(--bi3)" stroke-width="2" stroke-linecap="round"/></g></g><g style="opacity:var(--b-item-umbrella,0)"><path d="M84.6 73L82.8 104.6" stroke="#7A6A8C" stroke-width="2.2" stroke-linecap="round"/><path d="M82.8 104.2q-.4 6.6 3.6 6.8 3.4 .2 3.4-3.4" fill="none" style="stroke:var(--bi3)" stroke-width="3" stroke-linecap="round"/><ellipse cx="82" cy="100.4" rx="5.6" ry="4.8" transform="rotate(28 82 100.4)" style="fill:var(--plush)"/><path d="M79.4 102.8q1.4 1 2.8.6M81.6 103.6q1.4.8 2.8.2" fill="none" style="stroke:var(--plush-3)" stroke-width=".8" stroke-linecap="round"/></g><g style="opacity:var(--b-item-balloon,0)"><path d="M91.6 83.4C88.8 90 84 95.6 82.4 100.6" fill="none" stroke="#9A93AA" stroke-width=".9"/><ellipse cx="82" cy="100.4" rx="5.6" ry="4.8" transform="rotate(28 82 100.4)" style="fill:var(--plush)"/><path d="M79.4 102.8q1.4 1 2.8.6M81.6 103.6q1.4.8 2.8.2" fill="none" style="stroke:var(--plush-3)" stroke-width=".8" stroke-linecap="round"/></g>
+    <g style="opacity:var(--b-item-cocoa,0)"><g fill="none" stroke="#fff" stroke-opacity=".7" stroke-width="1.3" stroke-linecap="round"><path d="M71 89.2q-1.8-2.5 0-5t0-5"/><path d="M75.6 88.6q-1.8-2.5 0-5t0-5"/></g><path d="M79.6 94.2h1.6a3.5 3.5 0 0 1 0 7h-1.6" fill="none" style="stroke:var(--bi2)" stroke-width="2.4"/><path d="M66.8 91.6h13.2l-.9 10.6a3 3 0 0 1-3 2.7h-5.4a3 3 0 0 1-3-2.7z" style="fill:var(--bi1)"/><path d="M68 93.6l.7 8.4" stroke="#fff" stroke-opacity=".45" stroke-width="1.1" stroke-linecap="round"/><ellipse cx="73.4" cy="91.8" rx="6.6" ry="1.7" fill="#8B5E4A"/><rect x="70" y="89.8" width="2.9" height="2.4" rx=".8" fill="#fff"/><rect x="73.6" y="89.4" width="2.9" height="2.4" rx=".8" fill="#FFE3EE"/><path d="M72.4 99.3c-1.9-1.3-2.8-2.3-2.8-3.3 0-.7.5-1.3 1.3-1.3.6 0 1.1.3 1.5.9.4-.6.9-.9 1.5-.9.8 0 1.3.6 1.3 1.3 0 1-.9 2-2.8 3.3z" fill="#fff" fill-opacity=".85"/><ellipse cx="82" cy="100.4" rx="5.6" ry="4.8" transform="rotate(28 82 100.4)" style="fill:var(--plush)"/><path d="M79.4 102.8q1.4 1 2.8.6M81.6 103.6q1.4.8 2.8.2" fill="none" style="stroke:var(--plush-3)" stroke-width=".8" stroke-linecap="round"/></g>
   </symbol>
 </svg>
 
@@ -1223,9 +1231,6 @@ html.pg-hold .app, html.pg-hold .tabbar { opacity: 0; }
     <div class="wstrip" id="weekStrip" role="group" aria-label="Дни недели" hidden></div>
     <div class="card" id="summary"></div>
     <div class="card" id="water" hidden></div>
-    <div id="habMini"></div>
-    <div id="actMini"></div>
-    <div id="tips" class="view" style="padding:0"></div>
     <div class="card composer">
       <div class="lblrow"><label class="lbl" for="food" id="foodLbl">Что съела?</label><button class="photobtn" type="button" data-act="photo" aria-label="Распознать еду по фото"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.8l1.4-2h4.6l1.4 2h1.8A2.5 2.5 0 0 1 20 8.5v8a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.5z"/><circle cx="12" cy="12.5" r="3.5"/></svg>Фото</button></div>
       <textarea id="food" rows="2" enterkeyhint="done" autocomplete="off" autocapitalize="sentences" spellcheck="false" placeholder="Например: 2 яйца, 150 г творога, кофе с молоком"></textarea>
@@ -1236,6 +1241,9 @@ html.pg-hold .app, html.pg-hold .tabbar { opacity: 0; }
     </div>
     <div class="card" id="entries"></div>
     <div id="quickWrap"></div>
+    <div id="habMini"></div>
+    <div id="actMini"></div>
+    <div id="tips" class="view" style="padding:0"></div>
   </section>
 
   <!-- Дневник -->
